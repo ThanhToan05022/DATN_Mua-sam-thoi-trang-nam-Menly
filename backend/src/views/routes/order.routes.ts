@@ -12,9 +12,11 @@ export const orderRoutes = (
     order: RequestHandler;
     track: RequestHandler;
   },
-  vm: OrderViewModel
+  vm: OrderViewModel,
+  requireCustomer?: RequestHandler
 ): Router => {
   const router = Router();
+  const mustBeCustomer: RequestHandler[] = requireCustomer ? [requireCustomer] : [];
 
   // Public order tracking (guest lookup by code and phone)
   router.get('/track', rateLimits.track, async (req, res, next) => {
@@ -28,7 +30,8 @@ export const orderRoutes = (
   });
 
   // Authenticated routes
-  router.post('/', requireAuth, rateLimits.order, async (req, res, next) => {
+  // requireCustomer: guest (anonymous) không được tạo đơn, phải đăng nhập thật
+  router.post('/', requireAuth, ...mustBeCustomer, rateLimits.order, async (req, res, next) => {
     try {
       const body = createOrderSchema.parse(req.body);
       const idempotencyKey = req.headers['idempotency-key'] as string | undefined;

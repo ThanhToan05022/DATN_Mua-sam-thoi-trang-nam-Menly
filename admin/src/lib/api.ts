@@ -1,0 +1,217 @@
+import type {
+  Order,
+  OrderStatus,
+  Product,
+  Category,
+  InventoryMovement,
+  AuditLog,
+  UserAccount,
+} from './types';
+
+// ========== CONFIG ==========
+function getApiUrl(): string {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('menshop_api_url') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+}
+
+function getAdminToken(): string {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('menshop_admin_token') || 'Bearer mock-admin-123';
+  }
+  return 'Bearer mock-admin-123';
+}
+
+async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const BASE = getApiUrl();
+  const token = getAdminToken();
+  const res = await fetch(`${BASE}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: token,
+      ...(options?.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: { message: res.statusText } }));
+    throw new Error(err?.error?.message || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ========== HEALTH ==========
+export async function checkServerHealth(): Promise<boolean> {
+  try {
+    const BASE = getApiUrl();
+    const res = await fetch(`${BASE}/health`, { method: 'GET' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ========== CATEGORIES ==========
+export async function fetchCategories(): Promise<Category[]> {
+  const data = await apiFetch<{ data: Category[] } | Category[]>('/api/v1/categories');
+  if (Array.isArray(data)) return data;
+  return (data as { data: Category[] }).data || [];
+}
+
+// ========== PRODUCTS ==========
+export async function fetchAdminProducts(params?: {
+  limit?: number;
+  page?: number;
+  categoryId?: string;
+  search?: string;
+}): Promise<{ items: Product[]; total: number }> {
+  const query = new URLSearchParams();
+  if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.categoryId) query.set('categoryId', params.categoryId);
+  if (params?.search) query.set('search', params.search);
+
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  const data = await apiFetch<{ data: Product[]; pagination?: { total: number } } | Product[]>(
+    `/api/v1/admin/products${qs}`
+  );
+
+  if (Array.isArray(data)) {
+    return { items: data, total: data.length };
+  }
+  const typed = data as { data: Product[]; pagination?: { total: number } };
+  return {
+    items: typed.data || [],
+    total: typed.pagination?.total || typed.data?.length || 0,
+  };
+}
+
+export async function fetchProductDetail(id: string): Promise<Product | null> {
+  try {
+    const data = await apiFetch<{ data: Product } | Product>(`/api/v1/products/${id}`);
+    if ('data' in (data as object)) return (data as { data: Product }).data;
+    return data as Product;
+  } catch {
+    return null;
+  }
+}
+
+// ========== ORDERS ==========
+export async function fetchAdminOrders(params?: { status?: string }): Promise<Order[]> {
+  const query = new URLSearchParams();
+  if (params?.status && params.status !== 'all') query.set('status', params.status);
+  const qs = query.toString() ? `?${query.toString()}` : '';
+
+  const data = await apiFetch<{ data: Order[] } | Order[]>(`/api/v1/admin/orders${qs}`);
+
+  let orders: Order[] = [];
+  if (Array.isArray(data)) {
+    orders = data;
+  } else {
+    orders = (data as { data: Order[] }).data || [];
+  }
+
+  // Normalize shippingAddress from flat fields
+  return orders.map((o) => ({
+    ...o,
+    shippingAddress: o.shippingAddress || {
+      name: o.shipName || '',
+      phone: o.shipPhone || '',
+      address: o.shipAddress || '',
+    },
+  }));
+}
+
+export async function updateOrderStatus(
+  orderId: string,
+  status: OrderStatus,
+  note?: string
+): Promise<void> {
+  await apiFetch(`/api/v1/admin/orders/${orderId}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status, note: note || '' }),
+  });
+}
+
+// ========== INVENTORY ==========
+export async function fetchInventoryMovements(): Promise<InventoryMovement[]> {
+  const data = await apiFetch<{ data: InventoryMovement[] } | InventoryMovement[]>(
+    '/api/v1/admin/inventory/movements'
+  );
+  if (Array.isArray(data)) return data;
+  return (data as { data: InventoryMovement[] }).data || [];
+}
+
+export async function adjustInventory(params: {
+  variantId: string;
+  change: number;
+  reason: string;
+  note?: string;
+}): Promise<void> {
+  await apiFetch('/api/v1/admin/inventory/adjust', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+// ========== AUDIT LOGS ==========
+export async function fetchAuditLogs(): Promise<AuditLog[]> {
+  const data = await apiFetch<{ data: AuditLog[] } | AuditLog[]>('/api/v1/admin/audit-log');
+  if (Array.isArray(data)) return data;
+  return (data as { data: AuditLog[] }).data || [];
+}
+
+// ========== USERS ==========
+export async function fetchAdminUsers(): Promise<UserAccount[]> {
+  const data = await apiFetch<{ data: UserAccount[] } | UserAccount[]>('/api/v1/admin/users');
+  if (Array.isArray(data)) return data;
+  return (data as { data: UserAccount[] }).data || [];
+}
+
+export async function updateUserRole(userId: string, role: 'admin' | 'customer'): Promise<void> {
+  await apiFetch(`/api/v1/admin/users/${userId}/role`, {
+    method: 'PUT',
+    body: JSON.stringify({ role }),
+  });
+}
+
+// ========== AUTH ==========
+export interface AuthSession {
+  user: {
+    id: string;
+    email: string;
+    fullName?: string;
+    role: string;
+    accessToken?: string;
+  };
+  accessToken: string;
+}
+
+export async function loginUser(email: string, password: string): Promise<AuthSession> {
+  const BASE = getApiUrl();
+  const res = await fetch(`${BASE}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error?.message || 'Đăng nhập thất bại');
+  }
+  return {
+    user: {
+      id: data.user?.id || '',
+      email: data.user?.email || email,
+      fullName: data.user?.fullName || data.user?.full_name,
+      role: data.user?.role || 'customer',
+    },
+    accessToken: data.accessToken || '',
+  };
+}
+
+export async function getLockoutStatus(email: string): Promise<unknown> {
+  const BASE = getApiUrl();
+  const res = await fetch(`${BASE}/api/v1/auth/status?email=${encodeURIComponent(email)}`);
+  return res.json();
+}
