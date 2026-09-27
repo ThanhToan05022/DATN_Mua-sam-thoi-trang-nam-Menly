@@ -31,16 +31,43 @@ export function InventoryProductsTable({
     ];
   };
 
+  const getProductCategory = (p: Product): Category | undefined => {
+    if (p.categoryId) {
+      const found = categories.find((c) => c.id === p.categoryId || c.slug === p.categoryId);
+      if (found) return found;
+    }
+    const s = p.slug.toLowerCase();
+    if (s.startsWith('ao-so-mi')) return categories.find((c) => c.slug === 'ao-so-mi-nam');
+    if (s.startsWith('ao-polo') || s.startsWith('ao-thun')) return categories.find((c) => c.slug === 'ao-polo-t-shirt');
+    if (s.startsWith('quan-tay') || s.startsWith('quan-kaki') || s.startsWith('quan-au') || s.startsWith('quan-short')) {
+      return categories.find((c) => c.slug === 'quan-tay-kaki');
+    }
+    if (s.startsWith('quan-jeans') || s.startsWith('quan-bo')) return categories.find((c) => c.slug === 'quan-jeans-nam');
+    if (
+      s.startsWith('ao-khoac') ||
+      s.startsWith('ao-blazer') ||
+      s.startsWith('ao-mang-to') ||
+      s.startsWith('ao-phao') ||
+      s.startsWith('ao-gile') ||
+      s.startsWith('ao-hoodie')
+    ) {
+      return categories.find((c) => c.slug === 'ao-khoac-blazer');
+    }
+    return categories[0];
+  };
+
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.slug.toLowerCase().includes(search.toLowerCase());
-    const matchesCat = selectedCat === 'all' || p.categoryId === selectedCat;
+    const pCat = getProductCategory(p);
+    const matchesCat = selectedCat === 'all' || p.categoryId === selectedCat || pCat?.id === selectedCat;
     return matchesSearch && matchesCat;
   });
 
-  const getCategoryName = (catId: string) => {
-    return categories.find((c) => c.id === catId)?.name || 'Thời trang nam';
+  const getCategoryName = (p: Product) => {
+    const cat = getProductCategory(p);
+    return cat?.name || 'Thời trang nam';
   };
 
   return (
@@ -121,7 +148,7 @@ export function InventoryProductsTable({
 
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800 text-slate-300 text-[11px]">
-                        {getCategoryName(p.categoryId)}
+                        {getCategoryName(p)}
                       </span>
                     </td>
 
