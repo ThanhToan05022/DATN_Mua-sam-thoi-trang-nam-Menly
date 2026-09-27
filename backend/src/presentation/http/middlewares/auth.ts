@@ -75,3 +75,18 @@ export const requireAdmin: RequestHandler = (
   }
   next();
 };
+
+// Block guest (anonymous) users - chỉ cho phép customer và admin thật
+export const requireCustomer: RequestHandler = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void => {
+  if (!req.user) {
+    throw new AppError('UNAUTHORIZED', 401, 'Bạn cần đăng nhập để thực hiện thao tác này');
+  }
+  if (req.user.role === 'guest') {
+    throw new AppError('FORBIDDEN', 403, 'Bạn cần đăng ký tài khoản để mua hàng');
+  }
+  next();
+};
