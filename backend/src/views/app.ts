@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
 import pino from 'pino';
 
-import { createRequireAuth, requireAdmin } from '../presentation/http/middlewares/auth.js';
+import { createRequireAuth, requireAdmin, requireCustomer } from '../presentation/http/middlewares/auth.js';
 import { errorHandler, notFound } from '../presentation/http/middlewares/error-handler.js';
 import {
   generalRateLimit,
@@ -21,6 +21,7 @@ import { paymentRoutes } from './routes/payment.routes.js';
 import { adminRoutes } from './routes/admin.routes.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { userRoutes } from './routes/user.routes.js';
+import { profileRoutes } from './routes/profile.routes.js';
 
 import { viewModels, supabase } from '../container.js';
 
@@ -56,7 +57,8 @@ export function createApp(): Express {
     orderRoutes(
       requireAuth,
       { order: orderRateLimit, track: trackOrderRateLimit },
-      viewModels.order
+      viewModels.order,
+      requireCustomer
     )
   );
   app.use('/api/v1/payments', paymentRoutes(requireAuth, viewModels.payment));
@@ -68,6 +70,8 @@ export function createApp(): Express {
     '/api/v1/admin',
     adminRoutes(requireAuth, requireAdmin, viewModels.admin, viewModels.product)
   );
+  app.use('/api/v1/profile', profileRoutes(requireAuth, supabase));
+
   app.use('/api/v1/auth', authRoutes(viewModels.auth, requireAuth, requireAdmin));
 
   // 404 & Error Handlers
