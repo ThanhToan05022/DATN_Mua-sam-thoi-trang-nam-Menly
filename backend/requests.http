@@ -1,0 +1,195 @@
+### MenShop Backend - REST Client API Tests
+@baseUrl = http://localhost:5000
+@userToken = Bearer mock-user-123
+@adminToken = Bearer mock-admin-123
+
+### ==============================================================================
+### 1. HEALTH & METRICS
+### ==============================================================================
+
+### 1.1 Health Check Root
+GET {{baseUrl}}/health
+
+### 1.2 API v1 Health Check
+GET {{baseUrl}}/api/v1/health
+
+
+### ==============================================================================
+### 2. CATEGORIES & CATALOG (Public)
+### ==============================================================================
+
+### 2.1 Lấy danh sách danh mục (Cache 5 phút)
+GET {{baseUrl}}/api/v1/categories
+
+### 2.2 Danh sách sản phẩm (Cursor pagination mặc định 20 item, sắp xếp newest)
+GET {{baseUrl}}/api/v1/products?limit=5&sort=newest
+
+### 2.3 Danh sách sản phẩm - Sắp xếp giá tăng dần
+GET {{baseUrl}}/api/v1/products?limit=5&sort=price_asc
+
+### 2.4 Lọc sản phẩm theo khoảng giá và tìm kiếm
+GET {{baseUrl}}/api/v1/products?minPrice=300000&maxPrice=500000&q=so mi
+
+### 2.5 Chi tiết sản phẩm kèm variants và images
+GET {{baseUrl}}/api/v1/products/a0000000-0000-0000-0000-000000000001
+
+
+### ==============================================================================
+### 3. GIỎ HÀNG (Yêu cầu Token)
+### ==============================================================================
+
+### 3.1 Thêm / Cập nhật sản phẩm vào giỏ
+PUT {{baseUrl}}/api/v1/cart/items
+Authorization: {{userToken}}
+Content-Type: application/json
+
+{
+  "variantId": "v1111111-1111-1111-1111-111111111111",
+  "quantity": 2
+}
+
+### 3.2 Lấy giỏ hàng hiện tại
+GET {{baseUrl}}/api/v1/cart
+Authorization: {{userToken}}
+
+### 3.3 Xóa sản phẩm khỏi giỏ
+DELETE {{baseUrl}}/api/v1/cart/items/v1111111-1111-1111-1111-111111111111
+Authorization: {{userToken}}
+
+
+### ==============================================================================
+### 4. ĐẶT HÀNG & TRA CỨU
+### ==============================================================================
+
+### 4.1 Đặt hàng COD (Tự động lấy sản phẩm từ giỏ trên server)
+# @name createOrderCod
+POST {{baseUrl}}/api/v1/orders
+Authorization: {{userToken}}
+Content-Type: application/json
+Idempotency-Key: test-order-uuid-001
+
+{
+  "items": [
+    { "variantId": "v1111111-1111-1111-1111-111111111112", "quantity": 1 }
+  ],
+  "ship": {
+    "name": "Nguyễn Văn A",
+    "phone": "0987654321",
+    "address": "Số 123 Đường Cầu Giấy, Hà Nội"
+  },
+  "paymentMethod": "cod"
+}
+
+### 4.2 Đặt hàng thanh toán VNPay
+# @name createOrderVnpay
+POST {{baseUrl}}/api/v1/orders
+Authorization: {{userToken}}
+Content-Type: application/json
+Idempotency-Key: test-order-vnpay-002
+
+{
+  "items": [
+    { "variantId": "v2222222-2222-2222-2222-222222222221", "quantity": 1 }
+  ],
+  "ship": {
+    "name": "Trần Thị B",
+    "phone": "0912345678",
+    "address": "Số 456 Lê Lợi, Quận 1, TP. HCM"
+  },
+  "paymentMethod": "vnpay"
+}
+
+### 4.3 Xem lịch sử đơn hàng của tôi (Cursor pagination)
+GET {{baseUrl}}/api/v1/orders?limit=10
+Authorization: {{userToken}}
+
+### 4.4 Tra cứu đơn hàng cho khách vãng lai (Không cần đăng nhập)
+GET {{baseUrl}}/api/v1/orders/track?code={{createOrderCod.response.body.code}}&phone=0987654321
+
+
+### ==============================================================================
+### 5. THANH TOÁN VNPAY (Sandbox)
+### ==============================================================================
+
+### 5.1 Tạo URL thanh toán VNPay cho đơn hàng
+POST {{baseUrl}}/api/v1/payments/vnpay/create
+Authorization: {{userToken}}
+Content-Type: application/json
+
+{
+  "orderId": "{{createOrderVnpay.response.body.id}}"
+}
+
+
+### ==============================================================================
+### 6. QUẢN TRỊ ADMIN (Yêu cầu quyền Admin)
+### ==============================================================================
+
+### 6.1 Lấy danh sách toàn bộ đơn hàng (Admin)
+GET {{baseUrl}}/api/v1/admin/orders
+Authorization: {{adminToken}}
+
+### 6.2 Cập nhật trạng thái đơn hàng (Admin: processing -> shipping)
+PUT {{baseUrl}}/api/v1/admin/orders/{{createOrderCod.response.body.id}}/status
+Authorization: {{adminToken}}
+Content-Type: application/json
+
+{
+  "status": "shipping",
+  "note": "Đã bàn giao đơn vị vận chuyển"
+}
+
+### 6.3 Điều chỉnh tồn kho thủ công (Admin)
+POST {{baseUrl}}/api/v1/admin/inventory/adjust
+Authorization: {{adminToken}}
+Content-Type: application/json
+
+{
+  "variantId": "v1111111-1111-1111-1111-111111111111",
+  "delta": 10,
+  "reason": "admin_restock",
+  "note": "Nhập thêm 10 áo size M"
+}
+
+### 6.4 Xem lịch sử biến động tồn kho (Admin)
+GET {{baseUrl}}/api/v1/admin/inventory/movements
+Authorization: {{adminToken}}
+
+### 6.5 Xem Audit Log (Admin)
+GET {{baseUrl}}/api/v1/admin/audit-log
+Authorization: {{adminToken}}
+
+
+### ==============================================================================
+### 7. XÁC THỰC & GIỚI HẠN ĐĂNG NHẬP (Progressive Lockout 5-10-20-30-60 phút)
+### ==============================================================================
+
+### 7.1 Kiểm tra trạng thái khóa tài khoản
+GET {{baseUrl}}/api/v1/auth/status?email=customer@menshop.vn
+
+### 7.2 Đăng nhập thành công (Admin)
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@menshop.vn",
+  "password": "Admin@123456"
+}
+
+### 7.3 Đăng nhập thất bại (Sai mật khẩu -> Trả về cảnh báo số lần thử còn lại)
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "customer@menshop.vn",
+  "password": "SaiMatKhau123"
+}
+
+### 7.4 Mở khóa tài khoản (Admin)
+POST {{baseUrl}}/api/v1/auth/unlock
+Authorization: {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "customer@menshop.vn"
+}
