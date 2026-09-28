@@ -79,4 +79,10 @@ export class ProductViewModel {
     }
     return product;
   }
+
+  async updateProduct(id: string, data: Partial<ProductDetail>): Promise<ProductDetail> {
+    const updated = await this.model.update(id, data);
+    this.cache.clear();
+    return updated;
+  }
 }
