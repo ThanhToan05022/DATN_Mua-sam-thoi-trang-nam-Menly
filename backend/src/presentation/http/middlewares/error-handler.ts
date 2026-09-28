@@ -28,8 +28,11 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return;
   }
 
-  const logFn = req.log?.error || console.error;
-  logFn({ err, path: req.path }, 'Unhandled error');
+  if (req.log) {
+    req.log.error({ err, path: req.path }, 'Unhandled error');
+  } else {
+    console.error('Unhandled error:', err);
+  }
 
   res.status(500).json({
     error: {

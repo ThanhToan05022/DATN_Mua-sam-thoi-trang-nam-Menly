@@ -326,3 +326,7 @@ dist/
 .env.*
 !.env.example
 .turbo/
+!admin/src/lib/
+!admin/src/lib/**
+!frontend/lib/
+!frontend/lib/**
