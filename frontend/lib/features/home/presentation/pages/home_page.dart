@@ -298,9 +298,9 @@ class _ProductCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    product.imageUrl.isNotEmpty
+                    (product.thumbnailUrl ?? "").isNotEmpty
                         ? CachedNetworkImage(
-                            imageUrl: product.imageUrl,
+                            imageUrl: (product.thumbnailUrl ?? ""),
                             fit: BoxFit.cover,
                             placeholder: (_, __) => Container(color: AppTheme.surface2, child: const Center(child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2))),
                             errorWidget: (_, __, ___) => _imagePlaceholder(product.name),

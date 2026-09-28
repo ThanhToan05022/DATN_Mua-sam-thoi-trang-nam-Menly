@@ -102,9 +102,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           height: 380,
           width: double.infinity,
           child: Stack(fit: StackFit.expand, children: [
-            p.imageUrl.isNotEmpty
+            (p.thumbnailUrl ?? "").isNotEmpty
                 ? CachedNetworkImage(
-                    imageUrl: p.imageUrl, fit: BoxFit.cover,
+                    imageUrl: (p.thumbnailUrl ?? ""), fit: BoxFit.cover,
                     errorWidget: (_, __, ___) => Container(color: AppTheme.surface2, child: Center(child: Text(p.name.isNotEmpty ? p.name[0] : '?', style: const TextStyle(color: AppTheme.primary, fontSize: 80, fontWeight: FontWeight.w900)))),
                   )
                 : Container(color: AppTheme.surface2, child: Center(child: Text(p.name.isNotEmpty ? p.name[0] : '?', style: const TextStyle(color: AppTheme.primary, fontSize: 80, fontWeight: FontWeight.w900)))),
@@ -132,15 +132,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             Row(children: [
               const Icon(Icons.star_rounded, color: AppTheme.primary, size: 16),
               const Text(' 4.8 ', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700, fontSize: 13)),
-              Text('• ${p.stock} còn lại', style: const TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+              Text('• ${p.variants.fold(0, (s, v) => s + v.stock)} còn lại', style: const TextStyle(color: AppTheme.textMuted, fontSize: 13)),
             ]),
 
             const SizedBox(height: 20),
             // Description
-            if (p.description.isNotEmpty) ...[
+            if ((p.description ?? '').isNotEmpty) ...[
               const Text('Mô tả', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
-              Text(p.description, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, height: 1.6)),
+              Text(p.description ?? '', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, height: 1.6)),
               const SizedBox(height: 20),
             ],
 
