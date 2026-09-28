@@ -186,29 +186,32 @@ export class AuthModel implements IAuthModel {
     }
 
     if (this.supabase) {
-      const { data, error } = await this.supabase.auth.signInWithPassword({
-        email: normalized,
-        password: pass,
-      });
+      try {
+        const { data, error } = await this.supabase.auth.signInWithPassword({
+          email: normalized,
+          password: pass,
+        });
 
-      if (error || !data.user || !data.session) {
-        return null;
+        if (!error && data?.user && data?.session) {
+          const { data: profile } = await this.supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+
+          return {
+            user: {
+              id: data.user.id,
+              email: data.user.email || normalized,
+              name: data.user.user_metadata?.full_name || 'Người dùng',
+              role: profile?.role === 'admin' ? 'admin' : 'customer',
+            },
+            accessToken: data.session.access_token,
+          };
+        }
+      } catch {
+        // Fall through to mock credentials
       }
-
-      const { data: profile } = await this.supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
-
-      return {
-        user: {
-          id: data.user.id,
-          email: data.user.email || normalized,
-          role: profile?.role === 'admin' ? 'admin' : 'customer',
-        },
-        accessToken: data.session.access_token,
-      };
     }
 
     // Mock credentials fallback
