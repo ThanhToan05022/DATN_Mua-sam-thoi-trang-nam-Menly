@@ -13,17 +13,22 @@ import 'features/order/presentation/pages/order_success_page.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/register_page.dart';
 import 'features/auth/presentation/pages/profile_page.dart';
+import 'features/splash/presentation/pages/splash_page.dart';
 
 void main() {
   runApp(const MenlyApp());
 }
 
 final _router = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/splash',
   routes: [
+    // Splash screen
+    GoRoute(path: '/splash', builder: (ctx, s) => const SplashPage()),
+
     // Auth routes — ngoài shell (không có bottom nav)
     GoRoute(path: '/login', builder: (ctx, s) => const LoginPage()),
     GoRoute(path: '/register', builder: (ctx, s) => const RegisterPage()),
+
 
     ShellRoute(
       builder: (ctx, state, child) => MainShell(child: child),
