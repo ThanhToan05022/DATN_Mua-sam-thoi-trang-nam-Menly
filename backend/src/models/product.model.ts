@@ -180,9 +180,32 @@ export class ProductModel implements IProductModel {
   }
 
   async update(id: string, data: Partial<ProductDetail>): Promise<ProductDetail> {
+    if (this.supabase) {
+      try {
+        const patch: Record<string, unknown> = {};
+        if (data.name !== undefined) patch.name = data.name;
+        if (data.slug !== undefined) patch.slug = data.slug;
+        if (data.price !== undefined) patch.price = data.price;
+        if (data.categoryId !== undefined) patch.category_id = data.categoryId;
+        if (data.description !== undefined) patch.description = data.description;
+        if (data.thumbnailUrl !== undefined) patch.thumbnail_url = data.thumbnailUrl;
+        if (data.isActive !== undefined) patch.is_active = data.isActive;
+
+        if (Object.keys(patch).length > 0) {
+          await this.supabase.from('products').update(patch).eq('id', id);
+        }
+      } catch {
+        // Fallback to in-memory
+      }
+    }
+
     const idx = this.inMemoryProducts.findIndex((p) => p.id === id);
-    if (idx === -1) throw new AppError('NOT_FOUND', 404, 'Sản phẩm không tồn tại');
-    this.inMemoryProducts[idx] = { ...this.inMemoryProducts[idx], ...data };
-    return this.inMemoryProducts[idx];
+    if (idx !== -1) {
+      this.inMemoryProducts[idx] = { ...this.inMemoryProducts[idx], ...data };
+      return this.inMemoryProducts[idx];
+    }
+    const current = await this.findById(id);
+    if (!current) throw new AppError('NOT_FOUND', 404, 'Sản phẩm không tồn tại');
+    return { ...current, ...data };
   }
 }

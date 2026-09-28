@@ -7,7 +7,7 @@ import {
   setUserRoleSchema,
   adminOrdersQuerySchema,
 } from '../../presentation/http/schemas/admin.schema.js';
-import { listProductsSchema } from '../../presentation/http/schemas/product.schema.js';
+import { listProductsSchema, productIdParamSchema } from '../../presentation/http/schemas/product.schema.js';
 
 export const adminRoutes = (
   requireAuth: RequestHandler,
@@ -24,6 +24,16 @@ export const adminRoutes = (
       const query = listProductsSchema.parse(req.query);
       const page = await productVm.listProducts({ ...query, includeInactive: true });
       res.json(page);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.put('/products/:id', async (req, res, next) => {
+    try {
+      const { id } = productIdParamSchema.parse(req.params);
+      const updated = await productVm.updateProduct(id, req.body);
+      res.json(updated);
     } catch (err) {
       next(err);
     }

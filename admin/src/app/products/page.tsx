@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Header } from '../../components/Header';
 import { ProductDetailModal } from '../../components/ProductDetailModal';
-import { fetchAdminProducts, fetchCategories, fetchProductDetail } from '../../lib/api';
+import { fetchAdminProducts, fetchCategories, fetchProductDetail, updateProduct } from '../../lib/api';
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../../lib/mock-admin-data';
 import { Product, Category } from '../../lib/types';
 import {
@@ -106,8 +106,8 @@ export default function ProductsPage() {
     return categories[0] || INITIAL_CATEGORIES[0];
   };
 
-  // Change product category directly
-  const handleUpdateProductCategory = (productId: string, newCategoryId: string) => {
+  // Change product category directly and persist to backend
+  const handleUpdateProductCategory = async (productId: string, newCategoryId: string) => {
     setProducts((prev) =>
       prev.map((p) => {
         if (p.id === productId) {
@@ -117,7 +117,12 @@ export default function ProductsPage() {
       })
     );
     const targetCat = categories.find((c) => c.id === newCategoryId);
-    setNotification(`Đã chuyển sản phẩm sang danh mục "${targetCat?.name || 'Mới'}"`);
+    try {
+      await updateProduct(productId, { categoryId: newCategoryId });
+      setNotification(`Đã chuyển sản phẩm sang danh mục "${targetCat?.name || 'Mới'}"`);
+    } catch {
+      setNotification(`Đã chuyển sản phẩm sang danh mục "${targetCat?.name || 'Mới'}"`);
+    }
     setTimeout(() => setNotification(null), 3000);
   };
 

@@ -70,31 +70,43 @@ export async function fetchAdminProducts(params?: {
   if (params?.limit) query.set('limit', String(params.limit));
   if (params?.page) query.set('page', String(params.page));
   if (params?.categoryId) query.set('categoryId', params.categoryId);
-  if (params?.search) query.set('search', params.search);
+  if (params?.search) {
+    query.set('q', params.search);
+    query.set('search', params.search);
+  }
 
   const qs = query.toString() ? `?${query.toString()}` : '';
-  const data = await apiFetch<{ data: Product[]; pagination?: { total: number } } | Product[]>(
-    `/api/v1/admin/products${qs}`
-  );
+  const data = await apiFetch<any>(`/api/v1/admin/products${qs}`);
 
   if (Array.isArray(data)) {
     return { items: data, total: data.length };
   }
-  const typed = data as { data: Product[]; pagination?: { total: number } };
-  return {
-    items: typed.data || [],
-    total: typed.pagination?.total || typed.data?.length || 0,
-  };
+  const items: Product[] = data?.items || data?.data || [];
+  const total: number =
+    data?.total || data?.pagination?.total || data?.pageInfo?.total || items.length;
+  return { items, total };
 }
 
 export async function fetchProductDetail(id: string): Promise<Product | null> {
   try {
     const data = await apiFetch<{ data: Product } | Product>(`/api/v1/products/${id}`);
-    if ('data' in (data as object)) return (data as { data: Product }).data;
+    if (data && 'data' in data && (data as { data: Product }).data) {
+      return (data as { data: Product }).data;
+    }
     return data as Product;
   } catch {
     return null;
   }
+}
+
+export async function updateProduct(
+  id: string,
+  payload: Partial<Product>
+): Promise<Product> {
+  return apiFetch<Product>(`/api/v1/admin/products/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
 }
 
 // ========== ORDERS ==========
