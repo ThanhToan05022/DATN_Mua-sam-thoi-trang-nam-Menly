@@ -63,7 +63,6 @@ DATN_Mua-sam-thoi-trang-nam-Menly/
 ```bash
 git clone https://github.com/ThanhToan05022/DATN_Mua-sam-thoi-trang-nam-Menly.git
 cd DATN_Mua-sam-thoi-trang-nam-Menly
-git checkout feat/mobile-ui-redesign
 ```
 
 ---
