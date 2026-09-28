@@ -34,7 +34,16 @@ final _router = GoRouter(
       builder: (ctx, state, child) => MainShell(child: child),
       routes: [
         GoRoute(path: '/', builder: (ctx, s) => const HomePage()),
-        GoRoute(path: '/products', builder: (ctx, s) => const ProductListPage()),
+        GoRoute(
+          path: '/products',
+          builder: (ctx, s) {
+            final catId = (s.extra as String?) ?? s.uri.queryParameters['categoryId'];
+            return ProductListPage(
+              key: ValueKey(catId ?? 'all'),
+              initialCategoryId: catId,
+            );
+          },
+        ),
         GoRoute(
           path: '/products/:id',
           builder: (ctx, s) => ProductDetailPage(productId: s.pathParameters['id']!),
@@ -76,10 +85,15 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  int _idx = 0;
+  int _calculateSelectedIndex(BuildContext context) {
+    final location = GoRouterState.of(context).uri.path;
+    if (location.startsWith('/products')) return 1;
+    if (location.startsWith('/cart')) return 2;
+    if (location.startsWith('/profile')) return 3;
+    return 0;
+  }
 
   void _onTap(int i, BuildContext ctx) {
-    setState(() => _idx = i);
     switch (i) {
       case 0: ctx.go('/'); break;
       case 1: ctx.go('/products'); break;
@@ -91,10 +105,11 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final cartCount = context.watch<CartProvider>().totalItems;
+    final currentIdx = _calculateSelectedIndex(context);
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _idx,
+        currentIndex: currentIdx,
         onTap: (i) => _onTap(i, context),
         type: BottomNavigationBarType.fixed,
         items: [
