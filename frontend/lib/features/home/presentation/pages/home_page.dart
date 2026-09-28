@@ -123,7 +123,7 @@ class _HomePageState extends State<HomePage> {
     return SliverToBoxAdapter(
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-        height: 180,
+        height: 195,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
           gradient: const LinearGradient(
@@ -140,11 +140,11 @@ class _HomePageState extends State<HomePage> {
               width: 150, height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(colors: [AppTheme.primary.withOpacity(0.25), Colors.transparent]),
+                gradient: RadialGradient(colors: [AppTheme.primary.withValues(alpha: 0.25), Colors.transparent]),
               ),
             )),
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -152,26 +152,26 @@ class _HomePageState extends State<HomePage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.15),
+                      color: AppTheme.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                      border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
                     ),
                     child: const Text('🔥 NEW COLLECTION', style: TextStyle(color: AppTheme.primary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Text(
                     _userName.isNotEmpty ? 'Chào, $_userName!' : 'Phong cách\nđỉnh cao',
-                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800, height: 1.2),
+                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, height: 1.2),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   GestureDetector(
                     onTap: () => context.go('/products'),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                       decoration: BoxDecoration(
                         gradient: AppTheme.primaryGradient,
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: [BoxShadow(color: AppTheme.primary.withOpacity(0.35), blurRadius: 12, offset: const Offset(0, 4))],
+                        boxShadow: [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 4))],
                       ),
                       child: const Text('Khám phá ngay', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 13)),
                     ),
@@ -204,49 +204,95 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  IconData _getCategoryIcon(String slug, String name) {
+    final s = slug.toLowerCase();
+    final n = name.toLowerCase();
+    if (s.contains('so-mi') || n.contains('sơ mi')) return Icons.dry_cleaning_rounded;
+    if (s.contains('polo') || s.contains('t-shirt') || n.contains('polo') || n.contains('thun')) return Icons.checkroom_rounded;
+    if (s.contains('tay') || s.contains('kaki') || n.contains('quần tây') || n.contains('kaki')) return Icons.airline_seat_legroom_extra_rounded;
+    if (s.contains('jean') || n.contains('jean')) return Icons.straighten_rounded;
+    if (s.contains('khoac') || s.contains('blazer') || n.contains('khoác')) return Icons.layers_rounded;
+    if (s.contains('giay') || n.contains('giày')) return Icons.roller_skating_rounded;
+    if (s.contains('phu-kien') || n.contains('phụ kiện')) return Icons.watch_rounded;
+    return Icons.checkroom_rounded;
+  }
+
   Widget _buildCategories() {
     return SliverToBoxAdapter(
       child: SizedBox(
-        height: 88,
+        height: 112,
         child: _categories.isEmpty
             ? const Center(child: Text('Không có danh mục', style: TextStyle(color: AppTheme.textMuted)))
             : ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
                 itemCount: _categories.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (_, i) {
+                separatorBuilder: (context, index) => const SizedBox(width: 14),
+                itemBuilder: (context, i) {
                   final c = _categories[i];
+                  final hasImage = c.imageUrl != null && c.imageUrl!.isNotEmpty;
                   return GestureDetector(
                     onTap: () => context.go('/products'),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 56, height: 56,
-                          decoration: BoxDecoration(
-                            gradient: AppTheme.cardGradient,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppTheme.border),
-                          ),
-                          child: Center(
-                            child: Text(
-                              c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
-                              style: const TextStyle(color: AppTheme.primary, fontSize: 22, fontWeight: FontWeight.w900),
+                    child: SizedBox(
+                      width: 78,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF222234), Color(0xFF161622)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: AppTheme.border2, width: 1.2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.35),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
                             ),
+                            child: hasImage
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(18),
+                                    child: CachedNetworkImage(
+                                      imageUrl: c.imageUrl!,
+                                      fit: BoxFit.cover,
+                                      errorWidget: (ctx, url, err) => Icon(
+                                        _getCategoryIcon(c.slug, c.name),
+                                        color: AppTheme.primary,
+                                        size: 28,
+                                      ),
+                                    ),
+                                  )
+                                : Center(
+                                    child: Icon(
+                                      _getCategoryIcon(c.slug, c.name),
+                                      color: AppTheme.primary,
+                                      size: 28,
+                                    ),
+                                  ),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        SizedBox(
-                          width: 64,
-                          child: Text(
+                          const SizedBox(height: 8),
+                          Text(
                             c.name,
                             textAlign: TextAlign.center,
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              height: 1.25,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -298,12 +344,12 @@ class _ProductCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    (product.thumbnailUrl ?? "").isNotEmpty
+                    product.imageUrl.isNotEmpty
                         ? CachedNetworkImage(
-                            imageUrl: (product.thumbnailUrl ?? ""),
+                            imageUrl: product.imageUrl,
                             fit: BoxFit.cover,
-                            placeholder: (_, __) => Container(color: AppTheme.surface2, child: const Center(child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2))),
-                            errorWidget: (_, __, ___) => _imagePlaceholder(product.name),
+                            placeholder: (context, url) => Container(color: AppTheme.surface2, child: const Center(child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2))),
+                            errorWidget: (context, url, error) => _imagePlaceholder(product.name),
                           )
                         : _imagePlaceholder(product.name),
                     // Gradient bottom
@@ -315,7 +361,7 @@ class _ProductCard extends StatelessWidget {
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [Colors.transparent, Colors.black.withOpacity(0.4)],
+                            colors: [Colors.transparent, Colors.black.withValues(alpha: 0.4)],
                           ),
                         ),
                       ),
