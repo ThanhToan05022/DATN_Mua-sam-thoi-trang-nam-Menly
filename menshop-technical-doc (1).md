@@ -1,8 +1,8 @@
-# MenShop - Tài liệu kỹ thuật ứng dụng bán hàng thời trang nam
+# Menly (MenShop) - Tài liệu kỹ thuật Sàn thương mại điện tử mua sắm thời trang nam
 
-Phiên bản 1.0 | 20/09/2026 | Phạm vi: đồ án/demo, có đường mở rộng
+Phiên bản 2.0 | 28/09/2026 | Phạm vi: Đồ án tốt nghiệp (Sàn TMĐT đa người bán, nhóm 5 thành viên)
 
-Công nghệ: Flutter, Node.js, Supabase, VNPay (sandbox).
+Công nghệ: Flutter (Mobile App Buyer & Seller), Next.js (Web Admin Dashboard), Node.js (Clean Architecture & Express 5), Socket.io (Real-time Chat), Supabase (Postgres & Auth), Cloudinary / Supabase Storage, VNPay (sandbox).
 Kỹ năng áp dụng: System Design, Clean Architecture, MVVM, DSA (phân trang phía backend), quy tắc vibe coding không icon, tối ưu token khi dùng IDE agent.
 
 ---
@@ -37,39 +37,179 @@ menshop/
 
 ### 1.1 Mục tiêu
 
-Ứng dụng di động bán quần áo và phụ kiện nam: xem sản phẩm, chọn size/màu, giỏ hàng, đặt hàng, thanh toán COD hoặc VNPay (sandbox), theo dõi đơn hàng.
+Xây dựng hệ sinh thái ứng dụng mua sắm thời trang nam **Menly** (mô hình sàn thương mại điện tử đa người bán - Multi-vendor Marketplace kiểu Shopee/ViMard):
+- Cho phép nhiều Cửa hàng (Shop/Người bán) tham gia đăng ký, mở gian hàng, đăng tải sản phẩm, quản lý tồn kho và xử lý đơn hàng.
+- Cho phép Người mua (Khách hàng) khám phá sản phẩm, tìm kiếm, lọc size/màu, gom sản phẩm từ nhiều shop vào giỏ hàng chung, áp mã giảm giá kép (Shop + Sàn), thanh toán trực tuyến qua VNPay hoặc COD, theo dõi đơn hàng, chat trực tiếp với shop, đánh giá sản phẩm và yêu cầu đổi trả hàng.
+- Cung cấp Kênh Quản trị sàn (Admin Portal) kiểm duyệt shop, duyệt sản phẩm, quản lý danh mục, tạo voucher toàn sàn, cấu hình banner trang chủ, phân xử khiếu nại đổi trả và giám sát toàn diện doanh thu.
 
-### 1.2 Tác nhân
+### 1.2 Tác nhân hệ thống
 
-| Tác nhân | Quyền |
+| Tác nhân | Vai trò và Quyền hạn |
 |---|---|
-| Khách vãng lai (phiên Supabase Anonymous Auth, chưa tạo tài khoản) | Xem danh mục, tìm kiếm, giỏ hàng, đặt hàng (COD hoặc VNPay), tra cứu đơn bằng mã đơn và số điện thoại nhận hàng |
-| Khách hàng (đã đăng ký) | Toàn bộ quyền của khách vãng lai, cộng: lịch sử đơn gắn tài khoản lâu dài. Có thể nâng cấp trực tiếp từ khách vãng lai (gắn email/mật khẩu vào phiên ẩn danh) mà không mất giỏ hàng hay đơn đã đặt |
-| Quản trị (admin) | Quản lý danh mục, sản phẩm, biến thể; điều chỉnh tồn kho có ghi log; cập nhật trạng thái đơn theo sơ đồ chuyển trạng thái hợp lệ; xem thanh toán và log audit; gán vai trò admin cho người dùng khác |
+| **Khách vãng lai (Guest)** | Người dùng chưa đăng nhập (phiên Supabase Anonymous Auth). Được xem sản phẩm, tìm kiếm, lọc, xem trang shop, thêm vào giỏ, đặt hàng (COD/VNPay) và tra cứu tiến độ đơn qua Mã đơn + Số điện thoại nhận hàng. Có thể nâng cấp trực tiếp thành tài khoản chính thức mà không mất giỏ hàng. |
+| **Người mua (Buyer / Customer)** | Khách hàng đã có tài khoản định danh. Có toàn bộ quyền của khách vãng lai, cộng: lưu nhiều địa chỉ nhận hàng, lưu voucher vào ví, theo dõi shop, lưu yêu thích (wishlist), tự hủy đơn khi shop chưa xác nhận, chat trực tiếp với người bán (Socket.io), đánh giá sao + nhận xét kèm ảnh, gửi yêu cầu trả hàng / hoàn tiền, nhận thông báo đẩy thời gian thực. |
+| **Người bán (Seller / Shop Owner)** | Chủ cửa hàng kinh doanh thời trang trên sàn. Đăng ký mở shop, đăng tải và chỉnh sửa sản phẩm kèm biến thể (size, màu sắc, SKU, tồn kho), tải ảnh sản phẩm lên Storage/Cloudinary, tiếp nhận và xác nhận đơn hàng, cập nhật đóng gói/giao hàng, duyệt hoặc từ chối yêu cầu trả hàng, tạo voucher riêng cho shop, đăng ký tham gia Flash Sale, phản hồi tin nhắn khách hàng và bình luận đánh giá, theo dõi dashboard doanh thu và báo cáo hàng bán chạy. |
+| **Quản trị viên sàn (Admin)** | Người điều hành toàn bộ hệ thống sàn. Quản lý tài khoản người dùng (khóa/mở), phê duyệt shop mới mở, kiểm duyệt sản phẩm mới trước khi lên sàn, quản lý danh mục ngành hàng, cấu hình banner quảng cáo trang chủ, tạo mã voucher toàn sàn, gửi thông báo hệ thống, phân xử khiếu nại tranh chấp đổi trả, xem dashboard tổng quan tài chính sàn và nhật ký hệ thống (Audit Logs). |
+| **Hệ thống ngoài (VNPay Sandbox)** | Cổng thanh toán trực tuyến: nhận lệnh khởi tạo giao dịch an toàn (HMAC SHA512), cung cấp giao diện thanh toán ngân hàng/QR, gửi kết quả thanh toán tức thời qua IPN Webhook và hỗ trợ hoàn tiền giao dịch. |
 
-Chi tiết thiết kế CSDL cho ba tác nhân này ở các mục 4.7-4.10. Node chưa có route `/admin/*`; các API mới cần bổ sung được liệt kê ở mục 5.4.
+### 1.3 Phạm vi hệ thống
 
-### 1.3 Phạm vi
+**Trong phạm vi đồ án:**
+- Hoàn thiện toàn bộ hệ thống nghiệp vụ thương mại điện tử đa người bán theo quy trình khép kín: Đăng ký/đăng nhập → Quản lý gian hàng → Đăng & duyệt sản phẩm → Khám phá & Tìm kiếm → Giỏ hàng đa shop & Voucher kép → Đặt hàng nguyên tử → Cổng thanh toán VNPay & COD → Xử lý đơn hàng đa trạng thái → Đánh giá sau mua → Trả hàng/hoàn tiền & Trọng tài khiếu nại → Chat trực tiếp Socket.io & Thông báo đẩy → Dashboard báo cáo thống kê.
+- Hỗ trợ cả Ứng dụng di động Flutter (dành cho Người mua và Người bán) và Kênh Quản trị Web Admin (Next.js dành cho Ban điều hành sàn).
+- Cơ chế xử lý ngầm (Background Worker): Tự động giải phóng tồn kho cho đơn quá hạn thanh toán VNPay và tự động kích hoạt/kết thúc Flash Sale theo lịch trình.
 
-Trong phạm vi MVP: FR-01 đến FR-08 bên dưới, cộng FR-09, FR-10 (mục 1.4).
-Ngoài phạm vi: hoàn tiền tự động, đa kho, mã giảm giá phức tạp, vận chuyển thật, đa ngôn ngữ, giao diện web admin (dashboard), khách tự hủy đơn qua app. Hủy đơn hiện chỉ admin thực hiện được (mục 4.9).
+**Hướng mở rộng trong tương lai (sau đồ án):**
+- Tích hợp API định vị GPS và đơn vị vận chuyển bên thứ ba (GHN, GHTK, Viettel Post).
+- Hệ thống Ví điện tử nội bộ tích lũy điểm thưởng (Loyalty Points / Cash Wallet).
+- Công cụ gợi ý sản phẩm thông minh bằng AI / Machine Learning (Collaborative Filtering).
 
-### 1.4 Yêu cầu chức năng
+---
 
-| Mã | Yêu cầu |
-|---|---|
-| FR-01 | Đăng ký, đăng nhập, đăng xuất (Supabase Auth, email + mật khẩu) |
-| FR-02 | Danh sách sản phẩm: phân trang cursor, sắp xếp (mới nhất, giá tăng, giá giảm), lọc danh mục và khoảng giá, tìm kiếm không dấu |
-| FR-03 | Chi tiết sản phẩm: ảnh, mô tả, biến thể size/màu, tồn kho |
-| FR-04 | Giỏ hàng: thêm, sửa số lượng, xóa, lưu trên server |
-| FR-05 | Đặt hàng: thông tin nhận hàng, chọn COD hoặc VNPay, trừ tồn kho nguyên tử |
-| FR-06 | Thanh toán VNPay sandbox: tạo link, mở WebView, nhận IPN, cập nhật trạng thái |
-| FR-07 | Lịch sử đơn (cursor), chi tiết đơn |
-| FR-08 | Hồ sơ cá nhân |
-| FR-09 | Admin: quản lý danh mục/sản phẩm/biến thể, điều chỉnh tồn kho, cập nhật trạng thái đơn, xem audit log, gán vai trò |
-| FR-10 | Khách vãng lai: đặt hàng không cần đăng ký (qua phiên ẩn danh), tra cứu đơn bằng mã đơn và số điện thoại |
+### 1.4 Danh mục Yêu cầu chức năng chi tiết (Mã UC01 – UC74)
 
-### 1.5 Yêu cầu phi chức năng
+Hệ thống được chuẩn hóa thành 74 Use Case thuộc 11 phân hệ nghiệp vụ:
+
+#### Phân hệ 1: Xác thực & Quản lý Tài khoản (UC01 – UC08)
+| Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
+|---|---|---|---|
+| **UC01** | Đăng ký tài khoản | Khách | Đăng ký tài khoản mới bằng Email + Mật khẩu qua Supabase Auth |
+| **UC02** | Đăng nhập & Đăng xuất | Tất cả | Đăng nhập xác thực cấp JWT token; đăng xuất hủy phiên an toàn |
+| **UC03** | Quên mật khẩu | Khách, Buyer | Gửi liên kết hoặc mã OTP xác thực khôi phục mật khẩu qua Email |
+| **UC04** | Đổi mật khẩu | Buyer, Seller, Admin | Thay đổi mật khẩu khi đã đăng nhập (yêu cầu mật khẩu hiện tại) |
+| **UC05** | Quản lý hồ sơ cá nhân | Buyer, Seller, Admin | Xem và cập nhật họ tên, ảnh đại diện (avatar), SĐT, ngày sinh, giới tính |
+| **UC06** | Quản lý sổ địa chỉ | Người mua | Thêm mới, chỉnh sửa, xóa và thiết lập địa chỉ nhận hàng mặc định |
+| **UC07** | Nâng cấp tài khoản ẩn danh | Khách vãng lai | Gắn email/mật khẩu vào phiên khách vãng lai, giữ nguyên giỏ hàng và đơn hàng |
+| **UC08** | Đăng ký mở Cửa hàng (Shop) | Người mua | Nộp hồ sơ đăng ký bán hàng: tên shop, CCCD/MST, địa chỉ kho, mô tả |
+
+#### Phân hệ 2: Quản trị Người dùng & Phân quyền (UC09 – UC12)
+| Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
+|---|---|---|---|
+| **UC09** | Xem danh sách người dùng | Admin | Tra cứu, tìm kiếm, xem chi tiết thông tin và lịch sử người dùng trên sàn |
+| **UC10** | Khóa / Mở khóa tài khoản | Admin | Tạm khóa hoặc mở lại tài khoản người dùng vi phạm quy chế sàn |
+| **UC11** | Phân quyền vai trò người dùng | Admin | Điều chỉnh vai trò người dùng (`buyer`, `seller`, `admin`) có ghi log audit |
+| **UC12** | Phê duyệt mở Cửa hàng | Admin | Duyệt hoặc từ chối hồ sơ đăng ký mở Shop bán hàng kèm lý do phản hồi |
+
+#### Phân hệ 3: Quản lý Danh mục & Banner trang chủ (UC13 – UC16)
+| Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
+|---|---|---|---|
+| **UC13** | Quản lý danh mục ngành hàng | Admin | Thêm mới, chỉnh sửa tên, slug, thứ tự sắp xếp và biểu tượng danh mục |
+| **UC14** | Quản lý danh mục con | Admin | Phân cấp danh mục (ví dụ: Áo -> Áo sơ mi, Áo thun, Áo polo...) |
+| **UC15** | Quản lý Banner quảng cáo | Admin | Đăng tải hình ảnh banner, liên kết chiến dịch/sản phẩm, thời hạn hiển thị |
+| **UC16** | Ghim vị trí Banner | Admin | Bật/tắt trạng thái hiển thị và sắp xếp thứ tự slider banner trang chủ |
+
+#### Phân hệ 4: Người bán - Quản lý Sản phẩm & Tồn kho (UC17 – UC23)
+| Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
+|---|---|---|---|
+| **UC17** | Thêm mới sản phẩm | Người bán | Tạo sản phẩm mới với tên, mô tả chi tiết, phân loại danh mục, bảng size |
+| **UC18** | Tải lên bộ ảnh sản phẩm | Người bán | Tải nhiều ảnh chất lượng cao lên Cloudinary / Supabase Storage, chọn ảnh bìa |
+| **UC19** | Thiết lập biến thể sản phẩm | Người bán | Khai báo các biến thể Size (S, M, L, XL...), Màu sắc, mã SKU và giá bán |
+| **UC20** | Quản lý số lượng tồn kho | Người bán | Cập nhật số lượng khả dụng cho từng biến thể, tự động ghi log biến động |
+| **UC21** | Chỉnh sửa thông tin sản phẩm | Người bán | Cập nhật giá, mô tả, hình ảnh của sản phẩm đã đăng |
+| **UC22** | Ẩn / Hiện / Xóa sản phẩm | Người bán | Tạm ẩn sản phẩm khỏi gian hàng hoặc xóa sản phẩm (soft delete) |
+| **UC23** | Gửi sản phẩm duyệt lên sàn | Người bán | Nộp sản phẩm mới lên hàng đợi để Quản trị sàn kiểm duyệt nội dung |
+
+#### Phân hệ 5: Quản trị viên - Kiểm duyệt Hàng hóa (UC24 – UC26)
+| Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
+|---|---|---|---|
+| **UC24** | Xem hàng đợi duyệt sản phẩm | Admin | Xem danh sách các sản phẩm mới hoặc vừa sửa đổi do các Shop gửi lên |
+| **UC25** | Phê duyệt sản phẩm | Admin | Duyệt sản phẩm hợp lệ, sản phẩm chính thức xuất hiện trên sàn giao dịch |
+| **UC26** | Từ chối / Gỡ bỏ sản phẩm | Admin | Từ chối kèm lý do hoặc gỡ bỏ sản phẩm vi phạm bản quyền/chất lượng |
+
+#### Phân hệ 6: Khách hàng - Khám phá, Tìm kiếm & Tương tác (UC27 – UC33)
+| Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
+|---|---|---|---|
+| **UC27** | Xem danh sách sản phẩm | Khách, Buyer | Duyệt danh sách sản phẩm trang chủ với phân trang cursor mượt mà |
+| **UC28** | Tìm kiếm sản phẩm không dấu | Khách, Buyer | Tìm kiếm gần đúng bằng `pg_trgm` hỗ trợ tiếng Việt không dấu |
+| **UC29** | Lọc sản phẩm nâng cao | Khách, Buyer | Lọc đa tiêu chí: danh mục, khoảng giá, màu sắc, kích thước, đánh giá sao |
+| **UC30** | Xem chi tiết sản phẩm | Khách, Buyer | Xem hình ảnh, mô tả, bảng size, tồn kho từng loại, thông tin shop bán |
+| **UC31** | Xem trang hồ sơ Shop | Khách, Buyer | Xem thông tin shop, tổng số sản phẩm, đánh giá trung bình, tỉ lệ phản hồi |
+| **UC32** | Quản lý danh sách Yêu thích | Người mua | Bấm tim lưu sản phẩm yêu thích (Wishlist) để theo dõi và mua sau |
+| **UC33** | Theo dõi Cửa hàng | Người mua | Nhấn Theo dõi / Hủy theo dõi shop để nhận thông báo hàng mới và voucher |
+
+#### Phân hệ 7: Khuyến mãi, Voucher & Flash Sale (UC34 – UC40)
+| Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
+|---|---|---|---|
+| **UC34** | Người bán tạo Voucher Shop | Người bán | Tạo mã giảm giá riêng (theo %, số tiền cố định, mức đơn tối thiểu, số lượt) |
+| **UC35** | Admin tạo Voucher Toàn sàn | Admin | Tạo mã khuyến mãi cấp hệ thống áp dụng cho toàn bộ hoặc danh mục chỉ định |
+| **UC36** | Lưu Voucher vào Ví cá nhân | Người mua | Xem danh sách voucher khả dụng và lưu vào ví voucher của tài khoản |
+| **UC37** | Kiểm tra & Áp dụng Voucher | Hệ thống, Buyer | Tự động kiểm tra điều kiện (hạn dùng, lượt dùng, giá trị đơn) và tính số tiền giảm |
+| **UC38** | Quản trị phiên Flash Sale | Admin | Thiết lập các khung giờ Flash Sale (ví dụ 0h-2h, 12h-14h) và mở đăng ký |
+| **UC39** | Đăng ký hàng tham gia Flash Sale | Người bán | Chọn sản phẩm biến thể, định mức giá sốc và số lượng cam kết bán Flash Sale |
+| **UC40** | Tự động vận hành Flash Sale | Hệ thống (Cron) | Tự động kích hoạt khi đến giờ và đóng phiên khi hết giờ hoặc hết hàng |
+
+#### Phân hệ 8: Giỏ hàng & Quy trình Đặt hàng (UC41 – UC47)
+| Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
+|---|---|---|---|
+| **UC41** | Thêm sản phẩm vào giỏ hàng | Khách, Buyer | Chọn biến thể size/màu và số lượng, lưu trữ giỏ hàng trên server |
+| **UC42** | Cập nhật & Xóa món trong giỏ | Khách, Buyer | Điều chỉnh tăng/giảm số lượng hoặc xóa từng sản phẩm khỏi giỏ hàng |
+| **UC43** | Phân nhóm giỏ hàng theo Shop | Khách, Buyer | Giao diện giỏ hàng thông minh tự động gom các món theo từng gian hàng |
+| **UC44** | Chọn địa chỉ & phương thức giao | Người mua | Chọn địa chỉ nhận hàng từ sổ địa chỉ, tính phí giao hàng |
+| **UC45** | Áp dụng Voucher kép khi mua | Người mua | Chọn đồng thời Voucher của Shop và Voucher của Sàn trong cùng 1 lần checkout |
+| **UC46** | Đặt hàng trừ kho nguyên tử | Người mua | Khóa dòng và trừ kho biến thể trong 1 transaction; tách đơn theo từng Shop |
+| **UC47** | Tự động hủy đơn quá hạn | Hệ thống (Cron) | Hủy đơn VNPay chưa thanh toán sau 15 phút và hoàn trả lại số lượng tồn kho |
+
+#### Phân hệ 9: Tích hợp Thanh toán & VNPay (UC48 – UC52)
+| Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
+|---|---|---|---|
+| **UC48** | Khởi tạo giao dịch VNPay | Hệ thống | Tạo link thanh toán VNPay Sandbox với mã giao dịch an toàn và chữ ký HMAC SHA512 |
+| **UC49** | Điều hướng thanh toán WebView | Người mua | Mở trang thanh toán ngân hàng/QR trong WebView app Flutter an toàn |
+| **UC50** | Xử lý Webhook IPN VNPay | Hệ thống | Nhận IPN từ VNPay, kiểm tra chữ ký bí mật, cập nhật đơn thành công Idempotent |
+| **UC51** | Xử lý thanh toán COD | Người mua, Shop | Đặt đơn thanh toán tiền mặt khi nhận hàng; ghi nhận trạng thái sau giao |
+| **UC52** | Xử lý hoàn tiền giao dịch | Admin, Hệ thống | Tạo yêu cầu hoàn tiền VNPay (Refund) khi đơn hàng bị hủy hoặc chấp thuận trả hàng |
+
+#### Phân hệ 10: Xử lý Đơn hàng, Trả hàng & Hoàn tiền (UC53 – UC62)
+| Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
+|---|---|---|---|
+| **UC53** | Xem danh sách đơn hàng | Người mua | Xem đơn theo trạng thái (Chờ xác nhận, Đang gói, Đang giao, Đã giao, Đã hủy) |
+| **UC54** | Khách tự hủy đơn hàng | Người mua | Tự hủy đơn khi Shop chưa bấm xác nhận (`pending_confirmation`), tự hoàn kho |
+| **UC55** | Tra cứu đơn hàng vãng lai | Khách vãng lai | Tra cứu nhanh lộ trình đơn hàng bằng Mã đơn hàng + SĐT nhận hàng |
+| **UC56** | Quản lý đơn hàng của Shop | Người bán | Xem danh sách các đơn hàng khách đặt tại cửa hàng của mình |
+| **UC57** | Xác nhận đơn hàng & Đóng gói | Người bán | Tiếp nhận đơn, xác nhận còn hàng và chuyển trạng thái sang Đang đóng gói |
+| **UC58** | Cập nhật tiến độ giao hàng | Người bán | Chuyển đơn sang trạng thái Đang giao hàng (`shipping`) và Đã giao (`delivered`) |
+| **UC59** | Gửi yêu cầu Trả hàng / Hoàn tiền | Người mua | Gửi khiếu nại trả hàng kèm lý do (lỗi size, sai màu, rách) và ảnh bằng chứng |
+| **UC60** | Shop phản hồi yêu cầu trả hàng | Người bán | Xem ảnh bằng chứng, chấp thuận nhận lại hàng hoặc từ chối kèm giải trình |
+| **UC61** | Admin xử lý tranh chấp khiếu nại | Admin | Đóng vai trò trọng tài, xem xét chứng cứ từ hai bên và đưa ra quyết định cuối |
+| **UC62** | Thực hiện hoàn tiền & Nhập lại kho | Hệ thống | Hoàn tiền cho khách (VNPay/tiền mặt) và tự động cộng lại tồn kho cho shop |
+
+#### Phân hệ 11: Đánh giá, Chat Real-time, Thông báo & Thống kê (UC63 – UC74)
+| Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
+|---|---|---|---|
+| **UC63** | Đánh giá & Nhận xét sản phẩm | Người mua | Chấm điểm 1-5 sao, viết nhận xét và đính kèm ảnh thực tế sau khi nhận hàng |
+| **UC64** | Shop phản hồi đánh giá | Người bán | Viết phản hồi công khai cho các đánh giá của khách hàng |
+| **UC65** | Tự động tính điểm uy tín | Hệ thống (Trigger) | Cập nhật điểm đánh giá trung bình và số lượt đánh giá cho sản phẩm và Shop |
+| **UC66** | Chat trực tiếp thời gian thực | Buyer, Seller | Trò chuyện 1-1 tức thời qua Socket.io giữa người mua và người bán |
+| **UC67** | Quản lý lịch sử tin nhắn chat | Buyer, Seller | Lưu trữ hội thoại trong Postgres, phân trang tin nhắn cũ, đánh dấu đã đọc |
+| **UC68** | Thông báo đẩy trạng thái đơn | Người mua | Nhận notification khi đơn đổi trạng thái (xác nhận, giao hàng, hủy, hoàn tiền) |
+| **UC69** | Thông báo khuyến mãi & Flash Sale | Buyer, Seller | Nhận thông báo khi có voucher mới, giảm giá đặc biệt hoặc sắp mở Flash Sale |
+| **UC70** | Gửi thông báo toàn hệ thống | Admin | Tạo và gửi thông báo chung tới toàn bộ người dùng sàn hoặc nhóm đối tượng |
+| **UC71** | Dashboard phân tích cho Người bán | Người bán | Thống kê doanh thu, số đơn, top sản phẩm bán chạy, biểu đồ doanh thu ngày/tháng |
+| **UC72** | Dashboard tổng quan cho Admin | Admin | Giám sát tổng giá trị giao dịch sàn (GMV), số đơn toàn sàn, tăng trưởng shop/user |
+| **UC73** | Xem nhật ký biến động tồn kho | Người bán, Admin | Xem chi tiết lịch sử xuất/nhập/điều chỉnh kho của từng SKU (Inventory Log) |
+| **UC74** | Quản lý nhật ký hệ thống (Audit) | Admin | Ghi vết mọi hành động quản trị quan trọng (duyệt shop, duyệt hàng, khóa tài khoản) |
+
+---
+
+### 1.5 Phân chia công việc cho nhóm 5 thành viên (Đồ án tốt nghiệp)
+
+Dựa trên cấu trúc 74 Use Case và phân tầng Clean Architecture, công việc được phân bổ cân đối cho nhóm 5 sinh viên:
+
+| Thành viên | Trách nhiệm chính (Lead Module) | Phạm vi công việc cụ thể | Use Cases phụ trách |
+|---|---|---|---|
+| **Thành viên 1** (Trưởng nhóm / Core Backend) | **Xác thực, Phân quyền & Kênh Người bán** | Cấu hình Supabase Auth, thiết kế bảng User, Profile, Shop. Viết API Đăng ký, Đăng nhập, Hồ sơ cá nhân, Sổ địa chỉ, Đăng ký Shop, Duyệt shop. Xây dựng giao diện Kênh người bán (Seller Center) trên Mobile. | UC01 – UC12, UC73, UC74 |
+| **Thành viên 2** (Backend & Flutter Product) | **Hàng hóa, Danh mục, Đánh giá & Wishlist** | Thiết kế CSDL Sản phẩm, Biến thể, Danh mục, Review, Wishlist. Viết API Sản phẩm, phân trang Cursor, tìm kiếm `pg_trgm`, bộ lọc nâng cao, upload ảnh Storage/Cloudinary. Viết UI Danh sách, Chi tiết sản phẩm, Đánh giá, Wishlist. | UC13 – UC33, UC63 – UC65 |
+| **Thành viên 3** (Backend & Flutter Order) | **Giỏ hàng, Đặt hàng & Thanh toán VNPay** | Thiết kế CSDL Giỏ hàng, Đơn hàng, Đơn hàng con theo shop, Thanh toán. Viết Stored Procedure trừ tồn kho nguyên tử (`create_order`), tích hợp SDK/IPN VNPay HMAC SHA512. Viết UI Giỏ hàng gom shop, Checkout, WebView VNPay. | UC41 – UC52 |
+| **Thành viên 4** (Fullstack Web Admin) | **Khuyến mãi, Flash Sale & Web Admin** | Thiết kế CSDL Voucher, Flash Sale, Banner. Xây dựng website Quản trị Admin (Next.js): Duyệt shop, Duyệt sản phẩm, Quản lý Banner, Cấu hình Voucher toàn sàn, Flash sale scheduler, Dashboard thống kê doanh thu toàn sàn. | UC34 – UC40, UC71 – UC72 |
+| **Thành viên 5** (Real-time & Post-Order) | **Chat Real-time, Đổi trả & Background Workers** | Thiết lập máy chủ Socket.io chat thời gian thực. Xây dựng phân hệ Xử lý đơn hàng, Khách tự hủy đơn, Yêu cầu Trả hàng / Hoàn tiền, Trọng tài khiếu nại. Viết Cron Worker tự động hủy đơn hết hạn và hoàn kho. Push Notification. | UC53 – UC62, UC66 – UC70 |
+
+**Lộ trình phát triển 3 giai đoạn của nhóm:**
+- **Giai đoạn 1 (Cốt lõi - Bắt buộc xong trước):** UC01-UC08, UC17-UC22, UC27-UC30, UC41-UC52, UC53-UC58 (Đăng ký/đăng nhập → Mở shop đăng hàng → Xem & tìm hàng → Bỏ giỏ → Đặt hàng & Thanh toán VNPay/COD → Xử lý đơn).
+- **Giai đoạn 2 (Hoàn thiện - Gia tăng điểm số):** UC13-UC16, UC31-UC37, UC63-UC65, UC68-UC72 (Voucher shop & sàn, Đánh giá sản phẩm, Theo dõi shop, Wishlist, Banner quảng cáo, Dashboard doanh thu).
+- **Giai đoạn 3 (Nâng cao - Điểm xuất sắc):** UC38-UC40 (Flash Sale tự động), UC59-UC62 (Quy trình Trả hàng / Hoàn tiền & Trọng tài khiếu nại), UC66-UC67 (Chat Socket.io thời gian thực), UC47 (Cron tự động giải phóng tồn kho).
+
+---
+
+### 1.6 Yêu cầu phi chức năng
 
 | Nhóm | Mục tiêu |
 |---|---|
@@ -102,67 +242,173 @@ Express 5 tự chuyển lỗi của handler async sang error handler, không c�
 ### 3.1 Kiến trúc tổng thể
 
 ```mermaid
-flowchart LR
-  A["Flutter App<br/>View + ViewModel"]
-  B["Node.js API<br/>Express, Clean Architecture"]
-  C["LRU cache<br/>in-memory"]
-  subgraph SB["Supabase"]
-    D["Auth"]
-    E[("Postgres")]
-    F["Storage<br/>ảnh sản phẩm"]
+flowchart TD
+  subgraph Clients["Tầng Client"]
+    A["Flutter Mobile App<br/>(Dành cho Người mua & Người bán)"]
+    W["Next.js Web Admin<br/>(Dành cho Quản trị viên sàn)"]
   end
-  G["VNPay Sandbox"]
-  A -->|"đăng nhập, refresh token"| D
-  A -->|"REST + Bearer JWT"| B
-  A -->|"tải ảnh"| F
-  B -->|"xác thực token"| D
+
+  subgraph Gateway["Tầng API & Real-time Services (Node.js)"]
+    B["Express 5 REST API<br/>(Clean Architecture, JWT Auth, Zod)"]
+    S["Socket.io Server<br/>(Real-time 1-1 Chat & Notifications)"]
+    CRON["Background Cron Workers<br/>(Auto-cancel timeout, Flash Sale scheduler)"]
+    C["In-memory LRU Cache<br/>(Catalog & Categories)"]
+  end
+
+  subgraph Cloud["Dịch vụ Đám mây & Cơ sở dữ liệu"]
+    subgraph SB["Supabase BaaS"]
+      D["Supabase Auth<br/>(JWT, RBAC app_metadata)"]
+      E[("PostgreSQL Database<br/>(Row Level Security, RPC Transactions)")]
+      F["Storage / CDN<br/>(Ảnh sản phẩm, avatar, review)"]
+    end
+    CLD["Cloudinary Media API<br/>(Tối ưu hóa ảnh/video sản phẩm)"]
+  end
+
+  subgraph External["Dịch vụ bên ngoài"]
+    G["VNPay Sandbox Gateway<br/>(Thanh toán & Hoàn tiền HMAC SHA512)"]
+  end
+
+  A -->|"REST API + Bearer JWT"| B
+  A -->|"WebSocket connection"| S
+  W -->|"Admin REST API + Bearer JWT"| B
+  A -->|"Tải ảnh lên"| F
+  A -->|"Upload media shop"| CLD
+
+  B -->|"Xác thực token"| D
   B -->|"SQL, RPC (service_role)"| E
   B --- C
-  A -->|"WebView"| G
-  G -->|"IPN server to server"| B
+  S -->|"Lưu trữ tin nhắn"| E
+  CRON -->|"Quét hủy đơn & kích hoạt Flash Sale"| E
+
+  A -->|"Mở WebView thanh toán"| G
+  G -->|"IPN Webhook (Server-to-Server)"| B
 ```
 
 ### 3.2 Quyết định thiết kế
 
 | Mã | Quyết định | Lý do | Đánh đổi |
 |---|---|---|---|
-| D1 | Flutter gọi Node, Node gọi Supabase; app không ghi trực tiếp DB | Logic tồn kho, thanh toán tập trung, dễ test | Thêm một hop, phải vận hành Node |
-| D2 | Đăng nhập do Supabase Auth; Node chỉ xác thực JWT | Không tự viết cơ chế đăng nhập | Phụ thuộc Supabase |
-| D3 | Node dùng service_role, RLS vẫn bật cho mọi bảng | Phòng thủ nhiều lớp nếu key public bị lạm dụng | Không được lộ service_role |
-| D4 | Cursor pagination cho danh sách lớn | O(log n + k), ổn định khi dữ liệu đổi | Không nhảy tới trang N |
-| D5 | Tạo đơn bằng RPC (một giao dịch DB) | supabase-js không có transaction nhiều câu lệnh | Một phần logic nằm ở SQL |
-| D6 | Trạng thái thanh toán chỉ đổi qua IPN đã xác thực chữ ký | Return URL đi qua trình duyệt, có thể bị giả | Cần URL công khai cho IPN |
-| D7 | Tiền là số nguyên VND | Tránh lỗi số thực | Không |
-| D8 | Cache LRU trong bộ nhớ Node | Đơn giản, đủ cho một instance | Mỗi instance có cache riêng; mở rộng dùng Redis |
-| D9 | Lưu snapshot tên, giá, size, màu vào order_items | Đơn cũ không đổi khi sản phẩm bị sửa | Dư thừa dữ liệu |
-| D10 | Khách vãng lai dùng Supabase Anonymous Auth thay vì bảng giỏ hàng/đơn riêng | `user_id` luôn có giá trị thật, giỏ hàng và đơn hàng dùng chung schema, nâng cấp lên tài khoản thật không mất dữ liệu | Phiên ẩn danh lưu trên thiết bị; mất app hoặc xóa dữ liệu app coi như mất phiên (có `track_order_by_code_phone` bù cho trường hợp này) |
-| D11 | Vai trò (`role`) lưu ở `auth.users.app_metadata`, chỉ đổi qua hàm `set_user_role`; `profiles.role` là bản sao chỉ để truy vấn | JWT và RLS đọc thẳng từ token, không cần join bảng; vẫn truy vấn nhanh qua `profiles` | Hai nơi lưu cùng một giá trị, phải đi qua hàm để giữ đồng bộ; JWT của phiên đang đăng nhập chỉ nhận vai trò mới sau khi làm mới token |
-| D12 | Toàn bộ thao tác ghi có ảnh hưởng nghiệp vụ của admin (đổi trạng thái đơn, điều chỉnh tồn kho, gán vai trò) đi qua RPC `security definer`, không UPDATE trực tiếp | Ép được sơ đồ chuyển trạng thái hợp lệ, tự động ghi log audit/tồn kho, nhất quán với `create_order`/`settle_payment` đã có | Thêm một lớp gián tiếp so với sửa bảng trực tiếp |
-| D13 | RLS cho admin: danh mục/sản phẩm cho phép CRUD trực tiếp; đơn hàng, thanh toán, hồ sơ chỉ cho phép SELECT | Phòng thủ nhiều lớp nếu sau này có công cụ nối thẳng vào Supabase bằng phiên admin, mà không phá vỡ nguyên tắc D12 | Admin muốn đổi trạng thái đơn vẫn phải gọi đúng RPC, không thể tự UPDATE |
+| D1 | Flutter gọi Node, Node gọi Supabase; app không ghi trực tiếp DB | Logic tồn kho, thanh toán, hoa hồng tập trung, dễ unit test | Thêm một hop mạng, phải vận hành server Node |
+| D2 | Đăng nhập do Supabase Auth; Node chỉ xác thực JWT | Không tự viết lại cơ chế hashing/refresh token | Phụ thuộc Supabase Auth |
+| D3 | Node dùng service_role, RLS vẫn bật cho mọi bảng | Phòng thủ nhiều lớp nếu anon key bị lạm dụng | Không được lộ service_role ra client |
+| D4 | Cursor pagination cho danh sách lớn | Độ phức tạp O(log n + k), ổn định khi dữ liệu thêm/sửa liên tục | Không hỗ trợ nhảy trực tiếp tới trang số N |
+| D5 | Tạo đơn và trừ kho bằng RPC (một transaction DB duy nhất) | Tránh race condition khi nhiều người cùng mua món cuối | Một phần nghiệp vụ nằm ở tầng SQL Stored Procedure |
+| D6 | Trạng thái thanh toán chỉ đổi qua IPN đã xác thực chữ ký | Return URL phía trình duyệt/WebView có thể bị người dùng can thiệp | Cần public domain/tunnel để VNPay gửi webhook |
+| D7 | Tiền tệ lưu dưới dạng số nguyên VND | Tránh hoàn toàn lỗi làm tròn dấu phẩy động (floating point) | Không |
+| D8 | Cache LRU trong bộ nhớ Node.js | Truy vấn danh mục, banner nhanh dưới 5ms, không tốn thêm chi phí infra | Mỗi instance có cache riêng; khi scale nhiều server sẽ chuyển sang Redis |
+| D9 | Lưu snapshot tên, giá, size, màu vào order_items | Đơn hàng lịch sử không bị thay đổi khi sản phẩm gốc bị sửa giá hoặc xóa | Dư thừa dữ liệu có kiểm soát |
+| D10 | Khách vãng lai dùng Supabase Anonymous Auth | Dùng chung một schema giỏ hàng và đơn hàng; liên kết tài khoản không mất dữ liệu | Phiên ẩn danh lưu tại local device storage |
+| D11 | Phân quyền vai trò (`role`) lưu ở `auth.users.app_metadata` | JWT và RLS đọc trực tiếp từ claim token, không cần join bảng user | Phải gọi RPC `set_user_role` chuyên dụng để thay đổi |
+| D12 | Toàn bộ thao tác ghi nhạy cảm đi qua RPC `security definer` | Ép buộc sơ đồ chuyển trạng thái hợp lệ, tự động ghi audit log | Thêm lớp gián tiếp qua SQL function |
+| D13 | RLS bảo vệ dữ liệu theo nguyên tắc Least Privilege | Chống IDOR triệt để: người bán chỉ thấy đơn/hàng của shop mình, khách chỉ thấy đơn của mình | Cần cấu hình kỹ chính sách Policy cho từng bảng |
+| **D14** | **Tách đơn hàng đa shop (Multi-shop Order Splitting)** | Giỏ hàng gom nhiều shop; khi checkout tạo 1 Master Order và các Sub-orders riêng cho từng Shop | Phức tạp hơn trong tính toán tổng tiền, nhưng mỗi shop tự chủ đóng gói và giao đơn độc lập |
+| **D15** | **Hệ thống Voucher 2 cấp (Dual-tier Voucher Engine)** | Cho phép áp dụng cùng lúc 1 Voucher toàn sàn (Admin tài trợ) + 1 Voucher riêng của Shop | Cần thuật toán phân bổ giảm giá chính xác từng mặt hàng để tính tiền thanh toán cho shop |
+| **D16** | **Chat Real-time kết hợp Socket.io và PostgreSQL** | Socket.io truyền nhận tức thời cho trải nghiệm mượt mà; tin nhắn được ghi đồng thời vào DB Postgres | Đảm bảo không bao giờ mất tin nhắn khi người nhận offline và hỗ trợ tải lại lịch sử |
+| **D17** | **Cơ chế Trọng tài Đổi trả / Hoàn tiền 3 bên** | Người mua yêu cầu → Shop tiếp nhận xử lý → Nếu tranh chấp, Admin phân xử chung thẩm | Minh bạch quyền lợi cho cả người mua và người bán, phòng chống gian lận thương mại |
+| **D18** | **Tự động hóa qua Cron Background Worker** | Tự động hủy đơn VNPay chưa trả tiền sau 15 phút và kích hoạt đúng giờ các phiên Flash Sale | Worker chạy nền định kỳ mỗi phút, giải phóng tồn kho bị giữ ảo |
+| **D19** | **Tính toán uy tín Shop tự động qua Trigger** | Tự động tính điểm đánh giá trung bình và số lượng review khi khách đánh giá món hàng | Tránh câu lệnh `AVG()` nặng nề mỗi khi người dùng tải trang sản phẩm hoặc trang shop |
+| **D20** | **Quản trị Web Admin độc lập bằng Next.js** | Giao diện điều hành toàn sàn cho Admin tách biệt hoàn toàn với app di động của khách | Tối ưu hóa trải nghiệm máy tính để bàn (Desktop UI), quản lý bảng dữ liệu lớn tiện lợi |
 
-### 3.3 Luồng đặt hàng và thanh toán
+---
+
+### 3.3 Các luồng nghiệp vụ trọng yếu (Sequence Diagrams)
+
+#### Luồng 1: Đặt hàng đa shop, Áp dụng Voucher kép & Thanh toán VNPay
 
 ```mermaid
 sequenceDiagram
   autonumber
-  participant App as Flutter App
-  participant API as Node API
+  participant App as Flutter App (Người mua)
+  participant API as Node.js API
   participant DB as Supabase Postgres
   participant VN as VNPay Sandbox
-  App->>API: POST /orders (Bearer, Idempotency-Key)
-  API->>DB: rpc create_order (khóa tồn kho, tạo đơn)
-  DB-->>API: order_id
-  App->>API: POST /payments/vnpay/create
-  API->>DB: insert payments (pending, txn_ref)
-  API-->>App: paymentUrl đã ký
-  App->>VN: mở WebView paymentUrl
-  VN-->>App: redirect về returnUrl
-  VN->>API: GET /payments/vnpay/ipn
-  API->>API: verify HMAC SHA512, đối chiếu số tiền
-  API->>DB: rpc settle_payment (idempotent)
-  API-->>VN: RspCode 00
-  App->>API: GET /orders/:id (poll)
-  API-->>App: status paid
+
+  App->>API: POST /orders/checkout-preview (danh sách items, mã voucher shop, voucher sàn)
+  API->>DB: Kiểm tra tồn kho, hạn dùng voucher, tính tổng tiền & mức giảm
+  DB-->>API: Chi tiết giá sau giảm từng shop
+  API-->>App: Preview đơn hàng hợp lệ
+
+  App->>API: POST /orders/place-order (Header: Idempotency-Key, địa chỉ, COD/VNPay)
+  API->>DB: rpc create_order_multivendor (Khóa dòng FOR UPDATE, trừ kho, tạo Sub-orders)
+  DB-->>API: master_order_id, danh sách shop_order_ids
+  
+  alt Thanh toán qua VNPay
+    API->>VN: Khởi tạo URL giao dịch (ký HMAC SHA512)
+    API-->>App: Trả về vnpay_payment_url
+    App->>VN: Mở WebView thanh toán ngân hàng / quét mã QR
+    VN-->>App: Chuyển hướng về Return URL
+    VN->>API: Gửi IPN Webhook (Server-to-Server)
+    API->>API: Xác thực chữ ký HMAC SHA512, đối chiếu số tiền
+    API->>DB: rpc settle_payment (Cập nhật trạng thái 'paid' cho các đơn hàng)
+    API-->>VN: Phản hồi RspCode 00 (Thành công)
+    App->>API: Polling kiểm tra trạng thái đơn hàng
+    API-->>App: Trạng thái: Đã thanh toán -> Đang chuyển tới các Shop
+  else Thanh toán COD
+    API-->>App: Đặt hàng thành công (Trạng thái: Chờ xác nhận từ các Shop)
+  end
+```
+
+#### Luồng 2: Quy trình Yêu cầu Trả hàng / Hoàn tiền & Trọng tài khiếu nại
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant Buyer as Flutter App (Người mua)
+  participant Seller as Flutter / Web (Người bán)
+  participant Admin as Next.js Web Admin
+  participant API as Node.js API
+  participant DB as Supabase Postgres
+  participant VN as VNPay Refund API
+
+  Buyer->>API: POST /orders/:id/return (Lý do, ảnh lỗi sản phẩm)
+  API->>DB: Tạo bản ghi order_returns (status: 'requested'), cập nhật đơn 'return_requested'
+  API-->>Seller: Đẩy Notification: Có yêu cầu trả hàng mới
+
+  alt Người bán chấp thuận ngay
+    Seller->>API: POST /seller/returns/:id/accept
+    API->>DB: Chuyển status 'shop_approved' -> Nhận lại hàng -> Hoàn tiền
+    API->>VN: Gọi API hoàn tiền (nếu thanh toán VNPay) hoặc hoàn ví
+    API->>DB: Cộng lại số lượng tồn kho sản phẩm cho shop
+    API-->>Buyer: Đẩy Notification: Đã hoàn tiền thành công
+  else Người bán từ chối -> Người mua khiếu nại lên Sàn
+    Seller->>API: POST /seller/returns/:id/reject (Lý do từ chối & ảnh đối chứng)
+    API->>DB: Chuyển status 'shop_rejected'
+    API-->>Buyer: Thông báo: Shop từ chối yêu cầu
+    Buyer->>API: POST /returns/:id/dispute (Yêu cầu Admin phân xử)
+    API->>DB: Chuyển status 'admin_dispute_review'
+    API-->>Admin: Hiển thị hồ sơ khiếu nại trên Admin Dashboard
+    Admin->>API: POST /admin/returns/:id/resolve (Phán quyết: Duyệt hoàn tiền HOẶC Bác bỏ)
+    API->>DB: Thi hành phán quyết, cập nhật trạng thái cuối cùng, gửi thông báo 2 bên
+  end
+```
+
+#### Luồng 3: Nhắn tin trực tiếp thời gian thực (Socket.io Real-time Chat)
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant Buyer as Flutter App (Người mua)
+  participant Socket as Socket.io Server
+  participant API as Node.js Backend
+  participant DB as Supabase Postgres
+  participant Seller as Flutter App (Chủ Shop)
+
+  Buyer->>Socket: Kết nối WS với Bearer JWT (Join room conversation_id)
+  Seller->>Socket: Kết nối WS với Bearer JWT (Join room conversation_id)
+  
+  Buyer->>Socket: Gửi event 'send_message' (nội dung, shop_id, ảnh)
+  Socket->>DB: INSERT chat_messages (sender_id, content, created_at, is_read: false)
+  DB-->>Socket: message_id, timestamp
+  
+  alt Shop đang online trong phòng chat
+    Socket-->>Seller: Emit event 'new_message' (hiển thị tức thời)
+    Seller->>Socket: Emit event 'mark_read' (message_id)
+    Socket->>DB: UPDATE chat_messages SET is_read = true
+    Socket-->>Buyer: Emit event 'message_seen'
+  else Shop đang offline
+    Socket->>API: Kích hoạt Push Notification Firebase (FCM)
+    API-->>Seller: Gửi push thông báo tin nhắn mới tới thiết bị shop
+  end
 ```
 
 ### 3.4 Ước lượng tải (giả định, điều chỉnh theo thực tế)
@@ -218,18 +464,33 @@ sequenceDiagram
 
 ```mermaid
 erDiagram
-  CATEGORIES ||--o{ PRODUCTS : has
+  USERS ||--o{ SHOPS : owns
+  USERS ||--o{ USER_ADDRESSES : has
+  SHOPS ||--o{ PRODUCTS : sells
+  CATEGORIES ||--o{ PRODUCTS : categorizes
   PRODUCTS ||--o{ PRODUCT_VARIANTS : has
   PRODUCTS ||--o{ PRODUCT_IMAGES : has
   USERS ||--o{ CART_ITEMS : owns
   PRODUCT_VARIANTS ||--o{ CART_ITEMS : in
   USERS ||--o{ ORDERS : places
+  SHOPS ||--o{ ORDERS : fulfills
   ORDERS ||--|{ ORDER_ITEMS : contains
   PRODUCT_VARIANTS ||--o{ ORDER_ITEMS : snapshot_of
   ORDERS ||--o{ PAYMENTS : paid_by
+  SHOPS ||--o{ VOUCHERS : issues
+  ORDERS ||--o{ ORDER_VOUCHERS : applies
+  PRODUCTS ||--o{ PRODUCT_REVIEWS : receives
+  ORDERS ||--o{ ORDER_RETURNS : requests
+  USERS ||--o{ WISHLISTS : saves
+  USERS ||--o{ SHOP_FOLLOWERS : follows
+  USERS ||--o{ CHAT_CONVERSATIONS : chats
+  CHAT_CONVERSATIONS ||--|{ CHAT_MESSAGES : contains
+  USERS ||--o{ NOTIFICATIONS : receives
+  FLASH_SALES ||--|{ FLASH_SALE_ITEMS : includes
 ```
 
-USERS là `auth.users` của Supabase.
+USERS là `auth.users` của Supabase. Khách hàng có thể đăng ký làm chủ SHOP. Hệ thống hỗ trợ đa người bán, voucher 2 cấp, đánh giá, đổi trả hàng và chat thời gian thực.
+
 
 ### 4.2 Bảng (file `supabase/migrations/001_schema.sql`)
 
@@ -349,6 +610,293 @@ create trigger on_auth_user_created
 after insert on auth.users for each row execute function public.handle_new_user();
 ```
 
+### 4.2b Schema mở rộng Sàn TMĐT đa người bán (file `supabase/migrations/002_marketplace_schema.sql`)
+
+```sql
+-- Cập nhật enum order_status để hỗ trợ đủ vòng đời đơn hàng sàn
+alter type order_status add value if not exists 'pending_confirmation';
+alter type order_status add value if not exists 'return_requested';
+alter type order_status add value if not exists 'returning';
+alter type order_status add value if not exists 'returned';
+alter type order_status add value if not exists 'refunded';
+
+-- 1. Bảng Cửa hàng (Shop / Người bán)
+create table shops (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null unique references auth.users on delete cascade,
+  name text not null unique,
+  slug text not null unique,
+  description text,
+  logo_url text,
+  banner_url text,
+  phone text not null,
+  address text not null,
+  status text not null default 'pending' check (status in ('pending', 'active', 'suspended', 'rejected')),
+  rating_avg numeric(3,2) not null default 0.00 check (rating_avg between 0 and 5),
+  rating_count int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+-- Bổ sung trường shop_id và kiểm duyệt vào products
+alter table products add column if not exists shop_id uuid references shops on delete cascade;
+alter table products add column if not exists approval_status text not null default 'approved' check (approval_status in ('pending', 'approved', 'rejected'));
+alter table products add column if not exists rating_avg numeric(3,2) not null default 0.00;
+alter table products add column if not exists rating_count int not null default 0;
+
+-- 2. Sổ địa chỉ người dùng
+create table user_addresses (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users on delete cascade,
+  recipient_name text not null,
+  phone text not null,
+  province text not null,
+  district text not null,
+  ward text not null,
+  detail_address text not null,
+  is_default boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+-- Bổ sung shop_id và parent_order_id vào orders để hỗ trợ chia đơn hàng đa shop
+alter table orders add column if not exists shop_id uuid references shops;
+alter table orders add column if not exists parent_order_id uuid references orders(id) on delete cascade;
+
+-- 3. Bảng Mã giảm giá (Vouchers - cấp Shop hoặc cấp Sàn)
+create table vouchers (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  shop_id uuid references shops on delete cascade, -- NULL = Voucher toàn sàn (Admin tạo)
+  title text not null,
+  discount_type text not null check (discount_type in ('percentage', 'fixed_amount')),
+  discount_value int not null check (discount_value > 0),
+  min_order_value int not null default 0,
+  max_discount int,                              -- mức giảm tối đa nếu tính theo %
+  usage_limit int not null default 100,
+  used_count int not null default 0,
+  start_date timestamptz not null default now(),
+  end_date timestamptz not null,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+-- Áp dụng voucher vào đơn hàng
+create table order_vouchers (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references orders on delete cascade,
+  voucher_id uuid not null references vouchers,
+  discount_amount int not null check (discount_amount >= 0),
+  created_at timestamptz not null default now()
+);
+
+-- 4. Bảng Đánh giá & Nhận xét sản phẩm
+create table product_reviews (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid not null references products on delete cascade,
+  order_item_id uuid not null unique references order_items,
+  user_id uuid not null references auth.users,
+  rating int not null check (rating between 1 and 5),
+  comment text,
+  images jsonb default '[]'::jsonb,
+  reply_comment text,                           -- Shop phản hồi
+  reply_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+-- 5. Bảng Yêu cầu Trả hàng / Hoàn tiền
+create table order_returns (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references orders on delete cascade,
+  user_id uuid not null references auth.users,
+  shop_id uuid not null references shops,
+  reason text not null,
+  proof_images jsonb default '[]'::jsonb,
+  status text not null default 'requested' check (status in (
+    'requested', 'shop_approved', 'shop_rejected', 'admin_dispute_review', 'refunded', 'rejected'
+  )),
+  refund_amount int not null,
+  rejection_reason text,
+  admin_resolution_note text,
+  created_at timestamptz not null default now(),
+  resolved_at timestamptz
+);
+
+-- 6. Sản phẩm yêu thích (Wishlist) & Theo dõi shop
+create table wishlists (
+  user_id uuid not null references auth.users on delete cascade,
+  product_id uuid not null references products on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, product_id)
+);
+
+create table shop_followers (
+  user_id uuid not null references auth.users on delete cascade,
+  shop_id uuid not null references shops on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, shop_id)
+);
+
+-- 7. Chat thời gian thực (Conversations & Messages)
+create table chat_conversations (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users on delete cascade,
+  shop_id uuid not null references shops on delete cascade,
+  last_message text,
+  last_message_at timestamptz default now(),
+  unread_user_count int not null default 0,
+  unread_shop_count int not null default 0,
+  created_at timestamptz not null default now(),
+  unique (user_id, shop_id)
+);
+
+create table chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references chat_conversations on delete cascade,
+  sender_id uuid not null references auth.users,
+  message_type text not null default 'text' check (message_type in ('text', 'image')),
+  content text not null,
+  is_read boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+-- 8. Thông báo đẩy (Notifications)
+create table notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users on delete cascade,
+  title text not null,
+  body text not null,
+  type text not null check (type in ('order', 'promo', 'system')),
+  data jsonb default '{}'::jsonb,
+  is_read boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+-- 9. Banner quảng cáo trang chủ
+create table banners (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  image_url text not null,
+  link_url text,
+  sort_order int not null default 0,
+  is_active boolean not null default true,
+  start_date timestamptz not null default now(),
+  end_date timestamptz not null
+);
+
+-- 10. Flash Sale (Khung giờ giảm giá sốc)
+create table flash_sales (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  start_time timestamptz not null,
+  end_time timestamptz not null,
+  is_active boolean not null default false
+);
+
+create table flash_sale_items (
+  id uuid primary key default gen_random_uuid(),
+  flash_sale_id uuid not null references flash_sales on delete cascade,
+  variant_id uuid not null references product_variants on delete cascade,
+  sale_price int not null check (sale_price > 0),
+  quantity_limit int not null check (quantity_limit > 0),
+  sold_count int not null default 0,
+  unique (flash_sale_id, variant_id)
+);
+
+-- Trigger tự động cập nhật rating_avg & rating_count cho sản phẩm và shop
+create or replace function update_product_and_shop_rating()
+returns trigger language plpgsql security definer as $$
+declare
+  v_shop_id uuid;
+begin
+  -- Cập nhật điểm sản phẩm
+  update products
+  set rating_avg = round((select coalesce(avg(rating), 0) from product_reviews where product_id = new.product_id), 2),
+      rating_count = (select count(*) from product_reviews where product_id = new.product_id)
+  where id = new.product_id
+  returning shop_id into v_shop_id;
+
+  -- Cập nhật điểm shop
+  if v_shop_id is not null then
+    update shops
+    set rating_avg = round((
+      select coalesce(avg(r.rating), 0)
+      from product_reviews r
+      join products p on p.id = r.product_id
+      where p.shop_id = v_shop_id
+    ), 2),
+    rating_count = (
+      select count(*)
+      from product_reviews r
+      join products p on p.id = r.product_id
+      where p.shop_id = v_shop_id
+    )
+    where id = v_shop_id;
+  end if;
+
+  return new;
+end $$;
+
+create trigger on_product_review_added
+after insert on product_reviews
+for each row execute function update_product_and_shop_rating();
+
+-- RPC: Người mua tự hủy đơn khi shop chưa xác nhận
+create or replace function cancel_order_by_buyer(p_order_id uuid, p_user_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_order record;
+  v_item record;
+begin
+  select * into v_order from orders where id = p_order_id and user_id = p_user_id for update;
+  if not found then
+    raise exception 'Không tìm thấy đơn hàng hoặc không có quyền';
+  end if;
+
+  if v_order.status not in ('pending_payment', 'pending_confirmation') then
+    raise exception 'Đơn hàng đã được người bán xử lý, không thể tự hủy';
+  end if;
+
+  -- Hoàn lại số lượng tồn kho
+  for v_item in select variant_id, quantity from order_items where order_id = p_order_id loop
+    update product_variants
+    set stock = stock + v_item.quantity
+    where id = v_item.variant_id;
+
+    insert into inventory_logs (variant_id, delta, reason, reference_id)
+    values (v_item.variant_id, v_item.quantity, 'buyer_cancelled', p_order_id);
+  end loop;
+
+  update orders set status = 'cancelled' where id = p_order_id;
+end $$;
+
+-- RPC: Cron tự động hủy các đơn VNPay quá hạn 15 phút chưa thanh toán
+create or replace function release_expired_orders()
+returns int language plpgsql security definer set search_path = public as $$
+declare
+  v_order record;
+  v_item record;
+  v_count int := 0;
+begin
+  for v_order in
+    select id from orders
+    where status = 'pending_payment'
+      and expires_at is not null
+      and expires_at < now()
+    for update skip locked
+  loop
+    for v_item in select variant_id, quantity from order_items where order_id = v_order.id loop
+      update product_variants set stock = stock + v_item.quantity where id = v_item.variant_id;
+      insert into inventory_logs (variant_id, delta, reason, reference_id)
+      values (v_item.variant_id, v_item.quantity, 'expired_auto_release', v_order.id);
+    end loop;
+
+    update orders set status = 'cancelled' where id = v_order.id;
+    v_count := v_count + 1;
+  end loop;
+
+  return v_count;
+end $$;
+```
+
 ### 4.3 Index
 
 ```sql
@@ -357,10 +905,18 @@ create index products_newest_idx   on products (created_at, id) where is_active;
 create index products_price_idx    on products (price, id)      where is_active;
 create index products_category_idx on products (category_id, created_at, id) where is_active;
 create index products_search_trgm  on products using gin (search_text extensions.gin_trgm_ops);
+create index products_shop_idx     on products (shop_id, created_at);
 create index variants_product_idx  on product_variants (product_id);
 create index orders_user_idx       on orders (user_id, created_at, id);
+create index orders_shop_idx       on orders (shop_id, created_at);
 create index order_items_order_idx on order_items (order_id);
 create index payments_order_idx    on payments (order_id);
+create index reviews_product_idx   on product_reviews (product_id, created_at desc);
+create index returns_order_idx     on order_returns (order_id);
+create index chat_conv_user_shop   on chat_conversations (user_id, shop_id);
+create index chat_msg_conv_idx     on chat_messages (conversation_id, created_at);
+create index notif_user_idx        on notifications (user_id, is_read, created_at desc);
+create index vouchers_code_idx     on vouchers (code) where is_active;
 ```
 
 Kiểm tra bằng `EXPLAIN ANALYZE` rằng truy vấn danh sách dùng Index Scan trên `products_newest_idx` hoặc `products_price_idx`.
@@ -1021,37 +1577,96 @@ export const requireAdmin: RequestHandler = (req, _res, next) => {
 
 Tối ưu sau này: xác thực JWT cục bộ bằng JWKS của Supabase để bỏ một round trip; cache kết quả ngắn hạn theo token.
 
-### 5.4 API (tiền tố `/api/v1`)
+### 5.4 Danh mục API đầy đủ (tiền tố `/api/v1`)
 
-`user` trong cột Auth nghĩa là có JWT hợp lệ qua `requireAuth`, áp dụng như nhau cho khách hàng đã đăng ký lẫn khách vãng lai (phiên ẩn danh) — cả hai đều đặt hàng và xem đơn của chính mình theo cùng một luồng, không cần route riêng.
+`user` trong cột Auth nghĩa là có JWT hợp lệ qua `requireAuth` (bao gồm khách hàng đã đăng ký và khách vãng lai). `seller` yêu cầu vai trò `seller` hoặc `admin`. `admin` yêu cầu vai trò `admin`.
 
-| Method | Đường dẫn | Auth | Ghi chú |
-|---|---|---|---|
-| GET | /health | không | Kiểm tra DB |
-| GET | /categories | không | Cache 5 phút |
-| GET | /products | không | Query: limit (1-50, mặc định 20), cursor, sort, categoryId, q, minPrice, maxPrice |
-| GET | /products/:id | không | Kèm variants, images |
-| GET | /cart | user | Dùng chung cho khách hàng và khách vãng lai |
-| PUT | /cart/items | user | Body `{variantId, quantity}`; quantity 0 là xóa; upsert theo (user_id, variant_id) |
-| DELETE | /cart/items/:variantId | user | |
-| POST | /orders | user | Header `Idempotency-Key`; body `{ship:{name,phone,address}, paymentMethod:'cod'\|'vnpay'}`; lấy hàng từ giỏ trên server |
-| GET | /orders | user | Query: limit, cursor |
-| GET | /orders/:id | user | Chỉ chủ đơn |
-| GET | /orders/track | không | Query `{code, phone}`; gọi `track_order_by_code_phone`; rate limit chặt (5 req/giờ/IP) để chống dò số điện thoại |
-| POST | /payments/vnpay/create | user | Body `{orderId}`, trả `{paymentUrl}` |
-| GET | /payments/vnpay/ipn | VNPay | Xác thực bằng chữ ký, trả `{RspCode, Message}` |
-| GET | /payments/vnpay/return | trình duyệt | Chỉ hiển thị kết quả |
-| GET | /admin/products | admin | Bao gồm cả sản phẩm `is_active = false`; query cursor như `/products` |
-| POST | /admin/products | admin | Tạo sản phẩm; ghi `admin_audit_log` |
-| PUT | /admin/products/:id | admin | Sửa sản phẩm/biến thể/ảnh; ghi `admin_audit_log` |
-| POST | /admin/inventory/adjust | admin | Body `{variantId, delta, reason:'admin_restock'\|'admin_correction', note}`; gọi RPC `adjust_stock` |
-| GET | /admin/orders | admin | Danh sách đơn, cursor, lọc theo status |
-| PUT | /admin/orders/:id/status | admin | Body `{status, note}`; gọi RPC `admin_update_order_status` |
-| GET | /admin/inventory/movements | admin | Lịch sử tồn kho, lọc theo variantId |
-| GET | /admin/audit-log | admin | Lịch sử thao tác admin, cursor |
-| PUT | /admin/users/:id/role | admin | Body `{role:'customer'\|'admin'}`; gọi RPC `set_user_role` |
+| Nhóm chức năng | Method | Đường dẫn | Auth | Mô tả & Tham số chính |
+|---|---|---|---|---|
+| **Hệ thống** | GET | /health | không | Kiểm tra DB và trạng thái dịch vụ |
+| **Danh mục** | GET | /categories | không | Cache 5 phút, trả danh mục cha và danh mục con |
+| **Banner** | GET | /banners | không | Lấy danh sách banner trang chủ đang hoạt động (Cache LRU) |
+| **Khám phá hàng hóa** | GET | /products | không | Query: `limit, cursor, sort, categoryId, q, minPrice, maxPrice, shopId, rating` |
+| | GET | /products/:id | không | Chi tiết sản phẩm, danh sách biến thể, bảng size, ảnh, thông tin Shop |
+| | GET | /products/:id/reviews | không | Danh sách đánh giá sao + ảnh + phản hồi shop, phân trang cursor |
+| **Tài khoản & Địa chỉ**| GET | /users/me | user | Thông tin hồ sơ cá nhân |
+| | PUT | /users/me | user | Cập nhật họ tên, avatar, số điện thoại |
+| | GET | /users/addresses | user | Danh sách sổ địa chỉ nhận hàng |
+| | POST | /users/addresses | user | Thêm địa chỉ mới (Body `{recipientName, phone, province, district, ward, detailAddress, isDefault}`) |
+| | PUT | /users/addresses/:id | user | Cập nhật hoặc đặt làm địa chỉ mặc định |
+| | DELETE | /users/addresses/:id | user | Xóa địa chỉ khỏi sổ địa chỉ |
+| **Yêu thích & Theo dõi**| GET | /wishlist | user | Danh sách sản phẩm đã bấm tim |
+| | POST | /wishlist/:productId | user | Thêm sản phẩm vào Wishlist |
+| | DELETE | /wishlist/:productId | user | Bỏ thích sản phẩm |
+| | POST | /shops/:id/follow | user | Theo dõi shop |
+| | DELETE | /shops/:id/follow | user | Hủy theo dõi shop |
+| **Giỏ hàng** | GET | /cart | user | Trả giỏ hàng nhóm theo từng Shop |
+| | PUT | /cart/items | user | Body `{variantId, quantity}`; quantity 0 là xóa món |
+| | DELETE | /cart/items/:variantId | user | Xóa món khỏi giỏ hàng |
+| **Khuyến mãi & Voucher**| GET | /vouchers | user | Danh sách voucher toàn sàn và voucher shop khả dụng |
+| | POST | /vouchers/validate | user | Body `{voucherCodes: [], items: []}`; kiểm tra điều kiện & trả số tiền giảm |
+| | GET | /flash-sales/active | không | Lấy phiên Flash Sale hiện hành và danh sách sản phẩm giá sốc |
+| **Đặt hàng & Thanh toán**| POST | /orders/checkout-preview | user | Tính nháp tổng tiền, phí ship, số tiền giảm voucher từng shop |
+| | POST | /orders | user | Header `Idempotency-Key`; Body `{addressId, paymentMethod, shopVouchers, platformVoucher}`; trừ kho nguyên tử |
+| | GET | /orders | user | Danh sách đơn hàng cá nhân, lọc theo `status`, phân trang cursor |
+| | GET | /orders/:id | user | Chi tiết đơn hàng và lộ trình giao hàng |
+| | POST | /orders/:id/cancel | user | Người mua tự hủy đơn khi shop chưa xác nhận; tự hoàn kho |
+| | GET | /orders/track | không | Tra cứu đơn khách vãng lai bằng `{code, phone}` (Rate limit 5 req/giờ/IP) |
+| | POST | /payments/vnpay/create | user | Body `{orderId}`; tạo URL cổng thanh toán VNPay Sandbox |
+| | GET | /payments/vnpay/ipn | VNPay | Nhận webhook IPN từ VNPay, kiểm tra HMAC SHA512, cập nhật trạng thái |
+| | GET | /payments/vnpay/return | user | Trang hiển thị kết quả điều hướng từ VNPay |
+| **Đánh giá sau mua** | POST | /orders/:orderId/items/:itemId/review | user | Viết đánh giá 1-5 sao, bình luận, đính kèm ảnh sau khi hoàn thành đơn |
+| **Đổi trả / Hoàn tiền**| POST | /orders/:id/return | user | Gửi yêu cầu trả hàng (Body `{reason, proofImages: []}`) |
+| | GET | /returns/:id | user | Xem tiến trình và phản hồi khiếu nại trả hàng |
+| | POST | /returns/:id/dispute | user | Yêu cầu Admin can thiệp phân xử khi Shop từ chối |
+| **Chat Real-time** | GET | /chats/conversations | user | Danh sách hội thoại giữa người mua và các shop |
+| | GET | /chats/conversations/:id/messages | user | Lịch sử tin nhắn hội thoại, phân trang cursor |
+| | POST | /chats/conversations/:id/messages | user | Gửi tin nhắn qua HTTP (nếu rớt WebSocket) |
+| **Thông báo (Push)** | GET | /notifications | user | Danh sách thông báo (đơn hàng, khuyến mãi, hệ thống) |
+| | PUT | /notifications/:id/read | user | Đánh dấu đã đọc |
+| | PUT | /notifications/read-all | user | Đánh dấu đọc tất cả |
+| **Kênh Người Bán (Shop)**| POST | /shops/register | user | Đăng ký mở shop bán hàng (Body `{name, phone, address, description}`) |
+| | GET | /shops/:slugOrId | không | Trang hồ sơ Shop công khai và danh sách hàng của shop |
+| | GET | /seller/shop | seller | Xem thông tin chi tiết gian hàng của tôi |
+| | PUT | /seller/shop | seller | Cập nhật logo, banner, mô tả, địa chỉ kho |
+| | GET | /seller/products | seller | Danh sách sản phẩm của shop (cả đang duyệt, ẩn, hiện) |
+| | POST | /seller/products | seller | Đăng sản phẩm mới (Body `{name, categoryId, description, variants, images}`) |
+| | PUT | /seller/products/:id | seller | Chỉnh sửa sản phẩm và biến thể |
+| | DELETE | /seller/products/:id | seller | Ẩn hoặc xóa sản phẩm khỏi gian hàng |
+| | GET | /seller/orders | seller | Danh sách đơn khách đặt tại shop, lọc theo trạng thái |
+| | PUT | /seller/orders/:id/status | seller | Tiếp nhận đơn: 'pending_confirmation' -> 'processing' -> 'shipping' -> 'delivered' |
+| | GET | /seller/returns | seller | Danh sách khách yêu cầu trả hàng tại shop |
+| | POST | /seller/returns/:id/accept | seller | Duyệt nhận lại hàng và đồng ý hoàn tiền |
+| | POST | /seller/returns/:id/reject | seller | Từ chối yêu cầu kèm lý do và ảnh bằng chứng |
+| | POST | /seller/reviews/:id/reply | seller | Phản hồi công khai bình luận đánh giá của khách |
+| | GET | /seller/vouchers | seller | Quản lý danh sách voucher riêng của shop |
+| | POST | /seller/vouchers | seller | Tạo voucher giảm giá mới cho shop |
+| | GET | /seller/analytics | seller | Báo cáo doanh thu, số đơn, biểu đồ tăng trưởng, top hàng bán chạy |
+| **Quản trị Sàn (Admin)** | GET | /admin/users | admin | Danh sách người dùng sàn, tìm kiếm, xem chi tiết |
+| | PUT | /admin/users/:id/status | admin | Khóa hoặc mở khóa tài khoản vi phạm |
+| | PUT | /admin/users/:id/role | admin | Gán vai trò (`buyer`, `seller`, `admin`); gọi RPC `set_user_role` |
+| | GET | /admin/shops | admin | Danh sách các shop, lọc theo trạng thái duyệt |
+| | PUT | /admin/shops/:id/approve | admin | Phê duyệt shop mới mở |
+| | PUT | /admin/shops/:id/reject | admin | Từ chối hồ sơ đăng ký shop |
+| | GET | /admin/products/pending | admin | Hàng đợi sản phẩm chờ kiểm duyệt nội dung |
+| | PUT | /admin/products/:id/approve | admin | Phê duyệt sản phẩm lên sàn |
+| | PUT | /admin/products/:id/reject | admin | Từ chối hoặc gỡ bỏ sản phẩm vi phạm |
+| | POST/PUT/DELETE | /admin/categories | admin | Quản lý danh mục ngành hàng |
+| | POST/PUT/DELETE | /admin/banners | admin | Quản lý Banner quảng cáo trang chủ |
+| | POST | /admin/vouchers | admin | Tạo mã voucher toàn sàn do Admin tài trợ |
+| | POST/PUT | /admin/flash-sales | admin | Quản lý khung giờ Flash Sale và duyệt hàng tham gia |
+| | GET | /admin/returns/disputes | admin | Danh sách khiếu nại tranh chấp đổi trả giữa khách và shop |
+| | POST | /admin/returns/:id/resolve | admin | Phán quyết chung thẩm: Hoàn tiền hoặc Bác bỏ khiếu nại |
+| | POST | /admin/notifications/broadcast | admin | Gửi thông báo hệ thống tới toàn bộ người dùng |
+| | GET | /admin/analytics/overview | admin | Dashboard tổng quan: GMV sàn, số đơn, tăng trưởng shop/user |
+| | GET | /admin/audit-log | admin | Nhật ký theo dõi hoạt động quản trị viên |
 
-Middleware `requireAdmin` (đặt sau `requireAuth`) chặn truy cập nếu `req.user.role !== 'admin'`, trả `FORBIDDEN` (403). `requireAuth` cần cập nhật để phân biệt khách vãng lai: `role = data.user.is_anonymous ? 'guest' : (data.user.app_metadata?.role ?? 'customer')`. `requireAdmin` chỉ chấp nhận `role === 'admin'`, nên khách vãng lai và khách hàng thường đều bị chặn khỏi `/admin/*` như nhau.
+**Các sự kiện WebSocket (Socket.io Real-time Chat):**
+- Client emit `join_room` `{ conversationId }`: Tham gia phòng chat giữa Buyer và Shop.
+- Client emit `send_message` `{ conversationId, content, type }`: Gửi tin nhắn mới.
+- Server emit `new_message` `{ message }`: Phát tin nhắn tức thì cho người nhận trong phòng.
+- Client emit `mark_read` `{ conversationId, messageId }`: Đánh dấu tin nhắn đã xem.
+- Server emit `message_seen` `{ conversationId }`: Thông báo cho đối phương biết tin nhắn đã được đọc.
 
 
 ### 5.5 Chuẩn response và lỗi
@@ -1221,22 +1836,48 @@ app/lib/
     profile/
 ```
 
-### 7.3 Màn hình
+### 7.3 Danh mục Màn hình & ViewModels (Flutter App)
 
-| Route | Màn hình | ViewModel |
-|---|---|---|
-| /splash | Kiểm tra phiên đăng nhập | AuthViewModel |
-| /login, /register | Đăng nhập, đăng ký | AuthViewModel |
-| / | Trang chủ: danh mục, lưới sản phẩm mới | ProductListViewModel |
-| /products | Danh sách, lọc, sắp xếp, tìm kiếm | ProductListViewModel |
-| /products/:id | Chi tiết, chọn size/màu | ProductDetailViewModel |
-| /cart | Giỏ hàng | CartViewModel |
-| /checkout | Địa chỉ, phương thức thanh toán | CheckoutViewModel |
-| /payment/vnpay | WebView thanh toán | PaymentViewModel |
-| /orders, /orders/:id | Lịch sử, chi tiết đơn | OrderListViewModel, OrderDetailViewModel |
-| /profile | Hồ sơ | ProfileViewModel |
+#### A. Phân hệ Người mua (Buyer)
+| Route | Màn hình | ViewModel phụ trách | Chức năng chính |
+|---|---|---|---|
+| `/splash` | Màn hình khởi động | `AuthViewModel` | Kiểm tra token, phiên Supabase, tự khởi tạo phiên vãng lai |
+| `/login`, `/register` | Đăng nhập, đăng ký | `AuthViewModel` | Supabase Auth (Email + Pass), nâng cấp phiên vãng lai |
+| `/forgot-password` | Quên mật khẩu | `AuthViewModel` | Gửi link / OTP reset mật khẩu qua email |
+| `/` | Trang chủ Menly | `HomeViewModel` | Banner slider, Danh mục, Khung Flash Sale, Sản phẩm nổi bật |
+| `/products` | Khám phá & Tìm kiếm | `ProductListViewModel` | Phân trang cursor, lọc đa tiêu chí, tìm không dấu |
+| `/products/:id` | Chi tiết sản phẩm | `ProductDetailViewModel` | Bộ ảnh, chọn size/màu, xem đánh giá sao, chọn mua |
+| `/shops/:id` | Trang hồ sơ Cửa hàng | `ShopProfileViewModel` | Thông tin shop, nút Follow, danh sách hàng của shop |
+| `/cart` | Giỏ hàng thông minh | `CartViewModel` | Phân nhóm hàng theo từng Shop, chọn món thanh toán |
+| `/checkout` | Đặt hàng & Áp Voucher | `CheckoutViewModel` | Chọn địa chỉ, chọn Voucher shop & sàn, chọn COD/VNPay |
+| `/payment/vnpay` | Cổng thanh toán VNPay | `PaymentViewModel` | WebView thanh toán ngân hàng/QR, lắng nghe return |
+| `/orders` | Lịch sử đơn hàng | `OrderListViewModel` | Tab theo trạng thái đơn (chờ xác nhận, giao, đã giao...) |
+| `/orders/:id` | Chi tiết đơn & Lộ trình | `OrderDetailViewModel` | Chi tiết đơn, nút Khách tự hủy đơn, nút Trả hàng |
+| `/orders/track` | Tra cứu đơn vãng lai | `OrderTrackViewModel` | Tra cứu đơn bằng Mã đơn + SĐT (không cần đăng nhập) |
+| `/orders/:orderId/review`| Đánh giá sản phẩm | `ReviewViewModel` | Chấm 1-5 sao, viết nhận xét, tải ảnh chụp thực tế |
+| `/orders/:id/return` | Yêu cầu đổi trả | `ReturnRequestViewModel`| Chọn lý do trả hàng, tải ảnh bằng chứng, gửi shop |
+| `/wishlist` | Danh sách yêu thích | `WishlistViewModel` | Quản lý các món đồ đã bấm tim lưu trữ |
+| `/vouchers` | Ví Voucher cá nhân | `VoucherViewModel` | Xem và lưu mã giảm giá toàn sàn và của các shop |
+| `/chats` | Danh sách hội thoại | `ChatListViewModel` | Danh sách chat với các shop, số tin chưa đọc |
+| `/chats/:id` | Màn hình Chat 1-1 | `ChatDetailViewModel` | Chat Socket.io thời gian thực, gửi ảnh, xem trạng thái |
+| `/notifications` | Trung tâm thông báo | `NotificationViewModel` | Thông báo đơn hàng, khuyến mãi, sự kiện hệ thống |
+| `/profile` | Hồ sơ cá nhân | `ProfileViewModel` | Xem/sửa thông tin, nút "Đăng ký mở Cửa hàng" |
+| `/profile/addresses`| Sổ địa chỉ nhận hàng | `AddressViewModel` | Thêm, sửa, xóa, đặt địa chỉ giao hàng mặc định |
 
-Giao diện thời trang nam: bảng màu trung tính (đen, trắng, xám than, xanh navy), token màu và cỡ chữ đặt trong `core`/`app/theme.dart`, ảnh sản phẩm tỉ lệ dọc.
+#### B. Phân hệ Kênh Người bán (Seller Center trên Mobile)
+| Route | Màn hình | ViewModel phụ trách | Chức năng chính |
+|---|---|---|---|
+| `/seller/register` | Đăng ký mở Shop | `SellerRegisterViewModel`| Điền thông tin shop, CCCD/MST, địa chỉ kho gửi admin |
+| `/seller/dashboard`| Trung tâm Người bán | `SellerDashboardViewModel`| Báo cáo doanh số, số đơn cần xử lý, biểu đồ doanh thu |
+| `/seller/products` | Quản lý sản phẩm shop | `SellerProductViewModel` | Danh sách sản phẩm của shop, trạng thái duyệt, ẩn/hiện |
+| `/seller/products/form`| Thêm / Sửa sản phẩm | `SellerProductFormViewModel`| Nhập tên, mô tả, tạo bảng size/màu biến thể, upload ảnh |
+| `/seller/orders` | Quản lý đơn hàng shop | `SellerOrderViewModel` | Tiếp nhận đơn, xác nhận, đóng gói và giao cho shipper |
+| `/seller/returns` | Xử lý yêu cầu trả hàng | `SellerReturnViewModel` | Xem lý do/ảnh lỗi, duyệt nhận lại hàng hoặc từ chối |
+| `/seller/vouchers` | Quản lý Voucher shop | `SellerVoucherViewModel` | Tạo và quản lý mã giảm giá riêng của cửa hàng |
+| `/seller/reviews` | Phản hồi đánh giá | `SellerReviewViewModel` | Xem khách đánh giá và viết phản hồi cho khách |
+
+Giao diện thời trang nam Menly: Tone màu chủ đạo tối giản, sang trọng (Modern Masculine Minimalist: Đen mờ `#121212`, Trắng sữa `#F8F9FA`, Xanh Navy `#1B2A4A`, Xám than `#2D3748`, Vàng kim điểm xuyết `#D4AF37`), bố cục typography sạch sẽ theo chuẩn Clean Architecture + MVVM.
+
 
 ### 7.4 Ví dụ: danh sách sản phẩm cuộn vô hạn
 
@@ -1470,6 +2111,24 @@ Dio buildDio(String baseUrl) {
 ### 7.7 Icon trong UI Flutter
 
 Dùng bộ Material `Icons` chuẩn qua một file `AppIcons` duy nhất cho điều hướng và hành động. Không dùng emoji làm icon hoặc nhúng emoji vào `Text` (mục 9).
+
+### 7.8 Kênh Quản trị Web Admin (Next.js Dashboard)
+
+Để phục vụ quản trị toàn diện sàn thương mại điện tử đa người bán, hệ thống trang bị Kênh Quản trị Web Admin độc lập đặt tại thư mục [`admin/`](file:///c:/Users/ThanhToan/DATN_Mua-sam-thoi-trang-nam-Menly/admin):
+
+- **Công nghệ áp dụng:** Next.js 15+ (App Router), TypeScript, TailwindCSS, Lucide Icons, Recharts (vẽ biểu đồ phân tích số liệu).
+- **Cơ chế xác thực:** Đăng nhập tài khoản Admin qua Supabase Auth, lưu JWT trong Cookie `httpOnly`, middleware Next.js kiểm tra claim `role === 'admin'`.
+- **Cấu trúc phân trang quản trị (`admin/src/app/`):**
+  - `/` (Dashboard Tổng quan): Các thẻ chỉ số KPI sàn (Tổng GMV, Doanh số hôm nay, Tổng số đơn, Số shop đang hoạt động), biểu đồ cột doanh thu theo tuần/tháng, top 5 shop bán chạy nhất.
+  - `/shops` (Quản lý Cửa hàng): Bảng danh sách shop kèm bộ lọc trạng thái (`pending`, `active`, `suspended`); Modal duyệt hồ sơ đăng ký mở shop (xem CCCD/MST, địa chỉ kho) với nút Duyệt / Từ chối kèm lý do.
+  - `/products/pending` (Kiểm duyệt Hàng hóa): Hàng đợi sản phẩm mới do các shop gửi lên; xem chi tiết bảng size, ảnh sản phẩm, duyệt đưa lên sàn hoặc yêu cầu sửa đổi nội dung.
+  - `/categories` (Danh mục Ngành hàng): Thêm/sửa danh mục đa cấp, sắp xếp thứ tự hiển thị, tải lên biểu tượng danh mục.
+  - `/banners` (Banner Trang chủ): Upload ảnh banner, thiết lập liên kết khuyến mãi, đặt thời hạn bắt đầu/kết thúc, bật/tắt hiển thị.
+  - `/vouchers` (Mã giảm giá Toàn sàn): Cấu hình mã voucher cấp hệ thống do Admin tài trợ ngân sách, phân bổ ngân sách khuyến mãi.
+  - `/flash-sales` (Quản trị Flash Sale): Thiết lập các khung giờ vàng trong ngày, duyệt danh sách sản phẩm đăng ký tham gia của các shop.
+  - `/returns/disputes` (Trọng tài Khiếu nại Tranh chấp): Tiếp nhận các ca trả hàng mà Người mua và Người bán không tìm được tiếng nói chung; xem xét hình ảnh đối chứng hai bên và ra phán quyết cuối cùng (Hoàn tiền hoặc Bác bỏ).
+  - `/users` (Quản lý Người dùng): Danh sách tài khoản khách hàng và chủ shop, nút khóa/mở khóa tài khoản vi phạm chính sách sàn.
+  - `/audit-logs` (Nhật ký Hệ thống): Bảng tra cứu toàn bộ các thao tác quản trị nhạy cảm đã thực hiện trên sàn.
 
 ---
 
