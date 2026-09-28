@@ -69,7 +69,7 @@ export function ProductDetailModal({ product, onClose, onStockAdjusted }: Produc
 
         {/* Product Basic Info Card */}
         <div className="flex flex-col sm:flex-row gap-4 bg-[#1e0f39]/80 border border-[#371b63] p-4 rounded-2xl">
-          <img src={product.thumbnailUrl} alt={product.name} className="w-20 h-28 object-cover rounded-xl border border-[#3b1a6a] shrink-0" />
+          <img src={product.thumbnailUrl || undefined} alt={product.name} className="w-20 h-28 object-cover rounded-xl border border-[#3b1a6a] shrink-0" />
           <div className="space-y-1.5 flex-1 min-w-0">
             <h4 className="text-sm font-bold text-white line-clamp-1">{product.name}</h4>
             <div className="flex items-center gap-3 text-xs">

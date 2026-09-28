@@ -72,7 +72,7 @@ export async function fetchAdminUsers(): Promise<UserAccount[]> {
 export async function createAdminUser(payload: {
   name: string;
   email: string;
-  password: string;
+  password?: string;
   role?: string;
 }): Promise<UserAccount> {
   const data = await adminFetch<{ data?: UserAccount } | UserAccount>('/api/v1/admin/users', {

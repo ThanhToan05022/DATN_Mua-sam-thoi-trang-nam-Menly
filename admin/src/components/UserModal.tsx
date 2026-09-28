@@ -120,17 +120,17 @@ interface EditUserModalProps {
 }
 
 export function EditUserModal({ user, isOpen, onClose, onSubmit }: EditUserModalProps) {
-  const [name, setName] = useState(user?.name || '');
+  const [name, setName] = useState(user?.name || user?.fullName || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [role, setRole] = useState<'admin' | 'user'>(user?.role || 'user');
+  const [role, setRole] = useState<'admin' | 'user'>(user?.role === 'admin' ? 'admin' : 'user');
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (user) {
-      setName(user.name);
+      setName(user.name || user.fullName || '');
       setEmail(user.email);
-      setRole(user.role);
+      setRole(user.role === 'admin' ? 'admin' : 'user');
     }
   }, [user]);
 
