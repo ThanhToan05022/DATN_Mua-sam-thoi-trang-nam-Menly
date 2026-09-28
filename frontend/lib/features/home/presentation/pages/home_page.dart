@@ -232,7 +232,10 @@ class _HomePageState extends State<HomePage> {
                   final c = _categories[i];
                   final hasImage = c.imageUrl != null && c.imageUrl!.isNotEmpty;
                   return GestureDetector(
-                    onTap: () => context.go('/products'),
+                    onTap: () => context.go(
+                      '/products?categoryId=${c.id}',
+                      extra: c.id,
+                    ),
                     child: SizedBox(
                       width: 78,
                       child: Column(

@@ -8,7 +8,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../data/models/product_model.dart';
 
 class ProductListPage extends StatefulWidget {
-  const ProductListPage({super.key});
+  final String? initialCategoryId;
+  const ProductListPage({super.key, this.initialCategoryId});
   @override
   State<ProductListPage> createState() => _ProductListPageState();
 }
@@ -16,32 +17,73 @@ class ProductListPage extends StatefulWidget {
 class _ProductListPageState extends State<ProductListPage> {
   List<Product> _products = [];
   List<Category> _categories = [];
-  String _selectedCatId = 'all';
+  late String _selectedCatId;
   bool _loading = true;
   bool _gridView = true;
   final _searchCtrl = TextEditingController();
+  final _catScrollCtrl = ScrollController();
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _selectedCatId = widget.initialCategoryId ?? 'all';
+    _load();
+  }
 
   @override
-  void dispose() { _searchCtrl.dispose(); super.dispose(); }
+  void didUpdateWidget(covariant ProductListPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final targetCat = widget.initialCategoryId ?? 'all';
+    if (targetCat != _selectedCatId) {
+      setState(() => _selectedCatId = targetCat);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _catScrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSelected() {
+    if (!mounted || !_catScrollCtrl.hasClients || _selectedCatId == 'all') return;
+    final target = _selectedCatId.trim().toLowerCase();
+    final idx = _categories.indexWhere((c) =>
+      c.id.toLowerCase() == target ||
+      c.slug.toLowerCase() == target ||
+      c.name.toLowerCase() == target
+    );
+    if (idx != -1) {
+      final itemIndex = idx + 1;
+      final offset = (itemIndex * 95.0) - 40.0;
+      _catScrollCtrl.animateTo(
+        offset.clamp(0.0, _catScrollCtrl.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
 
   Future<void> _load() async {
     try {
       final res = await Future.wait([
-        http.get(Uri.parse('${ApiConfig.apiBase}/products?limit=100')),
+        http.get(Uri.parse('${ApiConfig.apiBase}/products?limit=200')),
         http.get(Uri.parse('${ApiConfig.apiBase}/categories')),
       ]);
       final pd = jsonDecode(res[0].body);
       final cd = jsonDecode(res[1].body);
       final List pl = pd is List ? pd : (pd['data'] ?? pd['items'] ?? []);
       final List cl = cd is List ? cd : (cd['data'] ?? []);
-      if (mounted) setState(() {
-        _products = pl.map((e) => Product.fromJson(e)).toList();
-        _categories = cl.map((e) => Category.fromJson(e)).toList();
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _products = pl.map((e) => Product.fromJson(e)).toList();
+          _categories = cl.map((e) => Category.fromJson(e)).toList();
+          _loading = false;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -49,7 +91,18 @@ class _ProductListPageState extends State<ProductListPage> {
 
   List<Product> get _filtered {
     var list = _products;
-    if (_selectedCatId != 'all') list = list.where((p) => p.categoryId == _selectedCatId).toList();
+    if (_selectedCatId != 'all') {
+      final target = _selectedCatId.trim().toLowerCase();
+      list = list.where((p) {
+        if (p.categoryId.trim().toLowerCase() == target) return true;
+        return _categories.any((c) =>
+          (c.id.toLowerCase() == target ||
+           c.slug.toLowerCase() == target ||
+           c.name.toLowerCase() == target) &&
+          c.id.toLowerCase() == p.categoryId.trim().toLowerCase()
+        );
+      }).toList();
+    }
     final q = _searchCtrl.text.trim().toLowerCase();
     if (q.isNotEmpty) list = list.where((p) => p.name.toLowerCase().contains(q)).toList();
     return list;
@@ -88,6 +141,15 @@ class _ProductListPageState extends State<ProductListPage> {
     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
     child: Row(
       children: [
+        if (context.canPop()) ...[
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            onPressed: () => context.pop(),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 12),
+        ],
         const Text('Sản phẩm', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
         const Spacer(),
         _IconBtn(
@@ -125,6 +187,7 @@ class _ProductListPageState extends State<ProductListPage> {
   Widget _buildCategories() => SizedBox(
     height: 44,
     child: ListView.separated(
+      controller: _catScrollCtrl,
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       scrollDirection: Axis.horizontal,
       itemCount: _categories.length + 1,
@@ -133,23 +196,27 @@ class _ProductListPageState extends State<ProductListPage> {
         final isAll = i == 0;
         final id = isAll ? 'all' : _categories[i - 1].id;
         final label = isAll ? 'Tất cả' : _categories[i - 1].name;
-        final selected = _selectedCatId == id;
+        final isSelected = isAll
+            ? _selectedCatId == 'all'
+            : (_selectedCatId.toLowerCase() == id.toLowerCase() ||
+               _selectedCatId.toLowerCase() == _categories[i - 1].slug.toLowerCase() ||
+               _selectedCatId.toLowerCase() == _categories[i - 1].name.toLowerCase());
         return GestureDetector(
           onTap: () => setState(() => _selectedCatId = id),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              gradient: selected ? AppTheme.primaryGradient : null,
-              color: selected ? null : AppTheme.surface2,
+              gradient: isSelected ? AppTheme.primaryGradient : null,
+              color: isSelected ? null : AppTheme.surface2,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: selected ? Colors.transparent : AppTheme.border),
-              boxShadow: selected ? [BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))] : null,
+              border: Border.all(color: isSelected ? Colors.transparent : AppTheme.border),
+              boxShadow: isSelected ? [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))] : null,
             ),
             child: Center(
               child: Text(label,
                 style: TextStyle(
-                  color: selected ? Colors.black : AppTheme.textSecondary,
+                  color: isSelected ? Colors.black : AppTheme.textSecondary,
                   fontSize: 13, fontWeight: FontWeight.w700,
                 )),
             ),

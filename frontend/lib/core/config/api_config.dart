@@ -13,11 +13,14 @@ class ApiConfig {
   // ============================================================
 
   /// ✏️ THAY GIÁ TRỊ NÀY = IP máy đang chạy backend của bạn
-  static const String _localIp = '192.168.42.45';
+  static const String _localIp = '192.168.1.5';
 
   static String get baseUrl {
     if (Platform.isAndroid) {
       return 'http://10.0.2.2:5000'; // Android emulator → localhost của host
+    }
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      return 'http://localhost:5000'; // Máy bàn Desktop chạy trực tiếp localhost
     }
     return 'http://$_localIp:5000';  // iOS Simulator / thiết bị thật
   }
