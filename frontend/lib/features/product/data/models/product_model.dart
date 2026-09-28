@@ -35,6 +35,11 @@ class Product {
     this.variants = const [],
   });
 
+  String get imageUrl => thumbnailUrl ?? '';
+  int get stock => variants.fold(0, (sum, v) => sum + v.stock);
+
+
+
   factory Product.fromJson(Map<String, dynamic> j) => Product(
     id: j['id'] ?? '',
     categoryId: j['categoryId'] ?? j['category_id'] ?? '',

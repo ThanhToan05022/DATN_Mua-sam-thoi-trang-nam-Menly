@@ -203,8 +203,8 @@ class _GridCard extends StatelessWidget {
           Expanded(
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-              child: (product.thumbnailUrl ?? "").isNotEmpty
-                  ? CachedNetworkImage(imageUrl: (product.thumbnailUrl ?? ""), fit: BoxFit.cover,
+              child: product.imageUrl.isNotEmpty
+                  ? CachedNetworkImage(imageUrl: product.imageUrl, fit: BoxFit.cover,
                       placeholder: (_, __) => _placeholder(product.name),
                       errorWidget: (_, __, ___) => _placeholder(product.name))
                   : _placeholder(product.name),
@@ -249,8 +249,8 @@ class _ListCard extends StatelessWidget {
             borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
             child: SizedBox(
               width: 90,
-              child: (product.thumbnailUrl ?? "").isNotEmpty
-                  ? CachedNetworkImage(imageUrl: (product.thumbnailUrl ?? ""), fit: BoxFit.cover, errorWidget: (_, __, ___) => Container(color: AppTheme.surface2, child: Center(child: Text(product.name.isNotEmpty ? product.name[0] : '?', style: const TextStyle(color: AppTheme.primary, fontSize: 28, fontWeight: FontWeight.w900)))))
+              child: product.imageUrl.isNotEmpty
+                  ? CachedNetworkImage(imageUrl: product.imageUrl, fit: BoxFit.cover, errorWidget: (_, __, ___) => Container(color: AppTheme.surface2, child: Center(child: Text(product.name.isNotEmpty ? product.name[0] : '?', style: const TextStyle(color: AppTheme.primary, fontSize: 28, fontWeight: FontWeight.w900)))))
                   : Container(color: AppTheme.surface2, child: Center(child: Text(product.name.isNotEmpty ? product.name[0] : '?', style: const TextStyle(color: AppTheme.primary, fontSize: 28, fontWeight: FontWeight.w900)))),
             ),
           ),
