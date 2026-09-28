@@ -10,6 +10,9 @@ import 'features/product/presentation/pages/product_detail_page.dart';
 import 'features/cart/presentation/pages/cart_page.dart';
 import 'features/order/presentation/pages/checkout_page.dart';
 import 'features/order/presentation/pages/order_success_page.dart';
+import 'features/auth/presentation/pages/login_page.dart';
+import 'features/auth/presentation/pages/register_page.dart';
+import 'features/auth/presentation/pages/profile_page.dart';
 
 void main() {
   runApp(const MenlyApp());
@@ -18,6 +21,10 @@ void main() {
 final _router = GoRouter(
   initialLocation: '/',
   routes: [
+    // Auth routes — ngoài shell (không có bottom nav)
+    GoRoute(path: '/login', builder: (ctx, s) => const LoginPage()),
+    GoRoute(path: '/register', builder: (ctx, s) => const RegisterPage()),
+
     ShellRoute(
       builder: (ctx, state, child) => MainShell(child: child),
       routes: [
@@ -30,6 +37,7 @@ final _router = GoRouter(
         GoRoute(path: '/cart', builder: (ctx, s) => const CartPage()),
         GoRoute(path: '/checkout', builder: (ctx, s) => const CheckoutPage()),
         GoRoute(path: '/order-success', builder: (ctx, s) => const OrderSuccessPage()),
+        GoRoute(path: '/profile', builder: (ctx, s) => const ProfilePage()),
       ],
     ),
   ],
@@ -71,6 +79,7 @@ class _MainShellState extends State<MainShell> {
       case 0: ctx.go('/'); break;
       case 1: ctx.go('/products'); break;
       case 2: ctx.go('/cart'); break;
+      case 3: ctx.go('/profile'); break;
     }
   }
 
@@ -82,6 +91,7 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _idx,
         onTap: (i) => _onTap(i, context),
+        type: BottomNavigationBarType.fixed,
         items: [
           const BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Trang chủ'),
           const BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: 'Sản phẩm'),
@@ -95,6 +105,7 @@ class _MainShellState extends State<MainShell> {
             ),
             label: 'Giỏ hàng',
           ),
+          const BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Tài khoản'),
         ],
       ),
     );
