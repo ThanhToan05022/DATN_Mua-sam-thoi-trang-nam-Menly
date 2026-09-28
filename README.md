@@ -76,15 +76,7 @@ cp .env.example .env     # Sao chép file cấu hình
 ```
 
 Mở file `.env` và điền thông tin:
-```env
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/menly
-JWT_SECRET=your_jwt_secret_key_here
-JWT_REFRESH_SECRET=your_refresh_secret_key_here
-CLOUDINARY_CLOUD_NAME=your_cloudinary_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-```
+
 
 ```bash
 npm install
