@@ -98,9 +98,15 @@ export async function fetchProductDetail(id: string): Promise<Product | null> {
 }
 
 // ========== ORDERS ==========
-export async function fetchAdminOrders(params?: { status?: string }): Promise<Order[]> {
+export async function fetchAdminOrders(
+  params?: { status?: string } | OrderStatus | string
+): Promise<Order[]> {
   const query = new URLSearchParams();
-  if (params?.status && params.status !== 'all') query.set('status', params.status);
+  if (typeof params === 'string') {
+    if (params && params !== 'all') query.set('status', params);
+  } else if (params?.status && params.status !== 'all') {
+    query.set('status', params.status);
+  }
   const qs = query.toString() ? `?${query.toString()}` : '';
 
   const data = await apiFetch<{ data: Order[] } | Order[]>(`/api/v1/admin/orders${qs}`);
@@ -143,15 +149,31 @@ export async function fetchInventoryMovements(): Promise<InventoryMovement[]> {
   return (data as { data: InventoryMovement[] }).data || [];
 }
 
-export async function adjustInventory(params: {
-  variantId: string;
-  change: number;
-  reason: string;
-  note?: string;
-}): Promise<void> {
+export async function adjustInventory(
+  variantIdOrParams: string | { variantId: string; change?: number; delta?: number; reason: string; note?: string },
+  changeOrDelta?: number,
+  reason?: string,
+  note?: string
+): Promise<void> {
+  let bodyPayload: { variantId: string; delta: number; reason: string; note?: string };
+  if (typeof variantIdOrParams === 'string') {
+    bodyPayload = {
+      variantId: variantIdOrParams,
+      delta: changeOrDelta ?? 0,
+      reason: reason || 'admin_restock',
+      note: note || '',
+    };
+  } else {
+    bodyPayload = {
+      variantId: variantIdOrParams.variantId,
+      delta: variantIdOrParams.delta ?? variantIdOrParams.change ?? 0,
+      reason: variantIdOrParams.reason || 'admin_restock',
+      note: variantIdOrParams.note || '',
+    };
+  }
   await apiFetch('/api/v1/admin/inventory/adjust', {
     method: 'POST',
-    body: JSON.stringify(params),
+    body: JSON.stringify(bodyPayload),
   });
 }
 

@@ -406,7 +406,7 @@ export default function ProductsPage() {
                           <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
                             <td className="py-2.5 px-4">
                               <img
-                                src={p.thumbnailUrl}
+                                src={p.thumbnailUrl || undefined}
                                 alt={p.name}
                                 className="w-12 h-14 object-cover rounded-lg border border-slate-800 bg-slate-950"
                               />
@@ -495,7 +495,7 @@ export default function ProductsPage() {
                       <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
                         <td className="py-3 px-4">
                           <img
-                            src={p.thumbnailUrl}
+                            src={p.thumbnailUrl || undefined}
                             alt={p.name}
                             className="w-12 h-14 object-cover rounded-lg border border-slate-800 bg-slate-950"
                           />

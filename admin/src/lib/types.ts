@@ -80,6 +80,7 @@ export interface Category {
   slug: string;
   description?: string | null;
   imageUrl?: string | null;
+  sortOrder?: number;
 }
 
 // ========== INVENTORY TYPES ==========
@@ -92,10 +93,14 @@ export type InventoryMovementReason =
 export interface InventoryMovement {
   id: string;
   variantId: string;
-  change: number;
+  productName?: string;
+  sku?: string;
+  change?: number;
+  delta: number;
   reason: InventoryMovementReason;
   orderId?: string | null;
   createdBy?: string | null;
+  actorId?: string | null;
   note?: string | null;
   createdAt: string;
 }
@@ -103,10 +108,13 @@ export interface InventoryMovement {
 // ========== AUDIT LOG TYPES ==========
 export interface AuditLog {
   id: string;
-  adminId: string;
+  adminId?: string;
+  actorId?: string;
   action: string;
-  entityType: string;
+  entityType?: string;
+  entity?: string;
   entityId?: string | null;
+  metadata?: unknown;
   before?: unknown;
   after?: unknown;
   createdAt: string;
@@ -116,9 +124,13 @@ export interface AuditLog {
 export interface UserAccount {
   id: string;
   email: string;
-  role: 'customer' | 'admin' | 'guest';
-  createdAt: string;
+  name?: string;
   fullName?: string | null;
+  role: 'customer' | 'admin' | 'guest' | 'user' | 'seller';
+  createdAt: string;
   phone?: string | null;
   avatarUrl?: string | null;
+  isLocked?: boolean;
+  isActive?: boolean;
 }
+
