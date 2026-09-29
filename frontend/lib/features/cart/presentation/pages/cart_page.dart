@@ -2,8 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/auth_guard.dart';
 import '../../data/cart_model.dart';
 
 class CartPage extends StatelessWidget {
@@ -19,69 +19,18 @@ class CartPage extends StatelessWidget {
     return b.toString();
   }
 
-  // ✅ FIX 2: Kiểm tra đăng nhập trước khi checkout
-  Future<void> _proceedToCheckout(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('accessToken') ?? '';
-    if (!context.mounted) return;
-    if (token.isEmpty) {
-      _showLoginRequired(context);
-    } else {
-      context.push('/checkout');
+  void _proceedToCheckout(BuildContext context) {
+    if (!AuthGuard.check(
+      context,
+      actionTitle: 'Đăng nhập để thanh toán',
+      actionMessage:
+          'Bạn đang ở chế độ xem ẩn danh. Để tiến hành đặt hàng và thanh toán, vui lòng đăng nhập tài khoản.',
+      redirectPath: '/checkout',
+    )) {
+      return;
     }
-  }
 
-  void _showLoginRequired(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppTheme.surface2,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(color: AppTheme.border2, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 20),
-          Container(
-            width: 64, height: 64,
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.12),
-              shape: BoxShape.circle,
-              border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
-            ),
-            child: const Icon(Icons.lock_rounded, color: AppTheme.primary, size: 30),
-          ),
-          const SizedBox(height: 14),
-          const Text('Cần đăng nhập để mua hàng',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
-          const Text('Vui lòng đăng nhập để tiến hành\nthanh toán đơn hàng',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity, height: 50,
-            child: ElevatedButton(
-              onPressed: () { Navigator.of(context).pop(); context.push('/login'); },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              child: const Text('Đăng nhập ngay',
-                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 15)),
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextButton(
-            onPressed: () { Navigator.of(context).pop(); context.push('/register'); },
-            child: const Text('Chưa có tài khoản? Đăng ký',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
-          ),
-        ]),
-      ),
-    );
+    context.push('/checkout');
   }
 
   @override
@@ -108,7 +57,7 @@ class CartPage extends StatelessWidget {
                 child: ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   itemCount: cart.items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (context, index) => const SizedBox(height: 10),
                   itemBuilder: (_, i) => _CartItem(
                     item: cart.items[i],
                     onRemove: () => cart.removeItem(cart.items[i].variant.id),
@@ -246,11 +195,11 @@ class _CartItem extends StatelessWidget {
                   ? CachedNetworkImage(
                       imageUrl: thumb,
                       fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(
+                      placeholder: (context, url) => Container(
                         color: AppTheme.surface2,
                         child: const Center(child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2)),
                       ),
-                      errorWidget: (_, __, ___) => _placeholder(),
+                      errorWidget: (context, url, error) => _placeholder(),
                     )
                   : _placeholder(),
             ),
@@ -268,7 +217,11 @@ class _CartItem extends StatelessWidget {
                   style: const TextStyle(color: AppTheme.primary, fontSize: 14, fontWeight: FontWeight.w800)),
               Row(children: [
                 _tiny(Icons.remove_rounded, () {
-                  if (item.quantity > 1) onQtyChange(item.quantity - 1); else onRemove();
+                  if (item.quantity > 1) {
+                    onQtyChange(item.quantity - 1);
+                  } else {
+                    onRemove();
+                  }
                 }),
                 Container(
                   width: 32, height: 28, margin: const EdgeInsets.symmetric(horizontal: 6),

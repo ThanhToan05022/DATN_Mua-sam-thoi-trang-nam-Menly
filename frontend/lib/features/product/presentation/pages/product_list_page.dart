@@ -1,25 +1,31 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../../../core/config/api_config.dart';
+import 'package:provider/provider.dart';
+
 import '../../../../core/theme/app_theme.dart';
+import '../../../wishlist/presentation/providers/wishlist_provider.dart';
 import '../../data/models/product_model.dart';
+import '../providers/product_provider.dart';
+import '../widgets/category_filter_bar.dart';
+import '../widgets/product_empty_view.dart';
+import '../widgets/product_grid_card.dart';
+import '../widgets/product_list_card.dart';
+import '../widgets/product_list_header.dart';
+import '../widgets/product_search_bar.dart';
+import '../widgets/product_skeleton_grid.dart';
+import '../widgets/product_sort_bar.dart';
 
 class ProductListPage extends StatefulWidget {
   final String? initialCategoryId;
   const ProductListPage({super.key, this.initialCategoryId});
+
   @override
   State<ProductListPage> createState() => _ProductListPageState();
 }
 
 class _ProductListPageState extends State<ProductListPage> {
-  List<Product> _products = [];
-  List<Category> _categories = [];
   late String _selectedCatId;
-  bool _loading = true;
   bool _gridView = true;
+  String _sortBy = 'default';
   final _searchCtrl = TextEditingController();
   final _catScrollCtrl = ScrollController();
 
@@ -27,7 +33,12 @@ class _ProductListPageState extends State<ProductListPage> {
   void initState() {
     super.initState();
     _selectedCatId = widget.initialCategoryId ?? 'all';
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final pProvider = context.read<ProductProvider>();
+      pProvider.fetchAll();
+      context.read<WishlistProvider>().fetchWishlist();
+      _scrollToSelected();
+    });
   }
 
   @override
@@ -49,12 +60,12 @@ class _ProductListPageState extends State<ProductListPage> {
 
   void _scrollToSelected() {
     if (!mounted || !_catScrollCtrl.hasClients || _selectedCatId == 'all') return;
+    final categories = context.read<ProductProvider>().categories;
     final target = _selectedCatId.trim().toLowerCase();
-    final idx = _categories.indexWhere((c) =>
-      c.id.toLowerCase() == target ||
-      c.slug.toLowerCase() == target ||
-      c.name.toLowerCase() == target
-    );
+    final idx = categories.indexWhere((c) =>
+        c.id.toLowerCase() == target ||
+        c.slug.toLowerCase() == target ||
+        c.name.toLowerCase() == target);
     if (idx != -1) {
       final itemIndex = idx + 1;
       final offset = (itemIndex * 95.0) - 40.0;
@@ -66,290 +77,146 @@ class _ProductListPageState extends State<ProductListPage> {
     }
   }
 
-  Future<void> _load() async {
-    try {
-      final res = await Future.wait([
-        http.get(Uri.parse('${ApiConfig.apiBase}/products?limit=200')),
-        http.get(Uri.parse('${ApiConfig.apiBase}/categories')),
-      ]);
-      final pd = jsonDecode(res[0].body);
-      final cd = jsonDecode(res[1].body);
-      final List pl = pd is List ? pd : (pd['data'] ?? pd['items'] ?? []);
-      final List cl = cd is List ? cd : (cd['data'] ?? []);
-      if (mounted) {
-        setState(() {
-          _products = pl.map((e) => Product.fromJson(e)).toList();
-          _categories = cl.map((e) => Category.fromJson(e)).toList();
-          _loading = false;
-        });
-        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
-      }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  List<Product> get _filtered {
-    var list = _products;
+  List<Product> _filterProducts(List<Product> products, List<Category> categories) {
+    var list = products;
     if (_selectedCatId != 'all') {
       final target = _selectedCatId.trim().toLowerCase();
       list = list.where((p) {
         if (p.categoryId.trim().toLowerCase() == target) return true;
-        return _categories.any((c) =>
-          (c.id.toLowerCase() == target ||
-           c.slug.toLowerCase() == target ||
-           c.name.toLowerCase() == target) &&
-          c.id.toLowerCase() == p.categoryId.trim().toLowerCase()
-        );
+        return categories.any((c) =>
+            (c.id.toLowerCase() == target ||
+                c.slug.toLowerCase() == target ||
+                c.name.toLowerCase() == target) &&
+            c.id.toLowerCase() == p.categoryId.trim().toLowerCase());
       }).toList();
     }
     final q = _searchCtrl.text.trim().toLowerCase();
-    if (q.isNotEmpty) list = list.where((p) => p.name.toLowerCase().contains(q)).toList();
-    return list;
+    if (q.isNotEmpty) {
+      list = list.where((p) => p.name.toLowerCase().contains(q)).toList();
+    }
+
+    final sortedList = List<Product>.from(list);
+    switch (_sortBy) {
+      case 'price_asc':
+        sortedList.sort((a, b) => a.price.compareTo(b.price));
+        break;
+      case 'price_desc':
+        sortedList.sort((a, b) => b.price.compareTo(a.price));
+        break;
+      case 'newest':
+        sortedList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      default:
+        break;
+    }
+
+    return sortedList;
   }
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _filtered;
+    final pProvider = context.watch<ProductProvider>();
+    final productsState = pProvider.productsState;
+    final categories = pProvider.categories;
+    final filtered = _filterProducts(productsState.data ?? [], categories);
+
     return Scaffold(
       backgroundColor: AppTheme.bg,
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
-            _buildSearch(),
-            _buildCategories(),
+            // 1. Header (Tiêu đề, Wishlist badge, Toggle Grid/List)
+            ProductListHeader(
+              isGridView: _gridView,
+              onToggleView: () => setState(() => _gridView = !_gridView),
+            ),
+
+            // 2. Ô tìm kiếm sản phẩm
+            ProductSearchBar(
+              controller: _searchCtrl,
+              onChanged: (_) => setState(() {}),
+              onClear: () => setState(() {}),
+            ),
+
+            // 3. Thanh lọc danh mục ngang
+            CategoryFilterBar(
+              scrollController: _catScrollCtrl,
+              categories: categories,
+              selectedCatId: _selectedCatId,
+              onSelectCategory: (id) => setState(() => _selectedCatId = id),
+            ),
+
+            // 4. Thanh sắp xếp (giá tiền tăng/giảm, mới nhất, mặc định)
+            ProductSortBar(
+              totalCount: filtered.length,
+              currentSort: _sortBy,
+              onSortChanged: (newSort) => setState(() => _sortBy = newSort),
+            ),
+
+            // 5. Nội dung danh sách sản phẩm theo trạng thái
             Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-                  : filtered.isEmpty
-                      ? _buildEmpty()
-                      : RefreshIndicator(
-                          onRefresh: _load,
-                          color: AppTheme.primary,
-                          backgroundColor: AppTheme.surface2,
-                          child: _gridView ? _buildGrid(filtered) : _buildList(filtered),
-                        ),
+              child: productsState.isLoading &&
+                      (productsState.data == null || productsState.data!.isEmpty)
+                  ? const ProductSkeletonGrid()
+                  : productsState.isError &&
+                          (productsState.data == null ||
+                              productsState.data!.isEmpty)
+                      ? ProductErrorView(
+                          error: productsState.message ?? 'Đã có lỗi xảy ra',
+                          onRetry: () => context
+                              .read<ProductProvider>()
+                              .fetchAll(forceRefresh: true),
+                        )
+                      : filtered.isEmpty
+                          ? ProductEmptyView(
+                              onClearFilters: () {
+                                _searchCtrl.clear();
+                                setState(() {
+                                  _selectedCatId = 'all';
+                                  _sortBy = 'default';
+                                });
+                              },
+                            )
+                          : RefreshIndicator(
+                              onRefresh: () async {
+                                await Future.wait([
+                                  pProvider.fetchAll(forceRefresh: true),
+                                  context
+                                      .read<WishlistProvider>()
+                                      .fetchWishlist(forceRefresh: true),
+                                ]);
+                              },
+                              color: AppTheme.primary,
+                              backgroundColor: AppTheme.surface2,
+                              child: _gridView
+                                  ? GridView.builder(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          16, 12, 16, 24),
+                                      gridDelegate:
+                                          const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        crossAxisSpacing: 12,
+                                        mainAxisSpacing: 12,
+                                        childAspectRatio: 0.68,
+                                      ),
+                                      itemCount: filtered.length,
+                                      itemBuilder: (_, i) => ProductGridCard(
+                                          product: filtered[i]),
+                                    )
+                                  : ListView.separated(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          16, 12, 16, 24),
+                                      itemCount: filtered.length,
+                                      separatorBuilder: (_, _) =>
+                                          const SizedBox(height: 10),
+                                      itemBuilder: (_, i) => ProductListCard(
+                                          product: filtered[i]),
+                                    ),
+                            ),
             ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildHeader() => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-    child: Row(
-      children: [
-        if (context.canPop()) ...[
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-            onPressed: () => context.pop(),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 12),
-        ],
-        const Text('Sản phẩm', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-        const Spacer(),
-        _IconBtn(
-          icon: _gridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
-          onTap: () => setState(() => _gridView = !_gridView),
-        ),
-      ],
-    ),
-  );
-
-  Widget _buildSearch() => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-    child: Container(
-      height: 46,
-      decoration: BoxDecoration(
-        color: AppTheme.surface2,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: TextField(
-        controller: _searchCtrl,
-        onChanged: (_) => setState(() {}),
-        style: const TextStyle(color: Colors.white, fontSize: 14),
-        decoration: const InputDecoration(
-          hintText: 'Tìm kiếm sản phẩm...',
-          hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 14),
-          prefixIcon: Icon(Icons.search_rounded, color: AppTheme.textMuted, size: 20),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 12),
-        ),
-      ),
-    ),
-  );
-
-  Widget _buildCategories() => SizedBox(
-    height: 44,
-    child: ListView.separated(
-      controller: _catScrollCtrl,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-      scrollDirection: Axis.horizontal,
-      itemCount: _categories.length + 1,
-      separatorBuilder: (_, __) => const SizedBox(width: 8),
-      itemBuilder: (_, i) {
-        final isAll = i == 0;
-        final id = isAll ? 'all' : _categories[i - 1].id;
-        final label = isAll ? 'Tất cả' : _categories[i - 1].name;
-        final isSelected = isAll
-            ? _selectedCatId == 'all'
-            : (_selectedCatId.toLowerCase() == id.toLowerCase() ||
-               _selectedCatId.toLowerCase() == _categories[i - 1].slug.toLowerCase() ||
-               _selectedCatId.toLowerCase() == _categories[i - 1].name.toLowerCase());
-        return GestureDetector(
-          onTap: () => setState(() => _selectedCatId = id),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              gradient: isSelected ? AppTheme.primaryGradient : null,
-              color: isSelected ? null : AppTheme.surface2,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: isSelected ? Colors.transparent : AppTheme.border),
-              boxShadow: isSelected ? [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))] : null,
-            ),
-            child: Center(
-              child: Text(label,
-                style: TextStyle(
-                  color: isSelected ? Colors.black : AppTheme.textSecondary,
-                  fontSize: 13, fontWeight: FontWeight.w700,
-                )),
-            ),
-          ),
-        );
-      },
-    ),
-  );
-
-  Widget _buildGrid(List<Product> list) => GridView.builder(
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.68,
-    ),
-    itemCount: list.length,
-    itemBuilder: (_, i) => _GridCard(product: list[i]),
-  );
-
-  Widget _buildList(List<Product> list) => ListView.separated(
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-    itemCount: list.length,
-    separatorBuilder: (_, __) => const SizedBox(height: 10),
-    itemBuilder: (_, i) => _ListCard(product: list[i]),
-  );
-
-  Widget _buildEmpty() => Center(
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Icon(Icons.search_off_rounded, size: 64, color: AppTheme.textMuted),
-      const SizedBox(height: 12),
-      const Text('Không tìm thấy sản phẩm', style: TextStyle(color: AppTheme.textSecondary, fontSize: 16, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 8),
-      TextButton(onPressed: () { _searchCtrl.clear(); setState(() => _selectedCatId = 'all'); }, child: const Text('Xoá bộ lọc', style: TextStyle(color: AppTheme.primary))),
-    ]),
-  );
-}
-
-class _GridCard extends StatelessWidget {
-  final Product product;
-  const _GridCard({required this.product});
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.push('/products/${product.id}'),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-              child: product.imageUrl.isNotEmpty
-                  ? CachedNetworkImage(imageUrl: product.imageUrl, fit: BoxFit.cover,
-                      placeholder: (_, __) => _placeholder(product.name),
-                      errorWidget: (_, __, ___) => _placeholder(product.name))
-                  : _placeholder(product.name),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(product.name, maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700, height: 1.3)),
-              const SizedBox(height: 5),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text(_fmt(product.price) + 'đ', style: const TextStyle(color: AppTheme.primary, fontSize: 13, fontWeight: FontWeight.w800)),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Icons.add_rounded, color: AppTheme.primary, size: 16),
-                ),
-              ]),
-            ]),
-          ),
-        ]),
-      ),
-    );
-  }
-  Widget _placeholder(String n) => Container(color: AppTheme.surface2, child: Center(child: Text(n.isNotEmpty ? n[0].toUpperCase() : '?', style: const TextStyle(color: AppTheme.primary, fontSize: 36, fontWeight: FontWeight.w900))));
-  String _fmt(num p) { final s = p.toStringAsFixed(0); final b = StringBuffer(); for (int i = 0; i < s.length; i++) { if (i > 0 && (s.length - i) % 3 == 0) b.write('.'); b.write(s[i]); } return b.toString(); }
-}
-
-class _ListCard extends StatelessWidget {
-  final Product product;
-  const _ListCard({required this.product});
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.push('/products/${product.id}'),
-      child: Container(
-        height: 96,
-        decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppTheme.border)),
-        child: Row(children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
-            child: SizedBox(
-              width: 90,
-              child: product.imageUrl.isNotEmpty
-                  ? CachedNetworkImage(imageUrl: product.imageUrl, fit: BoxFit.cover, errorWidget: (_, __, ___) => Container(color: AppTheme.surface2, child: Center(child: Text(product.name.isNotEmpty ? product.name[0] : '?', style: const TextStyle(color: AppTheme.primary, fontSize: 28, fontWeight: FontWeight.w900)))))
-                  : Container(color: AppTheme.surface2, child: Center(child: Text(product.name.isNotEmpty ? product.name[0] : '?', style: const TextStyle(color: AppTheme.primary, fontSize: 28, fontWeight: FontWeight.w900)))),
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                Text(product.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700, height: 1.3)),
-                const SizedBox(height: 6),
-                Text('${_fmt(product.price)}đ', style: const TextStyle(color: AppTheme.primary, fontSize: 14, fontWeight: FontWeight.w800)),
-              ]),
-            ),
-          ),
-          const Padding(padding: EdgeInsets.only(right: 12), child: Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.textMuted, size: 14)),
-        ]),
-      ),
-    );
-  }
-  String _fmt(num p) { final s = p.toStringAsFixed(0); final b = StringBuffer(); for (int i = 0; i < s.length; i++) { if (i > 0 && (s.length - i) % 3 == 0) b.write('.'); b.write(s[i]); } return b.toString(); }
-}
-
-class _IconBtn extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _IconBtn({required this.icon, required this.onTap});
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      width: 40, height: 40,
-      decoration: BoxDecoration(color: AppTheme.surface2, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppTheme.border)),
-      child: Icon(icon, color: AppTheme.textSecondary, size: 20),
-    ),
-  );
 }

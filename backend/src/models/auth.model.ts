@@ -24,7 +24,7 @@ export interface AuthSession {
     id: string;
     email: string;
     name?: string;
-    role: 'customer' | 'admin';
+    role: 'customer' | 'admin' | 'staff';
   };
   accessToken: string;
 }
@@ -34,7 +34,7 @@ export interface IAuthModel {
   recordFailure(identifier: string): FailedAttemptResult;
   resetLockout(identifier: string): void;
   verifyCredentials(email: string, pass: string): Promise<AuthSession | null>;
-  register(name: string, email: string, pass: string, role?: 'admin' | 'user'): Promise<AuthSession>;
+  register(name: string, email: string, pass: string, role?: 'admin' | 'staff' | 'user'): Promise<AuthSession>;
 }
 
 export class AuthModel implements IAuthModel {
@@ -123,33 +123,43 @@ export class AuthModel implements IAuthModel {
     this.lockoutStore.delete(key);
   }
 
-  async register(name: string, email: string, pass: string, role?: 'admin' | 'user'): Promise<AuthSession> {
+  async register(name: string, email: string, pass: string, role?: 'admin' | 'staff' | 'user'): Promise<AuthSession> {
     const normalized = email.toLowerCase().trim();
     if (this.userModel) {
       const user = await this.userModel.createUser({
         name,
         email: normalized,
         password: pass,
-        role: role || 'user',
+        role: role === 'staff' ? 'staff' : (role === 'admin' ? 'admin' : 'user'),
       });
+
+      const userRole = user.role === 'admin' ? 'admin' : user.role === 'staff' ? 'staff' : 'customer';
 
       return {
         user: {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role === 'admin' ? 'admin' : 'customer',
+          role: userRole,
         },
         accessToken:
           user.role === 'admin'
             ? `mock-admin-token-${user.id}`
+            : user.role === 'staff'
+            ? `mock-staff-token-${user.id}`
             : `mock-user-token-${user.id}`,
       };
     }
 
+    const assignedRole = role === 'admin' ? 'admin' : role === 'staff' ? 'staff' : 'customer';
     return {
-      user: { id: `usr-${Date.now()}`, email: normalized, name, role: 'customer' },
-      accessToken: `mock-user-token-${Date.now()}`,
+      user: { id: `usr-${Date.now()}`, email: normalized, name, role: assignedRole },
+      accessToken:
+        assignedRole === 'admin'
+          ? `mock-admin-token-${Date.now()}`
+          : assignedRole === 'staff'
+          ? `mock-staff-token-${Date.now()}`
+          : `mock-user-token-${Date.now()}`,
     };
   }
 
@@ -169,16 +179,19 @@ export class AuthModel implements IAuthModel {
         }
 
         if (user.password === pass) {
+          const userRole = user.role === 'admin' ? 'admin' : user.role === 'staff' ? 'staff' : 'customer';
           return {
             user: {
               id: user.id,
               email: user.email,
               name: user.name,
-              role: user.role === 'admin' ? 'admin' : 'customer',
+              role: userRole,
             },
             accessToken:
               user.role === 'admin'
                 ? `mock-admin-token-${user.id}`
+                : user.role === 'staff'
+                ? `mock-staff-token-${user.id}`
                 : `mock-user-token-${user.id}`,
           };
         }
@@ -199,12 +212,14 @@ export class AuthModel implements IAuthModel {
             .eq('id', data.user.id)
             .single();
 
+          const profileRole = profile?.role === 'admin' ? 'admin' : profile?.role === 'staff' ? 'staff' : 'customer';
+
           return {
             user: {
               id: data.user.id,
               email: data.user.email || normalized,
               name: data.user.user_metadata?.full_name || 'Người dùng',
-              role: profile?.role === 'admin' ? 'admin' : 'customer',
+              role: profileRole,
             },
             accessToken: data.session.access_token,
           };
@@ -226,6 +241,13 @@ export class AuthModel implements IAuthModel {
       return {
         user: { id: 'mock-admin-uuid', email: normalized, name: 'Admin MenShop', role: 'admin' },
         accessToken: 'mock-admin-token-xyz',
+      };
+    }
+
+    if (normalized === 'staff@gmail.com' && (pass === '123456' || pass === 'Staff@123456')) {
+      return {
+        user: { id: 'usr-staff-001', email: normalized, name: 'Nhân Viên MenShop', role: 'staff' },
+        accessToken: 'mock-staff-token-xyz',
       };
     }
 

@@ -1,11 +1,14 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-import '../../../../core/config/api_config.dart';
+import 'package:dio/dio.dart';
+import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/auth_guard.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../cart/data/cart_model.dart';
+import '../../data/order_model.dart';
+import '../providers/order_provider.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -22,51 +25,132 @@ class _CheckoutPageState extends State<CheckoutPage> {
   bool _loading = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!AuthGuard.check(
+        context,
+        actionTitle: 'Đăng nhập để đặt hàng',
+        actionMessage:
+            'Bạn đang duyệt ẩn danh. Vui lòng đăng nhập tài khoản để tiến hành đặt hàng.',
+        redirectPath: '/checkout',
+      )) {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/cart');
+        }
+        return;
+      }
+
+      final auth = context.read<AuthProvider>();
+      if (auth.user != null && _nameCtrl.text.isEmpty) {
+        setState(() {
+          _nameCtrl.text = auth.user!.fullName;
+        });
+      }
+    });
+  }
+
+  @override
   void dispose() {
-    _nameCtrl.dispose(); _phoneCtrl.dispose();
-    _addressCtrl.dispose(); _noteCtrl.dispose();
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _addressCtrl.dispose();
+    _noteCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _placeOrder() async {
-    if (_nameCtrl.text.trim().isEmpty || _phoneCtrl.text.trim().isEmpty || _addressCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng điền đầy đủ thông tin giao hàng')));
+    if (!AuthGuard.check(
+      context,
+      actionTitle: 'Đăng nhập để đặt hàng',
+      actionMessage:
+          'Bạn đang duyệt ẩn danh. Vui lòng đăng nhập để hoàn tất đơn hàng.',
+      redirectPath: '/checkout',
+    )) {
       return;
     }
-    setState(() => _loading = true);
+
+    final name = _nameCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+    final address = _addressCtrl.text.trim();
+
+    if (name.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập họ và tên (tối thiểu 2 ký tự)')),
+      );
+      return;
+    }
+    if (phone.length < 9) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập số điện thoại hợp lệ (tối thiểu 9 số)')),
+      );
+      return;
+    }
+    if (address.length < 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập địa chỉ giao hàng cụ thể (tối thiểu 5 ký tự)')),
+      );
+      return;
+    }
+
     final cart = context.read<CartProvider>();
-    final items = cart.items.map((i) => {
-      'variantId': i.variant.id,
-      'quantity': i.quantity,
-      'unitPrice': i.product.price,
-      'productName': i.product.name,
-      'size': i.variant.size,
-      'color': i.variant.color,
-    }).toList();
+    if (cart.items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Giỏ hàng đang trống, không thể thanh toán')),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+    final items = cart.items
+        .map((i) => {
+              'variantId': i.variant.id,
+              'quantity': i.quantity,
+              'unitPrice': i.product.price,
+              'productName': i.product.name,
+              'size': i.variant.size,
+              'color': i.variant.color,
+            })
+        .toList();
 
     try {
-      final res = await http.post(
-        Uri.parse('${ApiConfig.apiBase}/orders'),
-        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer mock-user-123'},
-        body: jsonEncode({
-          'items': items,
-          'paymentMethod': _paymentMethod,
-          'shipName': _nameCtrl.text.trim(),
-          'shipPhone': _phoneCtrl.text.trim(),
-          'shipAddress': _addressCtrl.text.trim(),
-          'note': _noteCtrl.text.trim(),
-        }),
-      );
+      final res = await DioClient.instance.dio.post('/orders', data: {
+        'items': items,
+        'paymentMethod': _paymentMethod,
+        'ship': {
+          'name': name,
+          'phone': phone,
+          'address': address,
+        },
+        'note': _noteCtrl.text.trim(),
+      });
+
       if (res.statusCode == 201 || res.statusCode == 200) {
         cart.clear();
-        if (mounted) context.go('/order-success');
+        final orderData = res.data is Map ? (res.data as Map<String, dynamic>) : null;
+        if (orderData != null && mounted) {
+          final createdOrder = Order.fromJson(orderData);
+          await context.read<OrderProvider>().addPlacedOrder(createdOrder);
+          if (mounted) {
+            context.go('/order-success?code=${Uri.encodeComponent(createdOrder.code)}&total=${createdOrder.total}');
+          }
+        } else if (mounted) {
+          context.go('/order-success');
+        }
       } else {
-        final err = jsonDecode(res.body);
-        throw Exception(err['error']?['message'] ?? 'Đặt hàng thất bại');
+        throw Exception('Đặt hàng thất bại');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppTheme.error));
+        String msg = e.toString();
+        if (e is DioException) {
+          msg = e.message ?? e.error?.toString() ?? 'Đã có lỗi xảy ra khi tạo đơn hàng';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), backgroundColor: AppTheme.error, duration: const Duration(seconds: 4)),
+        );
       }
     } finally {
       if (mounted) setState(() => _loading = false);

@@ -51,7 +51,7 @@ export class SupabaseAdminRepository implements AdminRepository {
     }
   }
 
-  async setUserRole(userId: string, role: 'customer' | 'admin'): Promise<void> {
+  async setUserRole(userId: string, role: 'customer' | 'admin' | 'staff'): Promise<void> {
     const { error } = await this.db.rpc('set_user_role', {
       p_user_id: userId,
       p_role: role,

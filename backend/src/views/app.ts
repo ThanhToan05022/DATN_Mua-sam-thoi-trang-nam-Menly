@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
 import pino from 'pino';
 
-import { createRequireAuth, requireAdmin, requireCustomer } from '../presentation/http/middlewares/auth.js';
+import { createRequireAuth, requireAdmin, requireCustomer, requireStaffOrAdmin } from '../presentation/http/middlewares/auth.js';
 import { errorHandler, notFound } from '../presentation/http/middlewares/error-handler.js';
 import {
   generalRateLimit,
@@ -22,6 +22,7 @@ import { adminRoutes } from './routes/admin.routes.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { userRoutes } from './routes/user.routes.js';
 import { profileRoutes } from './routes/profile.routes.js';
+import { wishlistRoutes } from './routes/wishlist.routes.js';
 
 import { viewModels, supabase } from '../container.js';
 
@@ -68,9 +69,10 @@ export function createApp(): Express {
   );
   app.use(
     '/api/v1/admin',
-    adminRoutes(requireAuth, requireAdmin, viewModels.admin, viewModels.product)
+    adminRoutes(requireAuth, requireAdmin, viewModels.admin, viewModels.product, requireStaffOrAdmin)
   );
   app.use('/api/v1/profile', profileRoutes(requireAuth, supabase));
+  app.use('/api/v1/wishlist', wishlistRoutes(requireAuth, viewModels.wishlist));
 
   app.use('/api/v1/auth', authRoutes(viewModels.auth, requireAuth, requireAdmin));
 

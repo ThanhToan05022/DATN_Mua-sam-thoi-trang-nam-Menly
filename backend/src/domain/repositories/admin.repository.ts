@@ -22,7 +22,7 @@ export interface AdminRepository {
     adminId?: string
   ): Promise<void>;
 
-  setUserRole(userId: string, role: 'customer' | 'admin'): Promise<void>;
+  setUserRole(userId: string, role: 'customer' | 'admin' | 'staff'): Promise<void>;
 
   listInventoryMovements(variantId?: string, limit?: number): Promise<InventoryMovement[]>;
 

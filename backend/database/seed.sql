@@ -162,11 +162,11 @@ select
   p.id as product_id,
   s.size,
   c.color,
-  'SKU-' || upper(substr(replace(p.slug, '-', ''), 1, 5)) || '-' || substr(p.id::text, 33, 4) || '-' || s.size as sku,
+  'SKU-' || upper(substr(replace(p.slug, '-', ''), 1, 5)) || '-' || substr(p.id::text, 33, 4) || '-' || (case when c.color = 'Trắng' then 'W' else 'B' end) || '-' || s.size as sku,
   (30 + (random() * 40)::int) as stock
 from products p
 cross join (values ('M'), ('L'), ('XL')) as s(size)
-cross join (values ('Tiêu chuẩn')) as c(color)
+cross join (values ('Trắng'), ('Đen')) as c(color)
 on conflict (product_id, size, color) do update set sku = excluded.sku, stock = excluded.stock;
 
 -- 4. PRODUCT IMAGES (Thu vien anh san pham - chong trung lap)

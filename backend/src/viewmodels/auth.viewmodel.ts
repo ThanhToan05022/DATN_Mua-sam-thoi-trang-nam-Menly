@@ -112,7 +112,7 @@ export class AuthViewModel {
     name: string,
     email: string,
     pass: string,
-    role?: 'admin' | 'user'
+    role?: 'admin' | 'staff' | 'user'
   ): Promise<AuthSession> {
     const normalized = email.toLowerCase().trim();
     return this.authModel.register(name, normalized, pass, role);

@@ -23,7 +23,7 @@ export interface IAdminModel {
     adminId?: string
   ): Promise<void>;
 
-  setUserRole(userId: string, role: 'customer' | 'admin'): Promise<void>;
+  setUserRole(userId: string, role: 'customer' | 'admin' | 'staff'): Promise<void>;
   listInventoryMovements(variantId?: string, limit?: number): Promise<InventoryMovement[]>;
   listAuditLogs(limit?: number): Promise<AdminAuditLog[]>;
   recordAuditLog(adminId: string, action: string, entityType: string, entityId?: string, before?: unknown, after?: unknown): Promise<void>;
@@ -32,7 +32,7 @@ export interface IAdminModel {
 export class AdminModel implements IAdminModel {
   private inMemoryMovements: InventoryMovement[] = [];
   private inMemoryLogs: AdminAuditLog[] = [];
-  private inMemoryRoles = new Map<string, 'customer' | 'admin'>();
+  private inMemoryRoles = new Map<string, 'customer' | 'admin' | 'staff'>();
 
   constructor(private readonly supabase?: SupabaseClient) {}
 
@@ -87,7 +87,7 @@ export class AdminModel implements IAdminModel {
     }
   }
 
-  async setUserRole(userId: string, role: 'customer' | 'admin'): Promise<void> {
+  async setUserRole(userId: string, role: 'customer' | 'admin' | 'staff'): Promise<void> {
     if (this.supabase) {
       const { error } = await this.supabase.rpc('set_user_role', {
         p_user_id: userId,

@@ -6,11 +6,12 @@ import { VnpayGateway } from './infrastructure/vnpay/vnpay.gateway.js';
 import { CategoryModel } from './models/category.model.js';
 import { ProductModel } from './models/product.model.js';
 import { CartModel } from './models/cart.model.js';
-import { OrderModel } from './models/order.model.js';
+import { OrderModel, DEFAULT_MOCK_ORDERS } from './models/order.model.js';
 import { PaymentModel } from './models/payment.model.js';
 import { AdminModel } from './models/admin.model.js';
 import { AuthModel } from './models/auth.model.js';
 import { UserModel } from './models/user.model.js';
+import { WishlistModel } from './models/wishlist.model.js';
 
 import { CategoryViewModel } from './viewmodels/category.viewmodel.js';
 import { ProductViewModel } from './viewmodels/product.viewmodel.js';
@@ -20,6 +21,7 @@ import { PaymentViewModel } from './viewmodels/payment.viewmodel.js';
 import { AdminViewModel } from './viewmodels/admin.viewmodel.js';
 import { AuthViewModel } from './viewmodels/auth.viewmodel.js';
 import { UserViewModel } from './viewmodels/user.viewmodel.js';
+import { WishlistViewModel } from './viewmodels/wishlist.viewmodel.js';
 
 import { ProductSummary, Category, Page } from './models/types.js';
 
@@ -48,11 +50,12 @@ export const categoryCache = new LruCache<Category[]>(20, 300_000);
 export const categoryModel = new CategoryModel(supabase);
 export const productModel = new ProductModel(supabase);
 export const cartModel = new CartModel(supabase);
-export const orderModel = new OrderModel(supabase);
+export const orderModel = new OrderModel(supabase, DEFAULT_MOCK_ORDERS);
 export const paymentModel = new PaymentModel(supabase);
 export const adminModel = new AdminModel(supabase);
 export const userModel = new UserModel(supabase);
 export const authModel = new AuthModel(supabase, userModel);
+export const wishlistModel = new WishlistModel(supabase, productModel);
 
 // 4. ViewModels (Business Logic & State - VM in MVVM)
 export const viewModels = {
@@ -64,6 +67,7 @@ export const viewModels = {
   admin: new AdminViewModel(adminModel, orderModel),
   auth: new AuthViewModel(authModel),
   user: new UserViewModel(userModel),
+  wishlist: new WishlistViewModel(wishlistModel),
 };
 
 // Compatibility adapter for useCases

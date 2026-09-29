@@ -8,7 +8,7 @@ import type {
   UserAccount,
 } from './types';
 
-import { INITIAL_CATEGORIES, INITIAL_PRODUCTS } from './mock-admin-data';
+import { INITIAL_CATEGORIES, INITIAL_PRODUCTS, INITIAL_ORDERS } from './mock-admin-data';
 
 // ========== CONFIG ==========
 function getApiUrl(): string {
@@ -193,34 +193,63 @@ export async function updateProduct(
 export async function fetchAdminOrders(
   params?: { status?: string } | OrderStatus | string
 ): Promise<Order[]> {
+  const statusFilter =
+    typeof params === 'string'
+      ? params === 'all'
+        ? undefined
+        : params
+      : params?.status === 'all'
+      ? undefined
+      : params?.status;
+
   try {
     const query = new URLSearchParams();
-    if (typeof params === 'string') {
-      if (params && params !== 'all') query.set('status', params);
-    } else if (params?.status && params.status !== 'all') {
-      query.set('status', params.status);
-    }
+    if (statusFilter) query.set('status', statusFilter);
     const qs = query.toString() ? `?${query.toString()}` : '';
 
-    const data = await apiFetch<{ data: Order[] } | Order[]>(`/api/v1/admin/orders${qs}`);
+    const data = await apiFetch<any>(`/api/v1/admin/orders${qs}`);
 
-    let orders: Order[] = [];
+    let rawList: any[] = [];
     if (Array.isArray(data)) {
-      orders = data;
-    } else {
-      orders = (data as { data: Order[] }).data || [];
+      rawList = data;
+    } else if (data && Array.isArray(data.items)) {
+      rawList = data.items;
+    } else if (data && Array.isArray(data.data)) {
+      rawList = data.data;
     }
 
-    // Normalize shippingAddress from flat fields
-    return orders.map((o) => ({
-      ...o,
+    return rawList.map((o: any) => ({
+      id: o.id || `ord-${Math.random()}`,
+      code: o.code || 'MS000',
+      userId: o.userId || o.user_id || '',
+      status: (o.status || 'pending_payment') as OrderStatus,
+      paymentMethod: o.paymentMethod || o.payment_method || 'cod',
+      subtotal: Number(o.subtotal || 0),
+      shippingFee: Number(o.shippingFee || o.shipping_fee || 0),
+      total: Number(o.total || 0),
+      shipName: o.shipName || o.ship_name || o.ship?.name || '',
+      shipPhone: o.shipPhone || o.ship_phone || o.ship?.phone || '',
+      shipAddress: o.shipAddress || o.ship_address || o.ship?.address || '',
       shippingAddress: o.shippingAddress || {
-        name: o.shipName || '',
-        phone: o.shipPhone || '',
-        address: o.shipAddress || '',
+        name: o.shipName || o.ship_name || o.ship?.name || '',
+        phone: o.shipPhone || o.ship_phone || o.ship?.phone || '',
+        address: o.shipAddress || o.ship_address || o.ship?.address || '',
+        note: o.note || '',
       },
+      createdAt: o.createdAt || o.created_at || new Date().toISOString(),
+      items: (o.items || o.order_items || []).map((it: any) => ({
+        id: it.id || `oi-${Math.random()}`,
+        orderId: it.orderId || it.order_id || o.id,
+        variantId: it.variantId || it.variant_id || '',
+        productName: it.productName || it.product_name || 'Sản phẩm',
+        size: it.size || 'M',
+        color: it.color || 'Trắng',
+        unitPrice: Number(it.unitPrice ?? it.unit_price ?? it.price ?? 0),
+        quantity: Number(it.quantity || 1),
+      })),
     }));
-  } catch {
+  } catch (err) {
+    console.warn('Backend orders fetch notice:', err);
     return [];
   }
 }
