@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/config/api_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../cart/data/cart_model.dart';
@@ -17,14 +18,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
-  final _noteCtrl = TextEditingController();
   String _paymentMethod = 'cod';
   bool _loading = false;
+  // Giu y nguyen de moi lan bam "Dat hang" dung mot idempotency key.
+  // Neu sinh moi moi lan bam, retry se tao trung don.
+  String? _idempotencyKey;
 
   @override
   void dispose() {
     _nameCtrl.dispose(); _phoneCtrl.dispose();
-    _addressCtrl.dispose(); _noteCtrl.dispose();
+    _addressCtrl.dispose();
     super.dispose();
   }
 
@@ -34,39 +37,82 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
     setState(() => _loading = true);
+    _idempotencyKey ??= 'order-${DateTime.now().microsecondsSinceEpoch}';
     final cart = context.read<CartProvider>();
-    final items = cart.items.map((i) => {
-      'variantId': i.variant.id,
-      'quantity': i.quantity,
-      'unitPrice': i.product.price,
-      'productName': i.product.name,
-      'size': i.variant.size,
-      'color': i.variant.color,
-    }).toList();
+    final items = cart.items
+        .map((i) => {'variantId': i.variant.id, 'quantity': i.quantity})
+        .toList();
 
     try {
-      final res = await http.post(
-        Uri.parse('${ApiConfig.apiBase}/orders'),
-        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer mock-user-123'},
-        body: jsonEncode({
-          'items': items,
-          'paymentMethod': _paymentMethod,
-          'shipName': _nameCtrl.text.trim(),
-          'shipPhone': _phoneCtrl.text.trim(),
-          'shipAddress': _addressCtrl.text.trim(),
-          'note': _noteCtrl.text.trim(),
-        }),
-      );
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken');
+
+      if (token == null || token.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại'),
+            backgroundColor: AppTheme.error,
+          ));
+          context.push('/login');
+        }
+        return;
+      }
+
+      final res = await http
+          .post(
+            Uri.parse('${ApiConfig.apiBase}/orders'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+              'Idempotency-Key': _idempotencyKey!,
+            },
+            body: jsonEncode({
+              'ship': {
+                'name': _nameCtrl.text.trim(),
+                'phone': _phoneCtrl.text.trim(),
+                'address': _addressCtrl.text.trim(),
+              },
+              'paymentMethod': _paymentMethod,
+              'items': items,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+
       if (res.statusCode == 201 || res.statusCode == 200) {
         cart.clear();
+        _idempotencyKey = null;
         if (mounted) context.go('/order-success');
+      } else if (res.statusCode == 401) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại'),
+            backgroundColor: AppTheme.error,
+          ));
+          await prefs.remove('accessToken');
+          if (mounted) context.push('/login');
+        }
       } else {
-        final err = jsonDecode(res.body);
-        throw Exception(err['error']?['message'] ?? 'Đặt hàng thất bại');
+        String message = 'Đặt hàng thất bại';
+        try {
+          final err = jsonDecode(res.body);
+          message = err['error']?['message'] ?? message;
+        } catch (_) {
+          // Phan hoi khong phai JSON (vd: 502 tu proxy) - giu thong bao chung
+        }
+        // Loi validation/toan kho: cho phep sua lai thong tin roi bam lai
+        if (res.statusCode == 400 || res.statusCode == 409) {
+          _idempotencyKey = null;
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message), backgroundColor: AppTheme.error),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppTheme.error));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Lỗi kết nối: $e'), backgroundColor: AppTheme.error));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -90,7 +136,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
               _field(_nameCtrl, 'Họ và tên', Icons.person_rounded),
               _field(_phoneCtrl, 'Số điện thoại', Icons.phone_rounded, type: TextInputType.phone),
               _field(_addressCtrl, 'Địa chỉ giao hàng', Icons.location_on_rounded, lines: 2),
-              _field(_noteCtrl, 'Ghi chú (tùy chọn)', Icons.note_rounded),
             ]),
             const SizedBox(height: 16),
             _section('Phương thức thanh toán', [

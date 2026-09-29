@@ -28,6 +28,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _loadSavedEmail() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString('savedEmail') ?? '';
+    if (!mounted) return;
     if (saved.isNotEmpty) {
       setState(() {
         _emailCtrl.text = saved;
@@ -50,15 +51,18 @@ class _LoginPageState extends State<LoginPage> {
     }
     setState(() => _loading = true);
     try {
-      final res = await http.post(
-        Uri.parse('${ApiConfig.apiBase}/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': _emailCtrl.text.trim(),
-          'password': _passCtrl.text,
-        }),
-      );
+      final res = await http
+          .post(
+            Uri.parse('${ApiConfig.apiBase}/auth/login'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'email': _emailCtrl.text.trim(),
+              'password': _passCtrl.text,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
       final body = jsonDecode(res.body);
+      if (!mounted) return;
       if (res.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
         // Ghi nhớ email nếu bật Remember Me
@@ -75,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
         _snack(body['error']?['message'] ?? 'Đăng nhập thất bại');
       }
     } catch (e) {
-      _snack('Lỗi kết nối: $e');
+      if (mounted) _snack('Lỗi kết nối: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -183,7 +187,12 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const Spacer(),
                   GestureDetector(
-                    onTap: () {/* TODO: quên mật khẩu */},
+                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Tính năng quên mật khẩu đang được phát triển'),
+                        backgroundColor: AppTheme.surface2,
+                      ),
+                    ),
                     child: const Text('Quên mật khẩu?',
                         style: TextStyle(fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.w600)),
                   ),

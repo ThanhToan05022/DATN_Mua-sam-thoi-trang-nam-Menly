@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../cart/data/cart_model.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -23,11 +25,21 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadUser() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('accessToken') ?? '';
+    if (!mounted) return;
     setState(() {
       _name = prefs.getString('userName') ?? '';
       _email = prefs.getString('userEmail') ?? '';
       _isLoggedIn = token.isNotEmpty;
     });
+  }
+
+  void _comingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$feature đang được phát triển'),
+        backgroundColor: AppTheme.surface2,
+      ),
+    );
   }
 
   bool _showLogoutDialog = false;
@@ -40,6 +52,8 @@ class _ProfilePageState extends State<ProfilePage> {
     await prefs.remove('accessToken');
     await prefs.remove('userName');
     await prefs.remove('userEmail');
+    // Xoa gio de nguoi dang nhap tiep theo khong thay gio cua nguoi truoc
+    if (mounted) context.read<CartProvider>().clear();
     if (mounted) context.go('/login');
   }
 
@@ -151,11 +165,11 @@ class _ProfilePageState extends State<ProfilePage> {
         const SizedBox(height: 32),
 
         // Menu items
-        _menuItem(icon: Icons.shopping_bag_outlined, label: 'Đơn hàng của tôi', onTap: () {}),
-        _menuItem(icon: Icons.location_on_outlined, label: 'Địa chỉ giao hàng', onTap: () {}),
+        _menuItem(icon: Icons.shopping_bag_outlined, label: 'Đơn hàng của tôi', onTap: () => _comingSoon('Đơn hàng của tôi')),
+        _menuItem(icon: Icons.location_on_outlined, label: 'Địa chỉ giao hàng', onTap: () => _comingSoon('Địa chỉ giao hàng')),
         _menuItem(icon: Icons.lock_outline_rounded, label: 'Đổi mật khẩu', onTap: () => context.push('/change-password')),
-        _menuItem(icon: Icons.notifications_outlined, label: 'Thông báo', onTap: () {}),
-        _menuItem(icon: Icons.help_outline_rounded, label: 'Trợ giúp & Hỗ trợ', onTap: () {}),
+        _menuItem(icon: Icons.notifications_outlined, label: 'Thông báo', onTap: () => _comingSoon('Thông báo')),
+        _menuItem(icon: Icons.help_outline_rounded, label: 'Trợ giúp & Hỗ trợ', onTap: () => _comingSoon('Trợ giúp & Hỗ trợ')),
         const SizedBox(height: 12),
         const Divider(color: AppTheme.surface2),
         const SizedBox(height: 12),

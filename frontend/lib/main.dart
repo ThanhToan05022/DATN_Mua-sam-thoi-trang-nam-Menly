@@ -13,6 +13,7 @@ import 'features/order/presentation/pages/order_success_page.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/register_page.dart';
 import 'features/auth/presentation/pages/profile_page.dart';
+import 'features/auth/presentation/pages/change_password_page.dart';
 import 'features/splash/presentation/pages/splash_page.dart';
 
 void main() {
@@ -28,6 +29,7 @@ final _router = GoRouter(
     // Auth routes — ngoài shell (không có bottom nav)
     GoRoute(path: '/login', builder: (ctx, s) => const LoginPage()),
     GoRoute(path: '/register', builder: (ctx, s) => const RegisterPage()),
+    GoRoute(path: '/change-password', builder: (ctx, s) => const ChangePasswordPage()),
 
 
     ShellRoute(

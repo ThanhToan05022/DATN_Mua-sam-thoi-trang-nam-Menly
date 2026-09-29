@@ -29,6 +29,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadUser() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() => _userName = prefs.getString('userName') ?? '');
   }
 
@@ -113,7 +114,12 @@ class _HomePageState extends State<HomePage> {
         ),
         IconButton(
           icon: const Icon(Icons.notifications_outlined, color: AppTheme.textSecondary),
-          onPressed: () {},
+          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Bạn chưa có thông báo nào'),
+              backgroundColor: AppTheme.surface2,
+            ),
+          ),
         ),
       ],
     );
