@@ -36,6 +36,7 @@ export interface TrackOrderResult {
 export interface IOrderModel {
   create(input: CreateOrderInput): Promise<string>;
   findById(id: string): Promise<Order | null>;
+  listByUser(userId: string, limit: number, cursor?: Cursor): Promise<Order[]>;
   listAll(
     limit: number,
     status?: OrderStatus,

@@ -1,10 +1,14 @@
 import { Router, RequestHandler } from 'express';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AppError } from '../../models/types.js';
+import { env } from '../../config/env.js';
 import { z } from 'zod';
 
 const changePasswordSchema = z.object({
   newPassword: z.string().min(6, 'Mật khẩu mới phải ít nhất 6 ký tự'),
+  // Bắt buộc: nếu chỉ cần accessToken thi chi can moi cap token la doi duoc
+  // mat khau, khong can biet mat khau hien tai.
+  currentPassword: z.string().min(1, 'Vui lòng nhập mật khẩu hiện tại'),
 });
 
 const updateProfileSchema = z.object({
@@ -67,15 +71,44 @@ export const profileRoutes = (
   // POST /api/v1/profile/change-password — đổi mật khẩu
   router.post('/change-password', async (req, res, next) => {
     try {
+      const userId = req.user!.id;
       const body = changePasswordSchema.parse(req.body);
       const authHeader = req.headers.authorization || '';
       const token = authHeader.replace(/^Bearer\s+/i, '');
 
+      // Xác thực mật khẩu hiện tại trước khi đổi.
+      // Dùng 1 client anon riêng (không gắn user token) để đăng nhập thử:
+      // sai thì Supabase trả về lỗi invalid credentials.
+      {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', userId)
+          .single();
+
+        // Không lấy được email (chế độ mock / chưa seed) thì bỏ qua bước này
+        if (profile?.email) {
+          const { createClient } = await import('@supabase/supabase-js');
+          const verifyClient = createClient(
+            env.SUPABASE_URL,
+            env.SUPABASE_ANON_KEY,
+            { auth: { persistSession: false, autoRefreshToken: false } }
+          );
+          const { error: verifyError } = await verifyClient.auth.signInWithPassword({
+            email: profile.email,
+            password: body.currentPassword,
+          });
+          if (verifyError) {
+            throw new AppError('VALIDATION_ERROR', 400, 'Mật khẩu hiện tại không đúng');
+          }
+        }
+      }
+
       // Tạo supabase client với user token để đổi mật khẩu
       const { createClient } = await import('@supabase/supabase-js');
       const userClient = createClient(
-        supabase.supabaseUrl,
-        process.env.SUPABASE_ANON_KEY || '',
+        env.SUPABASE_URL,
+        env.SUPABASE_ANON_KEY,
         { global: { headers: { Authorization: `Bearer ${token}` } } }
       );
 

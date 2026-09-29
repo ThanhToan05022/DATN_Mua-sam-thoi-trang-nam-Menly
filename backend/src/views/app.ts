@@ -24,6 +24,8 @@ import { userRoutes } from './routes/user.routes.js';
 import { profileRoutes } from './routes/profile.routes.js';
 
 import { viewModels, supabase } from '../container.js';
+import { createSupabaseClient } from '../infrastructure/supabase/client.js';
+import { env } from '../config/env.js';
 
 export function createApp(): Express {
   const app = express();
@@ -43,6 +45,11 @@ export function createApp(): Express {
   app.use(express.urlencoded({ extended: true }));
 
   const requireAuth = createRequireAuth(supabase);
+
+  // Route profile goi truc tiep Supabase. Khi chay mock DB thi `supabase`
+  // co the undefined, nen fallback sang client anon thay vi nem loi.
+  const profileSupabase =
+    supabase ?? createSupabaseClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
 
   // Health routes
   app.use('/health', healthRoutes(supabase));
@@ -70,7 +77,7 @@ export function createApp(): Express {
     '/api/v1/admin',
     adminRoutes(requireAuth, requireAdmin, viewModels.admin, viewModels.product)
   );
-  app.use('/api/v1/profile', profileRoutes(requireAuth, supabase));
+  app.use('/api/v1/profile', profileRoutes(requireAuth, profileSupabase));
 
   app.use('/api/v1/auth', authRoutes(viewModels.auth, requireAuth, requireAdmin));
 
