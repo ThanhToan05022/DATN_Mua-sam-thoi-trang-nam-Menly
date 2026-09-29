@@ -75,7 +75,9 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     if (!mounted) return;
 
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('accessToken');
+    final token = prefs.getString('access_token') ??
+        prefs.getString('token') ??
+        prefs.getString('accessToken');
 
     if (!mounted) return;
 

@@ -161,4 +161,205 @@ describe('MenShop API Integration Tests (MVVM Architecture)', () => {
     expect(statusRes.body.isLocked).toBe(true);
     expect(statusRes.body.retryAfterSeconds).toBeGreaterThan(0);
   });
+
+  it('GET /api/v1/profile - should return profile with auth token', async () => {
+    const res = await request(app)
+      .get('/api/v1/profile')
+      .set('Authorization', userToken);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toBeDefined();
+    expect(res.body.data.id).toBe('00000000-0000-0000-0000-000000000002');
+  });
+
+  it('PUT /api/v1/profile - should update user profile', async () => {
+    const res = await request(app)
+      .put('/api/v1/profile')
+      .set('Authorization', userToken)
+      .send({ fullName: 'Nguyễn Văn A', phone: '0987654321' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.full_name).toBe('Nguyễn Văn A');
+  });
+
+  describe('3-Tier Role-Based Access Control (Admin, Staff, Customer)', () => {
+    const staffToken = 'Bearer mock-staff-123';
+
+    it('POST /api/v1/auth/register - allows registration as staff or customer', async () => {
+      const staffRes = await request(app)
+        .post('/api/v1/auth/register')
+        .send({
+          email: 'teststaff@menshop.vn',
+          password: 'Password123',
+          fullName: 'Staff Tester',
+          role: 'staff',
+        });
+
+      expect(staffRes.status).toBe(201);
+      expect(staffRes.body.user).toBeDefined();
+      expect(staffRes.body.user.role).toBe('staff');
+    });
+
+    it('POST /api/v1/auth/login - authenticates staff default credentials', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: 'staff@gmail.com', password: '123456' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.user).toBeDefined();
+      expect(res.body.user.role).toBe('staff');
+      expect(res.body.accessToken).toBeDefined();
+    });
+
+    it('Operations access: Staff can view and manage orders and products', async () => {
+      const ordersRes = await request(app)
+        .get('/api/v1/admin/orders')
+        .set('Authorization', staffToken);
+      expect(ordersRes.status).toBe(200);
+
+      const productsRes = await request(app)
+        .get('/api/v1/admin/products')
+        .set('Authorization', staffToken);
+      expect(productsRes.status).toBe(200);
+    });
+
+    it('Super-Admin boundary: Staff CANNOT access audit logs, user management or assign user roles (403 Forbidden)', async () => {
+      const auditRes = await request(app)
+        .get('/api/v1/admin/audit-log')
+        .set('Authorization', staffToken);
+      expect(auditRes.status).toBe(403);
+
+      const usersRes = await request(app)
+        .get('/api/v1/admin/users')
+        .set('Authorization', staffToken);
+      expect(usersRes.status).toBe(403);
+
+      const roleRes = await request(app)
+        .put('/api/v1/admin/users/00000000-0000-0000-0000-000000000002/role')
+        .set('Authorization', staffToken)
+        .send({ role: 'admin' });
+      expect(roleRes.status).toBe(403);
+    });
+
+    it('Super-Admin privilege: Admin has FULL permissions (Audit logs, User management, Role modification)', async () => {
+      const auditRes = await request(app)
+        .get('/api/v1/admin/audit-log')
+        .set('Authorization', adminToken);
+      expect(auditRes.status).toBe(200);
+
+      const usersRes = await request(app)
+        .get('/api/v1/admin/users')
+        .set('Authorization', adminToken);
+      expect(usersRes.status).toBe(200);
+      expect(Array.isArray(usersRes.body)).toBe(true);
+
+      const roleRes = await request(app)
+        .put('/api/v1/admin/users/00000000-0000-0000-0000-000000000002/role')
+        .set('Authorization', adminToken)
+        .send({ role: 'staff' });
+      expect(roleRes.status).toBe(200);
+    });
+
+    it('Customer boundary: Customer CANNOT access staff/admin operations (403 Forbidden)', async () => {
+      const ordersRes = await request(app)
+        .get('/api/v1/admin/orders')
+        .set('Authorization', userToken);
+      expect(ordersRes.status).toBe(403);
+
+      const auditRes = await request(app)
+        .get('/api/v1/admin/audit-log')
+        .set('Authorization', userToken);
+      expect(auditRes.status).toBe(403);
+    });
+  });
+
+  describe('Wishlist API Flow (Customer Favorites)', () => {
+    const testProductId = 'a0000000-0000-0000-0000-000000000001';
+
+    it('GET /api/v1/wishlist - requires authentication', async () => {
+      const res = await request(app).get('/api/v1/wishlist');
+      expect(res.status).toBe(401);
+    });
+
+    it('POST /api/v1/wishlist/:productId - adds product to wishlist', async () => {
+      const res = await request(app)
+        .post(`/api/v1/wishlist/${testProductId}`)
+        .set('Authorization', userToken);
+
+      expect(res.status).toBe(201);
+      expect(res.body.productId).toBe(testProductId);
+      expect(res.body.isFavorite).toBe(true);
+    });
+
+    it('GET /api/v1/wishlist/check/:productId - checks if product is in wishlist', async () => {
+      const res = await request(app)
+        .get(`/api/v1/wishlist/check/${testProductId}`)
+        .set('Authorization', userToken);
+
+      expect(res.status).toBe(200);
+      expect(res.body.isFavorite).toBe(true);
+    });
+
+    it('GET /api/v1/wishlist - lists user favorited products', async () => {
+      const res = await request(app)
+        .get('/api/v1/wishlist')
+        .set('Authorization', userToken);
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.some((p: any) => p.id === testProductId)).toBe(true);
+    });
+
+    it('DELETE /api/v1/wishlist/:productId - removes product from wishlist', async () => {
+      const delRes = await request(app)
+        .delete(`/api/v1/wishlist/${testProductId}`)
+        .set('Authorization', userToken);
+
+      expect(delRes.status).toBe(200);
+      expect(delRes.body.isFavorite).toBe(false);
+
+      const checkRes = await request(app)
+        .get(`/api/v1/wishlist/check/${testProductId}`)
+        .set('Authorization', userToken);
+
+      expect(checkRes.status).toBe(200);
+      expect(checkRes.body.isFavorite).toBe(false);
+    });
+  });
+
+  describe('Order Persistence across login/logout session flow', () => {
+    it('Preserves orders and returns order code when user re-logs in', async () => {
+      const createRes = await request(app)
+        .post('/api/v1/orders')
+        .set('Authorization', 'mock-user-token-usr-custom-999')
+        .set('x-user-email', 'customer_flow@gmail.com')
+        .send({
+          items: [{ variantId: 'v-ao-polo-trang-m', quantity: 1 }],
+          paymentMethod: 'cod',
+          ship: {
+            name: 'Nguyen Van A',
+            phone: '0987654321',
+            address: '123 Pho Hue, Hai Ba Trung, Hanoi',
+          },
+        });
+
+      expect(createRes.status).toBe(201);
+      expect(createRes.body.code).toBeDefined();
+      expect(createRes.body.code.startsWith('MS')).toBe(true);
+      const placedCode = createRes.body.code;
+
+      // Simulate re-login with token and email
+      const myOrdersRes = await request(app)
+        .get('/api/v1/orders')
+        .set('Authorization', 'mock-user-token-usr-custom-999')
+        .set('x-user-email', 'customer_flow@gmail.com');
+
+      expect(myOrdersRes.status).toBe(200);
+      const items = myOrdersRes.body.items || myOrdersRes.body;
+      expect(Array.isArray(items)).toBe(true);
+      const foundOrder = items.find((o: any) => o.code === placedCode);
+      expect(foundOrder).toBeDefined();
+      expect(foundOrder.code).toBe(placedCode);
+    });
+  });
 });
+
+

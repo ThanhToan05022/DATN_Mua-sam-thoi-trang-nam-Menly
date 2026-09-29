@@ -13,7 +13,7 @@ export const updateOrderStatusSchema = z.object({
 });
 
 export const setUserRoleSchema = z.object({
-  role: z.enum(['customer', 'admin']),
+  role: z.enum(['customer', 'admin', 'staff']),
 });
 
 export const adminOrdersQuerySchema = z.object({

@@ -90,7 +90,7 @@ export class InMemoryStore {
   payments: Payment[] = [];
   inventoryMovements: InventoryMovement[] = [];
   auditLogs: AdminAuditLog[] = [];
-  userRoles = new Map<string, 'customer' | 'admin'>();
+  userRoles = new Map<string, 'customer' | 'admin' | 'staff'>();
 }
 
 export class InMemoryCategoryRepository implements CategoryRepository {
@@ -424,10 +424,13 @@ export class InMemoryAdminRepository implements AdminRepository {
   ): Promise<void> {
     const o = this.store.orders.find((ord) => ord.id === orderId);
     if (!o) throw new AppError('ORDER_NOT_FOUND', 404, 'Đơn hàng không tồn tại');
+    if (o.status === 'cancelled') {
+      throw new AppError('ORDER_ALREADY_CANCELLED', 400, 'Đơn hàng đã ở trạng thái ĐÃ HUỶ, không thể chuyển sang trạng thái khác');
+    }
     o.status = newStatus;
   }
 
-  async setUserRole(userId: string, role: 'customer' | 'admin'): Promise<void> {
+  async setUserRole(userId: string, role: 'customer' | 'admin' | 'staff'): Promise<void> {
     this.store.userRoles.set(userId, role);
   }
 

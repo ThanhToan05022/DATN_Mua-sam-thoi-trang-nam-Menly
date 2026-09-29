@@ -38,10 +38,12 @@ export const orderRoutes = (
 
       const order = await vm.createOrder({
         userId: req.user!.id,
+        userEmail: req.user?.email,
         ship: body.ship,
         paymentMethod: body.paymentMethod,
         items: body.items,
         idempotencyKey,
+        note: (body as any).note,
       });
 
       res.status(201).json(order);
@@ -53,7 +55,12 @@ export const orderRoutes = (
   router.get('/', requireAuth, async (req, res, next) => {
     try {
       const query = listOrdersQuerySchema.parse(req.query);
-      const orders = await vm.listMyOrders(req.user!.id, query.limit, query.cursor);
+      const orders = await vm.listMyOrders(
+        req.user!.id,
+        query.limit,
+        query.cursor,
+        req.user?.email
+      );
       res.json(orders);
     } catch (err) {
       next(err);
