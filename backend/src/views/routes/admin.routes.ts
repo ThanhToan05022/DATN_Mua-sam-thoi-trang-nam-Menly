@@ -13,13 +13,14 @@ export const adminRoutes = (
   requireAuth: RequestHandler,
   requireAdmin: RequestHandler,
   adminVm: AdminViewModel,
-  productVm: ProductViewModel
+  productVm: ProductViewModel,
+  requireStaffOrAdmin: RequestHandler = requireAdmin
 ): Router => {
   const router = Router();
-  router.use(requireAuth, requireAdmin);
+  router.use(requireAuth);
 
-  // Products (including inactive)
-  router.get('/products', async (req, res, next) => {
+  // Vận hành (Staff & Admin): Danh sách sản phẩm (kể cả chưa kích hoạt)
+  router.get('/products', requireStaffOrAdmin, async (req, res, next) => {
     try {
       const query = listProductsSchema.parse(req.query);
       const page = await productVm.listProducts({ ...query, includeInactive: true });
@@ -29,7 +30,8 @@ export const adminRoutes = (
     }
   });
 
-  router.put('/products/:id', async (req, res, next) => {
+  // Vận hành (Staff & Admin): Cập nhật sản phẩm
+  router.put('/products/:id', requireStaffOrAdmin, async (req, res, next) => {
     try {
       const { id } = productIdParamSchema.parse(req.params);
       const updated = await productVm.updateProduct(id, req.body);
@@ -39,8 +41,8 @@ export const adminRoutes = (
     }
   });
 
-  // Inventory adjustment
-  router.post('/inventory/adjust', async (req, res, next) => {
+  // Vận hành (Staff & Admin): Điều chỉnh tồn kho thực tế
+  router.post('/inventory/adjust', requireStaffOrAdmin, async (req, res, next) => {
     try {
       const body = adjustStockSchema.parse(req.body);
       const result = await adminVm.adjustStock(
@@ -56,7 +58,8 @@ export const adminRoutes = (
     }
   });
 
-  router.get('/inventory/movements', async (req, res, next) => {
+  // Vận hành (Staff & Admin): Xem nhật ký biến động kho
+  router.get('/inventory/movements', requireStaffOrAdmin, async (req, res, next) => {
     try {
       const variantId = req.query.variantId as string | undefined;
       const limit = Number(req.query.limit) || 50;
@@ -67,8 +70,8 @@ export const adminRoutes = (
     }
   });
 
-  // Orders management
-  router.get('/orders', async (req, res, next) => {
+  // Vận hành (Staff & Admin): Quản lý & xem danh sách đơn hàng
+  router.get('/orders', requireStaffOrAdmin, async (req, res, next) => {
     try {
       const query = adminOrdersQuerySchema.parse(req.query);
       const orders = await adminVm.listOrders(
@@ -85,7 +88,8 @@ export const adminRoutes = (
     }
   });
 
-  router.put('/orders/:id/status', async (req, res, next) => {
+  // Vận hành (Staff & Admin): Cập nhật trạng thái đơn hàng (xác nhận, giao hàng, hoàn tất, hủy)
+  router.put('/orders/:id/status', requireStaffOrAdmin, async (req, res, next) => {
     try {
       const body = updateOrderStatusSchema.parse(req.body);
       await adminVm.updateOrderStatus(req.params.id, body.status, body.note, req.user!.id);
@@ -95,8 +99,8 @@ export const adminRoutes = (
     }
   });
 
-  // Audit Logs & Roles
-  router.get('/audit-log', async (req, res, next) => {
+  // Quyền tối cao (Chỉ Admin): Xem nhật ký kiểm toán hệ thống
+  router.get('/audit-log', requireAdmin, async (req, res, next) => {
     try {
       const limit = Number(req.query.limit) || 50;
       const logs = await adminVm.listAudit(limit);
@@ -106,7 +110,8 @@ export const adminRoutes = (
     }
   });
 
-  router.put('/users/:id/role', async (req, res, next) => {
+  // Quyền tối cao (Chỉ Admin): Phân quyền vai trò người dùng
+  router.put('/users/:id/role', requireAdmin, async (req, res, next) => {
     try {
       const body = setUserRoleSchema.parse(req.body);
       await adminVm.setUserRole(req.params.id, body.role);

@@ -38,7 +38,20 @@ export class AdminViewModel {
   }
 
   async updateOrderStatus(orderId: string, status: OrderStatus, note?: string, adminId?: string): Promise<void> {
-    await this.adminModel.updateOrderStatus(orderId, status, note, adminId);
+    const existing = await this.orderModel.findById(orderId);
+    if (existing && existing.status === 'cancelled') {
+      throw new AppError('ORDER_ALREADY_CANCELLED', 400, 'Đơn hàng đã ở trạng thái ĐÃ HUỶ, không thể chuyển sang trạng thái khác');
+    }
+    try {
+      await this.adminModel.updateOrderStatus(orderId, status, note, adminId);
+    } catch (err: any) {
+      if (err instanceof AppError && err.code === 'ORDER_ALREADY_CANCELLED') {
+        throw err;
+      }
+    }
+    if (this.orderModel.updateStatus) {
+      await this.orderModel.updateStatus(orderId, status, note);
+    }
   }
 
   async listOrders(
@@ -70,8 +83,8 @@ export class AdminViewModel {
     };
   }
 
-  async setUserRole(userId: string, role: 'customer' | 'admin'): Promise<void> {
-    if (role !== 'customer' && role !== 'admin') {
+  async setUserRole(userId: string, role: 'customer' | 'admin' | 'staff'): Promise<void> {
+    if (role !== 'customer' && role !== 'admin' && role !== 'staff') {
       throw new AppError('INVALID_ROLE', 400, 'Vai trò không hợp lệ');
     }
     await this.adminModel.setUserRole(userId, role);

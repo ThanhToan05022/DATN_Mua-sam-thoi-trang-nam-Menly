@@ -62,4 +62,23 @@ describe('Admin Orders Date Filter Tests', () => {
     const page = await adminVm.listOrders(20);
     expect(page.items.length).toBe(2);
   });
+
+  it('Should not allow changing status when order is cancelled', async () => {
+    const page = await adminVm.listOrders(20);
+    const orderId = page.items[0].id;
+
+    // Change to cancelled
+    await adminVm.updateOrderStatus(orderId, 'cancelled');
+    const cancelledOrder = await orderModel.findById(orderId);
+    expect(cancelledOrder?.status).toBe('cancelled');
+
+    // Attempting to change to any other status must throw ORDER_ALREADY_CANCELLED
+    await expect(adminVm.updateOrderStatus(orderId, 'shipping')).rejects.toThrow(
+      'Đơn hàng đã ở trạng thái ĐÃ HUỶ, không thể chuyển sang trạng thái khác'
+    );
+    await expect(adminVm.updateOrderStatus(orderId, 'completed')).rejects.toThrow(
+      'Đơn hàng đã ở trạng thái ĐÃ HUỶ, không thể chuyển sang trạng thái khác'
+    );
+  });
 });
+

@@ -5,10 +5,12 @@ import { decodeCursor, encodeCursor } from './base.viewmodel.js';
 
 export interface CreateOrderRequest {
   userId: string;
+  userEmail?: string;
   ship: ShippingInfo;
   paymentMethod: 'cod' | 'vnpay';
   items?: Array<{ variantId: string; quantity: number }>;
   idempotencyKey?: string;
+  note?: string;
 }
 
 export class OrderViewModel {
@@ -34,11 +36,13 @@ export class OrderViewModel {
 
     const orderId = await this.orderModel.create({
       userId: req.userId,
+      userEmail: req.userEmail,
       items,
       ship: req.ship,
       paymentMethod: req.paymentMethod,
       shippingFee: 0,
       idempotencyKey: req.idempotencyKey,
+      note: req.note,
     });
 
     const order = await this.orderModel.findById(orderId);
@@ -59,11 +63,17 @@ export class OrderViewModel {
     return order;
   }
 
-  async listMyOrders(userId: string, limit: number, cursor?: string): Promise<Page<Order>> {
+  async listMyOrders(
+    userId: string,
+    limit: number,
+    cursor?: string,
+    userEmail?: string
+  ): Promise<Page<Order>> {
     const orders = await this.orderModel.listByUser(
       userId,
       limit + 1,
-      cursor ? decodeCursor(cursor) : undefined
+      cursor ? decodeCursor(cursor) : undefined,
+      userEmail
     );
 
     const hasNext = orders.length > limit;

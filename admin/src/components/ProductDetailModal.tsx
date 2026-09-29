@@ -24,11 +24,12 @@ export function ProductDetailModal({ product, onClose, onStockAdjusted }: Produc
   const variants: ProductVariant[] = product.variants?.length
     ? product.variants
     : [
-        { id: 'v-s', productId: product.id, size: 'S', color: 'Tiêu chuẩn', sku: `SKU-${product.id.slice(0, 4)}-S`, stock: 15 },
-        { id: 'v-m', productId: product.id, size: 'M', color: 'Tiêu chuẩn', sku: `SKU-${product.id.slice(0, 4)}-M`, stock: 35 },
-        { id: 'v-l', productId: product.id, size: 'L', color: 'Tiêu chuẩn', sku: `SKU-${product.id.slice(0, 4)}-L`, stock: 40 },
-        { id: 'v-xl', productId: product.id, size: 'XL', color: 'Tiêu chuẩn', sku: `SKU-${product.id.slice(0, 4)}-XL`, stock: 25 },
-        { id: 'v-xxl', productId: product.id, size: 'XXL', color: 'Tiêu chuẩn', sku: `SKU-${product.id.slice(0, 4)}-XXL`, stock: 10 },
+        { id: 'v-w-m', productId: product.id, size: 'M', color: 'Trắng', sku: `SKU-${product.id.slice(0, 4)}-W-M`, stock: 35 },
+        { id: 'v-b-m', productId: product.id, size: 'M', color: 'Đen', sku: `SKU-${product.id.slice(0, 4)}-B-M`, stock: 30 },
+        { id: 'v-w-l', productId: product.id, size: 'L', color: 'Trắng', sku: `SKU-${product.id.slice(0, 4)}-W-L`, stock: 40 },
+        { id: 'v-b-l', productId: product.id, size: 'L', color: 'Đen', sku: `SKU-${product.id.slice(0, 4)}-B-L`, stock: 45 },
+        { id: 'v-w-xl', productId: product.id, size: 'XL', color: 'Trắng', sku: `SKU-${product.id.slice(0, 4)}-W-XL`, stock: 25 },
+        { id: 'v-b-xl', productId: product.id, size: 'XL', color: 'Đen', sku: `SKU-${product.id.slice(0, 4)}-B-XL`, stock: 20 },
       ];
 
   const totalStock = variants.reduce((sum, v) => sum + v.stock, 0);

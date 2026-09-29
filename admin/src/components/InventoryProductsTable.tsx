@@ -24,10 +24,12 @@ export function InventoryProductsTable({
     if (p.variants && p.variants.length > 0) return p.variants;
     const seed = p.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
     return [
-      { id: `${p.id}-s`, productId: p.id, size: 'S', color: 'Tiêu chuẩn', sku: `SKU-${p.id.slice(0, 4).toUpperCase()}-S`, stock: 15 + (seed % 20) },
-      { id: `${p.id}-m`, productId: p.id, size: 'M', color: 'Tiêu chuẩn', sku: `SKU-${p.id.slice(0, 4).toUpperCase()}-M`, stock: 35 + (seed % 30) },
-      { id: `${p.id}-l`, productId: p.id, size: 'L', color: 'Tiêu chuẩn', sku: `SKU-${p.id.slice(0, 4).toUpperCase()}-L`, stock: 40 + (seed % 25) },
-      { id: `${p.id}-xl`, productId: p.id, size: 'XL', color: 'Tiêu chuẩn', sku: `SKU-${p.id.slice(0, 4).toUpperCase()}-XL`, stock: 25 + (seed % 15) },
+      { id: `${p.id}-w-m`, productId: p.id, size: 'M', color: 'Trắng', sku: `SKU-${p.id.slice(0, 4).toUpperCase()}-W-M`, stock: 35 + (seed % 20) },
+      { id: `${p.id}-b-m`, productId: p.id, size: 'M', color: 'Đen', sku: `SKU-${p.id.slice(0, 4).toUpperCase()}-B-M`, stock: 30 + (seed % 15) },
+      { id: `${p.id}-w-l`, productId: p.id, size: 'L', color: 'Trắng', sku: `SKU-${p.id.slice(0, 4).toUpperCase()}-W-L`, stock: 40 + (seed % 25) },
+      { id: `${p.id}-b-l`, productId: p.id, size: 'L', color: 'Đen', sku: `SKU-${p.id.slice(0, 4).toUpperCase()}-B-L`, stock: 45 + (seed % 20) },
+      { id: `${p.id}-w-xl`, productId: p.id, size: 'XL', color: 'Trắng', sku: `SKU-${p.id.slice(0, 4).toUpperCase()}-W-XL`, stock: 25 + (seed % 10) },
+      { id: `${p.id}-b-xl`, productId: p.id, size: 'XL', color: 'Đen', sku: `SKU-${p.id.slice(0, 4).toUpperCase()}-B-XL`, stock: 20 + (seed % 10) },
     ];
   };
 

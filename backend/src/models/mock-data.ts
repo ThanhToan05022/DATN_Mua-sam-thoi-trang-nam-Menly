@@ -161,9 +161,12 @@ export const MOCK_PRODUCTS: ProductDetail[] = RAW_PRODUCTS.map((p, idx) => {
     isActive: true,
     createdAt: new Date(Date.now() - (125 - idx) * 3600_000).toISOString(),
     variants: [
-      { id: `b0000000-0000-0000-0001-${paddedId}`, productId: fullId, size: 'M', color: 'Tiêu chuẩn', sku: `SKU-${p.slug.slice(0, 5).toUpperCase()}-${paddedId.slice(-4)}-M`, stock: 35 },
-      { id: `b0000000-0000-0000-0002-${paddedId}`, productId: fullId, size: 'L', color: 'Tiêu chuẩn', sku: `SKU-${p.slug.slice(0, 5).toUpperCase()}-${paddedId.slice(-4)}-L`, stock: 40 },
-      { id: `b0000000-0000-0000-0003-${paddedId}`, productId: fullId, size: 'XL', color: 'Tiêu chuẩn', sku: `SKU-${p.slug.slice(0, 5).toUpperCase()}-${paddedId.slice(-4)}-XL`, stock: 25 },
+      { id: `b0000000-0000-0001-0001-${paddedId}`, productId: fullId, size: 'M', color: 'Trắng', sku: `SKU-${p.slug.slice(0, 5).toUpperCase()}-${paddedId.slice(-4)}-W-M`, stock: 35 },
+      { id: `b0000000-0000-0002-0001-${paddedId}`, productId: fullId, size: 'M', color: 'Đen', sku: `SKU-${p.slug.slice(0, 5).toUpperCase()}-${paddedId.slice(-4)}-B-M`, stock: 30 },
+      { id: `b0000000-0000-0001-0002-${paddedId}`, productId: fullId, size: 'L', color: 'Trắng', sku: `SKU-${p.slug.slice(0, 5).toUpperCase()}-${paddedId.slice(-4)}-W-L`, stock: 40 },
+      { id: `b0000000-0000-0002-0002-${paddedId}`, productId: fullId, size: 'L', color: 'Đen', sku: `SKU-${p.slug.slice(0, 5).toUpperCase()}-${paddedId.slice(-4)}-B-L`, stock: 45 },
+      { id: `b0000000-0000-0001-0003-${paddedId}`, productId: fullId, size: 'XL', color: 'Trắng', sku: `SKU-${p.slug.slice(0, 5).toUpperCase()}-${paddedId.slice(-4)}-W-XL`, stock: 25 },
+      { id: `b0000000-0000-0002-0003-${paddedId}`, productId: fullId, size: 'XL', color: 'Đen', sku: `SKU-${p.slug.slice(0, 5).toUpperCase()}-${paddedId.slice(-4)}-B-XL`, stock: 20 },
     ],
     images: [
       { id: `d0000000-0000-0000-0001-${paddedId}`, productId: fullId, url: p.img, sortOrder: 1 },

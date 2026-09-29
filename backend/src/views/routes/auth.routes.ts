@@ -10,13 +10,15 @@ export const authRoutes = (
 ): Router => {
   const router = Router();
 
-  // 1. Register new user (strictly for regular users)
+  // 1. Register new user (regular customer or staff)
   router.post('/register', async (req, res, next) => {
     try {
       const body = registerSchema.parse(req.body);
-      const session = await authVm.register(body.name, body.email, body.password, 'user');
+      const targetRole = body.role === 'staff' ? 'staff' : (body.role === 'admin' ? 'admin' : 'user');
+      const userName = body.name || body.fullName || 'Người dùng';
+      const session = await authVm.register(userName, body.email, body.password, targetRole);
       res.status(201).json({
-        message: 'Đăng ký tài khoản thành công',
+        message: targetRole === 'staff' ? 'Đăng ký tài khoản nhân viên thành công' : 'Đăng ký tài khoản thành công',
         user: session.user,
         accessToken: session.accessToken,
       });

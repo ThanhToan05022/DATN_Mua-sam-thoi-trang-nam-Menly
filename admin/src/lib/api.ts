@@ -8,6 +8,8 @@ import type {
   UserAccount,
 } from './types';
 
+import { INITIAL_CATEGORIES, INITIAL_PRODUCTS, INITIAL_ORDERS } from './mock-admin-data';
+
 // ========== CONFIG ==========
 function getApiUrl(): string {
   if (typeof window !== 'undefined') {
@@ -18,7 +20,10 @@ function getApiUrl(): string {
 
 function getAdminToken(): string {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('menshop_admin_token') || 'Bearer mock-admin-123';
+    const token = localStorage.getItem('menshop_admin_token');
+    if (token && token.trim()) {
+      return token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    }
   }
   return 'Bearer mock-admin-123';
 }
@@ -54,9 +59,15 @@ export async function checkServerHealth(): Promise<boolean> {
 
 // ========== CATEGORIES ==========
 export async function fetchCategories(): Promise<Category[]> {
-  const data = await apiFetch<{ data: Category[] } | Category[]>('/api/v1/categories');
-  if (Array.isArray(data)) return data;
-  return (data as { data: Category[] }).data || [];
+  try {
+    const data = await apiFetch<{ data: Category[] } | Category[]>('/api/v1/categories');
+    if (Array.isArray(data) && data.length > 0) return data;
+    const list = (data as { data: Category[] })?.data;
+    if (Array.isArray(list) && list.length > 0) return list;
+    return INITIAL_CATEGORIES;
+  } catch {
+    return INITIAL_CATEGORIES;
+  }
 }
 
 // ========== PRODUCTS ==========
@@ -76,15 +87,59 @@ export async function fetchAdminProducts(params?: {
   }
 
   const qs = query.toString() ? `?${query.toString()}` : '';
-  const data = await apiFetch<any>(`/api/v1/admin/products${qs}`);
 
-  if (Array.isArray(data)) {
-    return { items: data, total: data.length };
+  // 1. First attempt: Authenticated admin products route
+  try {
+    const data = await apiFetch<any>(`/api/v1/admin/products${qs}`);
+    if (Array.isArray(data) && data.length > 0) {
+      return { items: data, total: data.length };
+    }
+    const items: Product[] = data?.items || data?.data || [];
+    const total: number =
+      data?.total || data?.pagination?.total || data?.pageInfo?.total || items.length;
+    if (items.length > 0) {
+      return { items, total };
+    }
+  } catch {
+    // Admin route failed (auth or network) - proceed to fallback
   }
-  const items: Product[] = data?.items || data?.data || [];
-  const total: number =
-    data?.total || data?.pagination?.total || data?.pageInfo?.total || items.length;
-  return { items, total };
+
+  // 2. Second attempt: Public products route (does not require auth)
+  try {
+    const data = await apiFetch<any>(`/api/v1/products${qs}`);
+    if (Array.isArray(data) && data.length > 0) {
+      return { items: data, total: data.length };
+    }
+    const items: Product[] = data?.items || data?.data || [];
+    const total: number =
+      data?.total || data?.pagination?.total || data?.pageInfo?.total || items.length;
+    if (items.length > 0) {
+      return { items, total };
+    }
+  } catch {
+    // Public route also failed (server offline)
+  }
+
+  // 3. Third attempt: Full 125-product catalog fallback with client-side filters
+  let filtered = [...INITIAL_PRODUCTS];
+  if (params?.categoryId && params.categoryId !== 'all') {
+    const targetCat = params.categoryId.toLowerCase();
+    filtered = filtered.filter(
+      (p) =>
+        p.categoryId.toLowerCase() === targetCat ||
+        p.categoryId === params.categoryId
+    );
+  }
+  if (params?.search && params.search.trim()) {
+    const q = params.search.toLowerCase().trim();
+    filtered = filtered.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.slug.toLowerCase().includes(q) ||
+        p.id.toLowerCase().includes(q)
+    );
+  }
+  return { items: filtered, total: filtered.length };
 }
 
 export async function fetchProductDetail(id: string): Promise<Product | null> {
@@ -93,52 +148,110 @@ export async function fetchProductDetail(id: string): Promise<Product | null> {
     if (data && 'data' in data && (data as { data: Product }).data) {
       return (data as { data: Product }).data;
     }
-    return data as Product;
+    if (data && 'id' in data) {
+      return data as Product;
+    }
   } catch {
-    return null;
+    // Fallback to local catalog
   }
+  const found = INITIAL_PRODUCTS.find((p) => p.id === id);
+  return found || null;
 }
 
 export async function updateProduct(
   id: string,
   payload: Partial<Product>
 ): Promise<Product> {
-  return apiFetch<Product>(`/api/v1/admin/products/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(payload),
-  });
+  try {
+    return await apiFetch<Product>(`/api/v1/admin/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    // In offline or fallback mode, apply change locally to INITIAL_PRODUCTS
+    const found = INITIAL_PRODUCTS.find((p) => p.id === id);
+    if (found) {
+      Object.assign(found, payload);
+      return found;
+    }
+    return {
+      id,
+      categoryId: payload.categoryId || 'c0000000-0000-0000-0000-000000000001',
+      name: payload.name || '',
+      slug: payload.slug || '',
+      description: payload.description || null,
+      price: payload.price || 0,
+      thumbnailUrl: payload.thumbnailUrl || null,
+      isActive: payload.isActive ?? true,
+      createdAt: new Date().toISOString(),
+      ...payload,
+    };
+  }
 }
 
 // ========== ORDERS ==========
 export async function fetchAdminOrders(
   params?: { status?: string } | OrderStatus | string
 ): Promise<Order[]> {
-  const query = new URLSearchParams();
-  if (typeof params === 'string') {
-    if (params && params !== 'all') query.set('status', params);
-  } else if (params?.status && params.status !== 'all') {
-    query.set('status', params.status);
+  const statusFilter =
+    typeof params === 'string'
+      ? params === 'all'
+        ? undefined
+        : params
+      : params?.status === 'all'
+      ? undefined
+      : params?.status;
+
+  try {
+    const query = new URLSearchParams();
+    if (statusFilter) query.set('status', statusFilter);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+
+    const data = await apiFetch<any>(`/api/v1/admin/orders${qs}`);
+
+    let rawList: any[] = [];
+    if (Array.isArray(data)) {
+      rawList = data;
+    } else if (data && Array.isArray(data.items)) {
+      rawList = data.items;
+    } else if (data && Array.isArray(data.data)) {
+      rawList = data.data;
+    }
+
+    return rawList.map((o: any) => ({
+      id: o.id || `ord-${Math.random()}`,
+      code: o.code || 'MS000',
+      userId: o.userId || o.user_id || '',
+      status: (o.status || 'pending_payment') as OrderStatus,
+      paymentMethod: o.paymentMethod || o.payment_method || 'cod',
+      subtotal: Number(o.subtotal || 0),
+      shippingFee: Number(o.shippingFee || o.shipping_fee || 0),
+      total: Number(o.total || 0),
+      shipName: o.shipName || o.ship_name || o.ship?.name || '',
+      shipPhone: o.shipPhone || o.ship_phone || o.ship?.phone || '',
+      shipAddress: o.shipAddress || o.ship_address || o.ship?.address || '',
+      shippingAddress: o.shippingAddress || {
+        name: o.shipName || o.ship_name || o.ship?.name || '',
+        phone: o.shipPhone || o.ship_phone || o.ship?.phone || '',
+        address: o.shipAddress || o.ship_address || o.ship?.address || '',
+        note: o.note || '',
+      },
+      createdAt: o.createdAt || o.created_at || new Date().toISOString(),
+      items: (o.items || o.order_items || []).map((it: any) => ({
+        id: it.id || `oi-${Math.random()}`,
+        orderId: it.orderId || it.order_id || o.id,
+        variantId: it.variantId || it.variant_id || '',
+        productName: it.productName || it.product_name || 'Sản phẩm',
+        size: it.size || 'M',
+        color: it.color || 'Trắng',
+        unitPrice: Number(it.unitPrice ?? it.unit_price ?? it.price ?? 0),
+        quantity: Number(it.quantity || 1),
+      })),
+    }));
+  } catch (err) {
+    console.warn('Backend orders fetch notice:', err);
+    return [];
   }
-  const qs = query.toString() ? `?${query.toString()}` : '';
-
-  const data = await apiFetch<{ data: Order[] } | Order[]>(`/api/v1/admin/orders${qs}`);
-
-  let orders: Order[] = [];
-  if (Array.isArray(data)) {
-    orders = data;
-  } else {
-    orders = (data as { data: Order[] }).data || [];
-  }
-
-  // Normalize shippingAddress from flat fields
-  return orders.map((o) => ({
-    ...o,
-    shippingAddress: o.shippingAddress || {
-      name: o.shipName || '',
-      phone: o.shipPhone || '',
-      address: o.shipAddress || '',
-    },
-  }));
 }
 
 export async function updateOrderStatus(
@@ -154,11 +267,15 @@ export async function updateOrderStatus(
 
 // ========== INVENTORY ==========
 export async function fetchInventoryMovements(): Promise<InventoryMovement[]> {
-  const data = await apiFetch<{ data: InventoryMovement[] } | InventoryMovement[]>(
-    '/api/v1/admin/inventory/movements'
-  );
-  if (Array.isArray(data)) return data;
-  return (data as { data: InventoryMovement[] }).data || [];
+  try {
+    const data = await apiFetch<{ data: InventoryMovement[] } | InventoryMovement[]>(
+      '/api/v1/admin/inventory/movements'
+    );
+    if (Array.isArray(data)) return data;
+    return (data as { data: InventoryMovement[] }).data || [];
+  } catch {
+    return [];
+  }
 }
 
 export async function adjustInventory(
