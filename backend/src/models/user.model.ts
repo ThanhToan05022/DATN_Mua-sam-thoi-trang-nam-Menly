@@ -5,7 +5,7 @@ export interface UserAccount {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'staff' | 'user';
   isLocked: boolean;
   createdAt: string;
   password?: string;
@@ -19,11 +19,11 @@ export interface IUserModel {
     name: string;
     email: string;
     password?: string;
-    role?: 'admin' | 'user';
+    role?: 'admin' | 'staff' | 'user';
   }): Promise<UserAccount>;
   updateUser(
     id: string,
-    data: { name?: string; email?: string; role?: 'admin' | 'user' }
+    data: { name?: string; email?: string; role?: 'admin' | 'staff' | 'user' }
   ): Promise<UserAccount>;
   deleteUser(id: string): Promise<boolean>;
   setLockStatus(id: string, isLocked: boolean): Promise<UserAccount>;
@@ -37,6 +37,15 @@ export class UserModel implements IUserModel {
       email: 'admin@gmail.com',
       password: '123456',
       role: 'admin',
+      isLocked: false,
+      createdAt: '2026-01-01T08:00:00.000Z',
+    },
+    {
+      id: 'usr-staff-001',
+      name: 'Nhân Viên MenShop',
+      email: 'staff@gmail.com',
+      password: '123456',
+      role: 'staff',
       isLocked: false,
       createdAt: '2026-01-01T08:00:00.000Z',
     },
@@ -56,7 +65,7 @@ export class UserModel implements IUserModel {
             id: r.id,
             name: r.full_name || 'Người dùng',
             email: r.email || `${r.id.slice(0, 8)}@menshop.vn`,
-            role: r.role === 'admin' ? 'admin' : 'user',
+            role: r.role === 'admin' ? 'admin' : r.role === 'staff' ? 'staff' : 'user',
             isLocked: Boolean(r.is_locked),
             createdAt: r.created_at,
           }));
@@ -86,7 +95,7 @@ export class UserModel implements IUserModel {
             id: data.id,
             name: data.full_name || 'Người dùng',
             email: data.email || '',
-            role: data.role === 'admin' ? 'admin' : 'user',
+            role: data.role === 'admin' ? 'admin' : data.role === 'staff' ? 'staff' : 'user',
             isLocked: Boolean(data.is_locked),
             createdAt: data.created_at,
             password: mem?.password,
@@ -116,10 +125,10 @@ export class UserModel implements IUserModel {
             id: data.id,
             name: data.full_name || 'Người dùng',
             email: data.email || normalized,
-            role: data.role === 'admin' ? 'admin' : 'user',
+            role: data.role === 'admin' ? 'admin' : data.role === 'staff' ? 'staff' : 'user',
             isLocked: Boolean(data.is_locked),
             createdAt: data.created_at,
-            password: mem?.password || (normalized === 'admin@gmail.com' ? '123456' : undefined),
+            password: mem?.password || (normalized === 'admin@gmail.com' || normalized === 'staff@gmail.com' ? '123456' : undefined),
           };
         }
       } catch {

@@ -1,13 +1,16 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/config/api_config.dart';
+
 import '../../../../core/theme/app_theme.dart';
+import '../../../order/presentation/providers/order_provider.dart';
+import '../../../wishlist/presentation/providers/wishlist_provider.dart';
+import '../providers/auth_provider.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final String? redirect;
+  const LoginPage({super.key, this.redirect});
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -15,7 +18,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  bool _loading = false;
   bool _obscure = true;
   bool _rememberMe = false;
 
@@ -48,47 +50,62 @@ class _LoginPageState extends State<LoginPage> {
       _snack('Vui lòng nhập email và mật khẩu');
       return;
     }
-    setState(() => _loading = true);
-    try {
-      final res = await http.post(
-        Uri.parse('${ApiConfig.apiBase}/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': _emailCtrl.text.trim(),
-          'password': _passCtrl.text,
-        }),
-      );
-      final body = jsonDecode(res.body);
-      if (res.statusCode == 200) {
-        final prefs = await SharedPreferences.getInstance();
-        // Ghi nhớ email nếu bật Remember Me
-        if (_rememberMe) {
-          await prefs.setString('savedEmail', _emailCtrl.text.trim());
-        } else {
-          await prefs.remove('savedEmail');
-        }
-        await prefs.setString('accessToken', body['accessToken'] ?? '');
-        await prefs.setString('userName', body['user']?['name'] ?? '');
-        await prefs.setString('userEmail', body['user']?['email'] ?? '');
-        if (mounted) context.go('/');
+
+    final auth = context.read<AuthProvider>();
+    final success = await auth.login(
+      _emailCtrl.text.trim(),
+      _passCtrl.text,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setString('savedEmail', _emailCtrl.text.trim());
       } else {
-        _snack(body['error']?['message'] ?? 'Đăng nhập thất bại');
+        await prefs.remove('savedEmail');
       }
-    } catch (e) {
-      _snack('Lỗi kết nối: $e');
-    } finally {
-      if (mounted) setState(() => _loading = false);
+
+      // Tải lại danh sách yêu thích và đơn hàng cho người dùng vừa đăng nhập
+      if (mounted) {
+        context.read<WishlistProvider>().fetchWishlist(forceRefresh: true);
+        context.read<OrderProvider>().fetchMyOrders(forceRefresh: true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🎉 Chào mừng trở lại, ${auth.user?.fullName ?? ''}!'),
+            backgroundColor: AppTheme.success,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        final target = widget.redirect ??
+            GoRouterState.of(context).uri.queryParameters['redirect'];
+        if (target != null && target.isNotEmpty) {
+          context.go(target);
+        } else {
+          context.go('/');
+        }
+      }
+    } else {
+      _snack(auth.state.message ?? 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
     }
   }
 
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: AppTheme.error),
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: AppTheme.error,
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = context.watch<AuthProvider>().state;
+    final isLoading = authState.isLoading;
+
     return Scaffold(
       backgroundColor: AppTheme.bg,
       body: SafeArea(
@@ -101,7 +118,8 @@ class _LoginPageState extends State<LoginPage> {
               // Logo
               Center(
                 child: Container(
-                  width: 80, height: 80,
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [AppTheme.primary, AppTheme.primaryLight],
@@ -109,22 +127,40 @@ class _LoginPageState extends State<LoginPage> {
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(22),
-                    boxShadow: [BoxShadow(color: AppTheme.primary.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8))],
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primary.withOpacity(0.4),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      )
+                    ],
                   ),
-                  child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 40),
+                  child: const Icon(Icons.shopping_bag_rounded,
+                      color: Colors.white, size: 40),
                 ),
               ),
               const SizedBox(height: 24),
               const Center(
-                child: Text('MENLY', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 3)),
+                child: Text('MENLY',
+                    style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 3)),
               ),
               const Center(
-                child: Text('Thời trang nam cao cấp', style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+                child: Text('Thời trang nam cao cấp',
+                    style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
               ),
               const SizedBox(height: 48),
-              const Text('Đăng nhập', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+              const Text('Đăng nhập',
+                  style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white)),
               const SizedBox(height: 6),
-              const Text('Chào mừng bạn trở lại!', style: TextStyle(fontSize: 14, color: AppTheme.textMuted)),
+              const Text('Chào mừng bạn trở lại!',
+                  style: TextStyle(fontSize: 14, color: AppTheme.textMuted)),
               const SizedBox(height: 28),
 
               // Email
@@ -147,7 +183,12 @@ class _LoginPageState extends State<LoginPage> {
                 icon: Icons.lock_outline_rounded,
                 obscure: _obscure,
                 suffix: IconButton(
-                  icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: AppTheme.textMuted, size: 20),
+                  icon: Icon(
+                      _obscure
+                          ? Icons.visibility_off_rounded
+                          : Icons.visibility_rounded,
+                      color: AppTheme.textMuted,
+                      size: 20),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
@@ -162,30 +203,47 @@ class _LoginPageState extends State<LoginPage> {
                       children: [
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
-                          width: 22, height: 22,
+                          width: 22,
+                          height: 22,
                           decoration: BoxDecoration(
-                            color: _rememberMe ? AppTheme.primary : Colors.transparent,
+                            color: _rememberMe
+                                ? AppTheme.primary
+                                : Colors.transparent,
                             border: Border.all(
-                              color: _rememberMe ? AppTheme.primary : AppTheme.textMuted,
+                              color: _rememberMe
+                                  ? AppTheme.primary
+                                  : AppTheme.textMuted,
                               width: 1.8,
                             ),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: _rememberMe
-                              ? const Icon(Icons.check_rounded, color: Colors.black, size: 14)
+                              ? const Icon(Icons.check_rounded,
+                                  color: Colors.black, size: 14)
                               : null,
                         ),
                         const SizedBox(width: 8),
                         const Text('Ghi nhớ đăng nhập',
-                            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                            style: TextStyle(
+                                fontSize: 13, color: AppTheme.textSecondary)),
                       ],
                     ),
                   ),
                   const Spacer(),
                   GestureDetector(
-                    onTap: () {/* TODO: quên mật khẩu */},
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Vui lòng liên hệ quản trị viên để khôi phục mật khẩu'),
+                        ),
+                      );
+                    },
                     child: const Text('Quên mật khẩu?',
-                        style: TextStyle(fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.w600)),
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),
@@ -195,16 +253,24 @@ class _LoginPageState extends State<LoginPage> {
               SizedBox(
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: _loading ? null : _login,
+                  onPressed: isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
-                  child: _loading
-                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                      : const Text('Đăng nhập', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2.5),
+                        )
+                      : const Text('Đăng nhập',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700)),
                 ),
               ),
               const SizedBox(height: 20),
@@ -212,28 +278,45 @@ class _LoginPageState extends State<LoginPage> {
               // Divider
               Row(children: [
                 Expanded(child: Divider(color: AppTheme.surface2)),
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text('hoặc', style: TextStyle(color: AppTheme.textMuted, fontSize: 13))),
+                Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text('hoặc',
+                        style: TextStyle(
+                            color: AppTheme.textMuted, fontSize: 13))),
                 Expanded(child: Divider(color: AppTheme.surface2)),
               ]),
               const SizedBox(height: 20),
 
               // Go to register
               OutlinedButton(
-                onPressed: () => context.push('/register'),
+                onPressed: () {
+                  final target = widget.redirect ??
+                      GoRouterState.of(context).uri.queryParameters['redirect'];
+                  if (target != null && target.isNotEmpty) {
+                    context.push(
+                        '/register?redirect=${Uri.encodeComponent(target)}');
+                  } else {
+                    context.push('/register');
+                  }
+                },
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.primary,
                   side: const BorderSide(color: AppTheme.primary),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                   minimumSize: const Size.fromHeight(54),
                 ),
-                child: const Text('Tạo tài khoản mới', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                child: const Text('Tạo tài khoản mới',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               ),
               const SizedBox(height: 24),
 
               // Continue as guest
               TextButton(
                 onPressed: () => context.go('/'),
-                child: const Text('Tiếp tục không đăng nhập →', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+                child: const Text('Tiếp tục không đăng nhập →',
+                    style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
               ),
               const SizedBox(height: 24),
             ],
@@ -243,7 +326,11 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _label(String text) => Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary));
+  Widget _label(String text) => Text(text,
+      style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.textSecondary));
 
   Widget _inputField({
     required TextEditingController controller,
@@ -266,7 +353,7 @@ class _LoginPageState extends State<LoginPage> {
         style: const TextStyle(color: Colors.white, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 14),
+          hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
           prefixIcon: Icon(icon, color: AppTheme.textMuted, size: 20),
           suffixIcon: suffix,
           border: InputBorder.none,

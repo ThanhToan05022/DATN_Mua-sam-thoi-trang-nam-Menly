@@ -56,6 +56,11 @@ export default function OrdersPage() {
 
   async function handleUpdateStatus() {
     if (!selectedOrder) return;
+    if (selectedOrder.status === 'cancelled') {
+      setFeedback({ text: 'Đơn hàng đã ở trạng thái ĐÃ HUỶ, không thể chuyển sang trạng thái khác', type: 'error' });
+      setSelectedOrder(null);
+      return;
+    }
     setUpdating(true);
     setFeedback(null);
     try {
@@ -161,16 +166,23 @@ export default function OrdersPage() {
                       <span className="text-base font-extrabold text-white font-mono">
                         {ord.total.toLocaleString('vi-VN')} đ
                       </span>
-                      <button
-                        onClick={() => {
-                          setSelectedOrder(ord);
-                          setNewStatus(ord.status);
-                        }}
-                        className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Truck className="w-3.5 h-3.5" />
-                        Đổi trạng thái
-                      </button>
+                      {ord.status === 'cancelled' ? (
+                        <span className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30 flex items-center gap-1.5 cursor-not-allowed">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          Đã huỷ (Cố định)
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedOrder(ord);
+                            setNewStatus(ord.status);
+                          }}
+                          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Truck className="w-3.5 h-3.5" />
+                          Đổi trạng thái
+                        </button>
+                      )}
                     </div>
                   </div>
 

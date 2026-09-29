@@ -80,16 +80,22 @@ export default function ProductsPage() {
       if (cat) return cat;
     }
     if (
+      s.startsWith('quan-jeans') ||
+      s.startsWith('quan-bo') ||
+      s.includes('jeans') ||
+      s.includes('quan-short-jeans') ||
+      s.includes('quan-short-bo')
+    ) {
+      const cat = categories.find((c) => c.slug === 'quan-jeans-nam');
+      if (cat) return cat;
+    }
+    if (
       s.startsWith('quan-tay') ||
       s.startsWith('quan-kaki') ||
       s.startsWith('quan-au') ||
       s.startsWith('quan-short')
     ) {
       const cat = categories.find((c) => c.slug === 'quan-tay-kaki');
-      if (cat) return cat;
-    }
-    if (s.startsWith('quan-jeans') || s.startsWith('quan-bo')) {
-      const cat = categories.find((c) => c.slug === 'quan-jeans-nam');
       if (cat) return cat;
     }
     if (

@@ -1,12 +1,14 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/config/api_config.dart';
+import 'package:provider/provider.dart';
+
+import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/auth_guard.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../product/data/models/product_model.dart';
+import '../../../wishlist/presentation/providers/wishlist_provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,28 +20,21 @@ class _HomePageState extends State<HomePage> {
   List<Product> _featured = [];
   List<Category> _categories = [];
   bool _loading = true;
-  String _userName = '';
 
   @override
   void initState() {
     super.initState();
     _load();
-    _loadUser();
-  }
-
-  Future<void> _loadUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() => _userName = prefs.getString('userName') ?? '');
   }
 
   Future<void> _load() async {
     try {
       final res = await Future.wait([
-        http.get(Uri.parse('${ApiConfig.apiBase}/products?limit=10')),
-        http.get(Uri.parse('${ApiConfig.apiBase}/categories')),
+        DioClient.instance.dio.get('/products', queryParameters: {'limit': 10}),
+        DioClient.instance.dio.get('/categories'),
       ]);
-      final pd = jsonDecode(res[0].body);
-      final cd = jsonDecode(res[1].body);
+      final pd = res[0].data;
+      final cd = res[1].data;
       final List pl = pd is List ? pd : (pd['data'] ?? pd['items'] ?? []);
       final List cl = cd is List ? cd : (cd['data'] ?? []);
       if (mounted) {
@@ -111,8 +106,51 @@ class _HomePageState extends State<HomePage> {
           icon: const Icon(Icons.search_rounded, color: AppTheme.textSecondary),
           onPressed: () => context.go('/products'),
         ),
+        Consumer<WishlistProvider>(
+          builder: (context, wishlist, _) {
+            final count = wishlist.favoriteCount;
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.favorite_rounded,
+                    color: count > 0 ? Colors.redAccent : AppTheme.textSecondary,
+                  ),
+                  tooltip: 'Danh sách yêu thích',
+                  onPressed: () => context.push('/wishlist'),
+                ),
+                if (count > 0)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: Colors.redAccent,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints:
+                          const BoxConstraints(minWidth: 16, minHeight: 16),
+                      child: Center(
+                        child: Text(
+                          '$count',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
         IconButton(
-          icon: const Icon(Icons.notifications_outlined, color: AppTheme.textSecondary),
+          icon: const Icon(Icons.notifications_outlined,
+              color: AppTheme.textSecondary),
           onPressed: () {},
         ),
       ],
@@ -158,10 +196,20 @@ class _HomePageState extends State<HomePage> {
                     ),
                     child: const Text('🔥 NEW COLLECTION', style: TextStyle(color: AppTheme.primary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _userName.isNotEmpty ? 'Chào, $_userName!' : 'Phong cách\nđỉnh cao',
-                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, height: 1.2),
+                  Consumer<AuthProvider>(
+                    builder: (context, auth, _) {
+                      final name = auth.user?.fullName ?? '';
+                      return Text(
+                        name.isNotEmpty
+                            ? 'Chào, $name!'
+                            : 'Phong cách\nđỉnh cao',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            height: 1.2),
+                      );
+                    },
                   ),
                   const SizedBox(height: 10),
                   GestureDetector(
@@ -232,7 +280,10 @@ class _HomePageState extends State<HomePage> {
                   final c = _categories[i];
                   final hasImage = c.imageUrl != null && c.imageUrl!.isNotEmpty;
                   return GestureDetector(
-                    onTap: () => context.go('/products'),
+                    onTap: () => context.go(
+                      '/products?categoryId=${c.id}',
+                      extra: c.id,
+                    ),
                     child: SizedBox(
                       width: 78,
                       child: Column(
@@ -326,6 +377,8 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isFav = context.watch<WishlistProvider>().isFavorite(product.id);
+
     return GestureDetector(
       onTap: () => context.push('/products/${product.id}'),
       child: Container(
@@ -340,7 +393,8 @@ class _ProductCard extends StatelessWidget {
             // Image
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(18)),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -348,21 +402,82 @@ class _ProductCard extends StatelessWidget {
                         ? CachedNetworkImage(
                             imageUrl: product.imageUrl,
                             fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(color: AppTheme.surface2, child: const Center(child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2))),
-                            errorWidget: (context, url, error) => _imagePlaceholder(product.name),
+                            placeholder: (context, url) => Container(
+                                color: AppTheme.surface2,
+                                child: const Center(
+                                    child: CircularProgressIndicator(
+                                        color: AppTheme.primary,
+                                        strokeWidth: 2))),
+                            errorWidget: (context, url, error) =>
+                                _imagePlaceholder(product.name),
                           )
                         : _imagePlaceholder(product.name),
                     // Gradient bottom
                     Positioned(
-                      bottom: 0, left: 0, right: 0,
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
                       child: Container(
                         height: 40,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [Colors.transparent, Colors.black.withValues(alpha: 0.4)],
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.4)
+                            ],
                           ),
+                        ),
+                      ),
+                    ),
+                    // Nút tim yêu thích
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.55),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                          padding: EdgeInsets.zero,
+                          icon: Icon(
+                            isFav
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: isFav ? Colors.redAccent : Colors.white,
+                            size: 18,
+                          ),
+                          tooltip: isFav ? 'Bỏ thích' : 'Yêu thích',
+                          onPressed: () {
+                            if (!AuthGuard.check(
+                              context,
+                              actionTitle: 'Đăng nhập để lưu yêu thích',
+                              actionMessage:
+                                  'Vui lòng đăng nhập để lưu "${product.name}" vào danh sách yêu thích của bạn.',
+                            )) {
+                              return;
+                            }
+                            context
+                                .read<WishlistProvider>()
+                                .toggleWishlist(product);
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isFav
+                                      ? 'Đã xóa "${product.name}" khỏi danh sách yêu thích'
+                                      : 'Đã thêm "${product.name}" vào danh sách yêu thích ❤️',
+                                ),
+                                duration: const Duration(seconds: 1),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -376,12 +491,21 @@ class _ProductCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(product.name, maxLines: 2, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700, height: 1.3)),
+                  Text(product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          height: 1.3)),
                   const SizedBox(height: 6),
                   Text(
                     '${_fmt(product.price)}đ',
-                    style: const TextStyle(color: AppTheme.primary, fontSize: 13, fontWeight: FontWeight.w800),
+                    style: const TextStyle(
+                        color: AppTheme.primary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800),
                   ),
                 ],
               ),

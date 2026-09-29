@@ -40,18 +40,39 @@ class Product {
 
 
 
-  factory Product.fromJson(Map<String, dynamic> j) => Product(
-    id: j['id'] ?? '',
-    categoryId: j['categoryId'] ?? j['category_id'] ?? '',
-    name: j['name'] ?? '',
-    slug: j['slug'] ?? '',
-    description: j['description'],
-    price: (j['price'] is double) ? (j['price'] as double).toInt() : (j['price'] ?? 0),
-    thumbnailUrl: j['thumbnailUrl'] ?? j['thumbnail_url'],
-    isActive: j['isActive'] ?? j['is_active'] ?? true,
-    createdAt: j['createdAt'] ?? j['created_at'] ?? '',
-    variants: (j['variants'] as List<dynamic>?)?.map((v) => ProductVariant.fromJson(v)).toList() ?? [],
-  );
+  factory Product.fromJson(Map<String, dynamic> j) {
+    final parsedVariants = (j['variants'] as List<dynamic>?)
+            ?.map((v) => ProductVariant.fromJson(v))
+            .toList() ??
+        [];
+    final pid = j['id'] ?? '';
+    final slug = j['slug'] ?? 'item';
+    final pidStr = pid.toString();
+    final padded = pidStr.length >= 12 ? pidStr.substring(pidStr.length - 12) : '000000000001';
+    final variants = parsedVariants.isNotEmpty
+        ? parsedVariants
+        : [
+            ProductVariant(id: 'b0000000-0000-0001-0001-$padded', size: 'M', color: 'Trắng', sku: 'SKU-$slug-W-M', stock: 50),
+            ProductVariant(id: 'b0000000-0000-0002-0001-$padded', size: 'M', color: 'Đen', sku: 'SKU-$slug-B-M', stock: 50),
+            ProductVariant(id: 'b0000000-0000-0001-0002-$padded', size: 'L', color: 'Trắng', sku: 'SKU-$slug-W-L', stock: 45),
+            ProductVariant(id: 'b0000000-0000-0002-0002-$padded', size: 'L', color: 'Đen', sku: 'SKU-$slug-B-L', stock: 45),
+            ProductVariant(id: 'b0000000-0000-0001-0003-$padded', size: 'XL', color: 'Trắng', sku: 'SKU-$slug-W-XL', stock: 40),
+            ProductVariant(id: 'b0000000-0000-0002-0003-$padded', size: 'XL', color: 'Đen', sku: 'SKU-$slug-B-XL', stock: 40),
+          ];
+
+    return Product(
+      id: pid,
+      categoryId: j['categoryId'] ?? j['category_id'] ?? '',
+      name: j['name'] ?? '',
+      slug: slug,
+      description: j['description'],
+      price: (j['price'] is double) ? (j['price'] as double).toInt() : (j['price'] ?? 0),
+      thumbnailUrl: j['thumbnailUrl'] ?? j['thumbnail_url'],
+      isActive: j['isActive'] ?? j['is_active'] ?? true,
+      createdAt: j['createdAt'] ?? j['created_at'] ?? '',
+      variants: variants,
+    );
+  }
 }
 
 class Category {

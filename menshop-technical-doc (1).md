@@ -44,13 +44,16 @@ Xây dựng hệ sinh thái ứng dụng mua sắm thời trang nam **Menly** (m
 
 ### 1.2 Tác nhân hệ thống
 
+Hệ thống phân định rõ ràng 3 cấp độ tác nhân cốt lõi cùng 2 tác nhân phụ trợ:
+
 | Tác nhân | Vai trò và Quyền hạn |
 |---|---|
-| **Khách vãng lai (Guest)** | Người dùng chưa đăng nhập (phiên Supabase Anonymous Auth). Được xem sản phẩm, tìm kiếm, lọc, xem trang shop, thêm vào giỏ, đặt hàng (COD/VNPay) và tra cứu tiến độ đơn qua Mã đơn + Số điện thoại nhận hàng. Có thể nâng cấp trực tiếp thành tài khoản chính thức mà không mất giỏ hàng. |
-| **Người mua (Buyer / Customer)** | Khách hàng đã có tài khoản định danh. Có toàn bộ quyền của khách vãng lai, cộng: lưu nhiều địa chỉ nhận hàng, lưu voucher vào ví, theo dõi shop, lưu yêu thích (wishlist), tự hủy đơn khi shop chưa xác nhận, chat trực tiếp với người bán (Socket.io), đánh giá sao + nhận xét kèm ảnh, gửi yêu cầu trả hàng / hoàn tiền, nhận thông báo đẩy thời gian thực. |
-| **Người bán (Seller / Shop Owner)** | Chủ cửa hàng kinh doanh thời trang trên sàn. Đăng ký mở shop, đăng tải và chỉnh sửa sản phẩm kèm biến thể (size, màu sắc, SKU, tồn kho), tải ảnh sản phẩm lên Storage/Cloudinary, tiếp nhận và xác nhận đơn hàng, cập nhật đóng gói/giao hàng, duyệt hoặc từ chối yêu cầu trả hàng, tạo voucher riêng cho shop, đăng ký tham gia Flash Sale, phản hồi tin nhắn khách hàng và bình luận đánh giá, theo dõi dashboard doanh thu và báo cáo hàng bán chạy. |
-| **Quản trị viên sàn (Admin)** | Người điều hành toàn bộ hệ thống sàn. Quản lý tài khoản người dùng (khóa/mở), phê duyệt shop mới mở, kiểm duyệt sản phẩm mới trước khi lên sàn, quản lý danh mục ngành hàng, cấu hình banner quảng cáo trang chủ, tạo mã voucher toàn sàn, gửi thông báo hệ thống, phân xử khiếu nại tranh chấp đổi trả, xem dashboard tổng quan tài chính sàn và nhật ký hệ thống (Audit Logs). |
+| **Quản trị viên (Admin)** | **Quản lý toàn bộ hệ thống (Toàn quyền).** Nắm quyền lực cao nhất: quản lý toàn bộ tài khoản người dùng và nhân viên (tạo mới, sửa, tạm khóa / mở khóa tài khoản); phân quyền vai trò người dùng (`admin`, `staff`, `customer`); phê duyệt mở cửa hàng mới (Shop); giám sát toàn diện nhật ký kiểm toán hệ thống (Audit Logs); xem báo cáo tài chính, tổng doanh số toàn sàn (GMV); và có đầy đủ quyền can thiệp vào mọi khâu vận hành khi cần thiết. |
+| **Nhân viên (Staff / Operations)** | **Quản lý vận hành hàng ngày.** Phụ trách trực tiếp quy trình vận hành sàn: tiếp nhận và xử lý đơn hàng (xác nhận, đóng gói, giao vận, hoàn tất hoặc hủy đơn có lý do); quản lý kho hàng và kiểm kê tồn kho (điều chỉnh tăng/giảm tồn kho SKU, xem nhật ký biến động kho `inventory_movements`); quản lý và kiểm duyệt sản phẩm/danh mục; quản lý chương trình khuyến mãi/banner theo kế hoạch vận hành; tiếp nhận và phân xử đổi trả / khiếu nại khách hàng; chat tư vấn CSKH trực tiếp. **Đặc biệt: Nhân viên có thể trực tiếp Đăng ký và Đăng nhập** tài khoản nhân viên vào hệ thống. **Giới hạn nghiêm ngặt:** Nhân viên **tuyệt đối không** được quản lý người dùng khác, **không** được phân quyền vai trò tài khoản, và **không** có quyền truy cập nhật ký kiểm toán hệ thống (Audit Logs - 403 Forbidden). |
+| **Khách hàng (Customer / Buyer)** | **Xem, mua bán và tương tác.** Người dùng mua sắm chính thức: duyệt xem sản phẩm, tìm kiếm không dấu, lọc theo kích thước/màu sắc/khoảng giá; thêm vào giỏ hàng và đặt mua hàng (thanh toán COD hoặc chuyển khoản online qua VNPay); viết **comment và bình luận / đánh giá** sản phẩm (kèm số sao và ảnh); lưu sản phẩm **yêu thích (Wishlist)** để theo dõi; theo dõi Shop; tự **đăng ký và đăng nhập** tài khoản; quản lý thông tin cá nhân và sổ địa chỉ nhận hàng; yêu cầu trả hàng / hoàn tiền khi có sự cố. |
+| **Khách vãng lai (Guest)** | Người dùng chưa đăng nhập (phiên Supabase Anonymous Auth). Được xem sản phẩm, tìm kiếm, lọc, xem trang shop, thêm vào giỏ, đặt hàng (COD/VNPay) và tra cứu tiến độ đơn qua Mã đơn + Số điện thoại nhận hàng. Có thể nâng cấp trực tiếp thành tài khoản Khách hàng chính thức mà không mất giỏ hàng và lịch sử đơn. |
 | **Hệ thống ngoài (VNPay Sandbox)** | Cổng thanh toán trực tuyến: nhận lệnh khởi tạo giao dịch an toàn (HMAC SHA512), cung cấp giao diện thanh toán ngân hàng/QR, gửi kết quả thanh toán tức thời qua IPN Webhook và hỗ trợ hoàn tiền giao dịch. |
+
 
 ### 1.3 Phạm vi hệ thống
 
@@ -73,30 +76,31 @@ Hệ thống được chuẩn hóa thành 74 Use Case thuộc 11 phân hệ nghi
 #### Phân hệ 1: Xác thực & Quản lý Tài khoản (UC01 – UC08)
 | Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
 |---|---|---|---|
-| **UC01** | Đăng ký tài khoản | Khách | Đăng ký tài khoản mới bằng Email + Mật khẩu qua Supabase Auth |
-| **UC02** | Đăng nhập & Đăng xuất | Tất cả | Đăng nhập xác thực cấp JWT token; đăng xuất hủy phiên an toàn |
-| **UC03** | Quên mật khẩu | Khách, Buyer | Gửi liên kết hoặc mã OTP xác thực khôi phục mật khẩu qua Email |
-| **UC04** | Đổi mật khẩu | Buyer, Seller, Admin | Thay đổi mật khẩu khi đã đăng nhập (yêu cầu mật khẩu hiện tại) |
-| **UC05** | Quản lý hồ sơ cá nhân | Buyer, Seller, Admin | Xem và cập nhật họ tên, ảnh đại diện (avatar), SĐT, ngày sinh, giới tính |
-| **UC06** | Quản lý sổ địa chỉ | Người mua | Thêm mới, chỉnh sửa, xóa và thiết lập địa chỉ nhận hàng mặc định |
-| **UC07** | Nâng cấp tài khoản ẩn danh | Khách vãng lai | Gắn email/mật khẩu vào phiên khách vãng lai, giữ nguyên giỏ hàng và đơn hàng |
-| **UC08** | Đăng ký mở Cửa hàng (Shop) | Người mua | Nộp hồ sơ đăng ký bán hàng: tên shop, CCCD/MST, địa chỉ kho, mô tả |
+| **UC01** | Đăng ký tài khoản | Khách hàng, Nhân viên | Đăng ký tài khoản Khách hàng mua sắm hoặc Nhân viên vận hành (`role: 'staff'`) qua Supabase Auth |
+| **UC02** | Đăng nhập & Đăng xuất | Tất cả | Đăng nhập xác thực cấp JWT token (Admin, Nhân viên, Khách hàng); cơ chế chống brute-force khóa lũy tiến |
+| **UC03** | Quên mật khẩu | Khách hàng, Nhân viên | Gửi liên kết hoặc mã OTP xác thực khôi phục mật khẩu qua Email |
+| **UC04** | Đổi mật khẩu | Khách hàng, Nhân viên, Admin | Thay đổi mật khẩu khi đã đăng nhập (yêu cầu mật khẩu hiện tại) |
+| **UC05** | Quản lý hồ sơ cá nhân | Khách hàng, Nhân viên, Admin | Xem và cập nhật họ tên, ảnh đại diện (avatar), SĐT, ngày sinh, giới tính |
+| **UC06** | Quản lý sổ địa chỉ | Khách hàng | Thêm mới, chỉnh sửa, xóa và thiết lập địa chỉ nhận hàng mặc định |
+| **UC07** | Nâng cấp tài khoản ẩn danh | Khách vãng lai | Gắn email/mật khẩu vào phiên khách vãng lai, chuyển đổi thành tài khoản Khách hàng chính thức |
+| **UC08** | Đăng ký mở Cửa hàng (Shop) | Khách hàng | Nộp hồ sơ đăng ký bán hàng: tên shop, CCCD/MST, địa chỉ kho, mô tả |
 
 #### Phân hệ 2: Quản trị Người dùng & Phân quyền (UC09 – UC12)
+*(Độc quyền Quản trị viên tối cao Admin - Nhân viên vận hành không có quyền truy cập)*
 | Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
 |---|---|---|---|
-| **UC09** | Xem danh sách người dùng | Admin | Tra cứu, tìm kiếm, xem chi tiết thông tin và lịch sử người dùng trên sàn |
-| **UC10** | Khóa / Mở khóa tài khoản | Admin | Tạm khóa hoặc mở lại tài khoản người dùng vi phạm quy chế sàn |
-| **UC11** | Phân quyền vai trò người dùng | Admin | Điều chỉnh vai trò người dùng (`buyer`, `seller`, `admin`) có ghi log audit |
+| **UC09** | Xem danh sách người dùng | Admin | Tra cứu, tìm kiếm, xem chi tiết thông tin và lịch sử người dùng trên toàn sàn |
+| **UC10** | Khóa / Mở khóa tài khoản | Admin | Tạm khóa hoặc mở lại tài khoản người dùng/nhân viên vi phạm quy chế |
+| **UC11** | Phân quyền vai trò người dùng | Admin | Điều chỉnh vai trò người dùng (`admin`, `staff`, `customer`) có ghi vết Audit Logs |
 | **UC12** | Phê duyệt mở Cửa hàng | Admin | Duyệt hoặc từ chối hồ sơ đăng ký mở Shop bán hàng kèm lý do phản hồi |
 
 #### Phân hệ 3: Quản lý Danh mục & Banner trang chủ (UC13 – UC16)
 | Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
 |---|---|---|---|
-| **UC13** | Quản lý danh mục ngành hàng | Admin | Thêm mới, chỉnh sửa tên, slug, thứ tự sắp xếp và biểu tượng danh mục |
-| **UC14** | Quản lý danh mục con | Admin | Phân cấp danh mục (ví dụ: Áo -> Áo sơ mi, Áo thun, Áo polo...) |
-| **UC15** | Quản lý Banner quảng cáo | Admin | Đăng tải hình ảnh banner, liên kết chiến dịch/sản phẩm, thời hạn hiển thị |
-| **UC16** | Ghim vị trí Banner | Admin | Bật/tắt trạng thái hiển thị và sắp xếp thứ tự slider banner trang chủ |
+| **UC13** | Quản lý danh mục ngành hàng | Nhân viên, Admin | Thêm mới, chỉnh sửa tên, slug, thứ tự sắp xếp và biểu tượng danh mục thời trang |
+| **UC14** | Quản lý danh mục con | Nhân viên, Admin | Phân cấp danh mục (Áo sơ mi, Polo, Quần Tây, Quần Jeans, Áo khoác...) |
+| **UC15** | Quản lý Banner quảng cáo | Nhân viên, Admin | Đăng tải hình ảnh banner, liên kết chiến dịch/sản phẩm, thời hạn hiển thị |
+| **UC16** | Ghim vị trí Banner | Nhân viên, Admin | Bật/tắt trạng thái hiển thị và sắp xếp thứ tự slider banner trang chủ |
 
 #### Phân hệ 4: Người bán - Quản lý Sản phẩm & Tồn kho (UC17 – UC23)
 | Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
@@ -107,86 +111,87 @@ Hệ thống được chuẩn hóa thành 74 Use Case thuộc 11 phân hệ nghi
 | **UC20** | Quản lý số lượng tồn kho | Người bán | Cập nhật số lượng khả dụng cho từng biến thể, tự động ghi log biến động |
 | **UC21** | Chỉnh sửa thông tin sản phẩm | Người bán | Cập nhật giá, mô tả, hình ảnh của sản phẩm đã đăng |
 | **UC22** | Ẩn / Hiện / Xóa sản phẩm | Người bán | Tạm ẩn sản phẩm khỏi gian hàng hoặc xóa sản phẩm (soft delete) |
-| **UC23** | Gửi sản phẩm duyệt lên sàn | Người bán | Nộp sản phẩm mới lên hàng đợi để Quản trị sàn kiểm duyệt nội dung |
+| **UC23** | Gửi sản phẩm duyệt lên sàn | Người bán | Nộp sản phẩm mới lên hàng đợi để Bộ phận Vận hành / Admin kiểm duyệt |
 
-#### Phân hệ 5: Quản trị viên - Kiểm duyệt Hàng hóa (UC24 – UC26)
+#### Phân hệ 5: Bộ phận Vận hành & Quản trị viên - Kiểm duyệt Hàng hóa (UC24 – UC26)
 | Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
 |---|---|---|---|
-| **UC24** | Xem hàng đợi duyệt sản phẩm | Admin | Xem danh sách các sản phẩm mới hoặc vừa sửa đổi do các Shop gửi lên |
-| **UC25** | Phê duyệt sản phẩm | Admin | Duyệt sản phẩm hợp lệ, sản phẩm chính thức xuất hiện trên sàn giao dịch |
-| **UC26** | Từ chối / Gỡ bỏ sản phẩm | Admin | Từ chối kèm lý do hoặc gỡ bỏ sản phẩm vi phạm bản quyền/chất lượng |
+| **UC24** | Xem hàng đợi duyệt sản phẩm | Nhân viên, Admin | Xem danh sách các sản phẩm mới hoặc vừa sửa đổi do các Shop gửi lên |
+| **UC25** | Phê duyệt sản phẩm | Nhân viên, Admin | Duyệt sản phẩm hợp lệ, sản phẩm chính thức xuất hiện trên sàn giao dịch |
+| **UC26** | Từ chối / Gỡ bỏ sản phẩm | Nhân viên, Admin | Từ chối kèm lý do hoặc gỡ bỏ sản phẩm vi phạm tiêu chuẩn thời trang / chất lượng |
 
 #### Phân hệ 6: Khách hàng - Khám phá, Tìm kiếm & Tương tác (UC27 – UC33)
+#### Phân hệ 6: Khách hàng - Khám phá, Tìm kiếm, Bình luận & Yêu thích (UC27 – UC33)
 | Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
 |---|---|---|---|
-| **UC27** | Xem danh sách sản phẩm | Khách, Buyer | Duyệt danh sách sản phẩm trang chủ với phân trang cursor mượt mà |
-| **UC28** | Tìm kiếm sản phẩm không dấu | Khách, Buyer | Tìm kiếm gần đúng bằng `pg_trgm` hỗ trợ tiếng Việt không dấu |
-| **UC29** | Lọc sản phẩm nâng cao | Khách, Buyer | Lọc đa tiêu chí: danh mục, khoảng giá, màu sắc, kích thước, đánh giá sao |
-| **UC30** | Xem chi tiết sản phẩm | Khách, Buyer | Xem hình ảnh, mô tả, bảng size, tồn kho từng loại, thông tin shop bán |
-| **UC31** | Xem trang hồ sơ Shop | Khách, Buyer | Xem thông tin shop, tổng số sản phẩm, đánh giá trung bình, tỉ lệ phản hồi |
-| **UC32** | Quản lý danh sách Yêu thích | Người mua | Bấm tim lưu sản phẩm yêu thích (Wishlist) để theo dõi và mua sau |
-| **UC33** | Theo dõi Cửa hàng | Người mua | Nhấn Theo dõi / Hủy theo dõi shop để nhận thông báo hàng mới và voucher |
+| **UC27** | Xem danh sách sản phẩm | Khách vãng lai, Khách hàng | Duyệt danh sách sản phẩm trang chủ với phân trang cursor mượt mà |
+| **UC28** | Tìm kiếm sản phẩm không dấu | Khách vãng lai, Khách hàng | Tìm kiếm gần đúng bằng `pg_trgm` hỗ trợ tiếng Việt không dấu |
+| **UC29** | Lọc sản phẩm nâng cao | Khách vãng lai, Khách hàng | Lọc đa tiêu chí: danh mục, khoảng giá, màu sắc, kích thước, đánh giá sao |
+| **UC30** | Xem chi tiết sản phẩm | Khách vãng lai, Khách hàng | Xem hình ảnh, mô tả, bảng size, tồn kho từng loại, thông tin shop bán |
+| **UC31** | Xem trang hồ sơ Shop | Khách vãng lai, Khách hàng | Xem thông tin shop, tổng số sản phẩm, đánh giá trung bình, tỉ lệ phản hồi |
+| **UC32** | Quản lý danh sách Yêu thích | Khách hàng | Bấm tim lưu sản phẩm yêu thích (Wishlist) để theo dõi và mua sau |
+| **UC33** | Theo dõi Cửa hàng | Khách hàng | Nhấn Theo dõi / Hủy theo dõi shop để nhận thông báo hàng mới và voucher |
 
 #### Phân hệ 7: Khuyến mãi, Voucher & Flash Sale (UC34 – UC40)
 | Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
 |---|---|---|---|
 | **UC34** | Người bán tạo Voucher Shop | Người bán | Tạo mã giảm giá riêng (theo %, số tiền cố định, mức đơn tối thiểu, số lượt) |
-| **UC35** | Admin tạo Voucher Toàn sàn | Admin | Tạo mã khuyến mãi cấp hệ thống áp dụng cho toàn bộ hoặc danh mục chỉ định |
-| **UC36** | Lưu Voucher vào Ví cá nhân | Người mua | Xem danh sách voucher khả dụng và lưu vào ví voucher của tài khoản |
-| **UC37** | Kiểm tra & Áp dụng Voucher | Hệ thống, Buyer | Tự động kiểm tra điều kiện (hạn dùng, lượt dùng, giá trị đơn) và tính số tiền giảm |
-| **UC38** | Quản trị phiên Flash Sale | Admin | Thiết lập các khung giờ Flash Sale (ví dụ 0h-2h, 12h-14h) và mở đăng ký |
+| **UC35** | Tạo Voucher Toàn sàn | Nhân viên, Admin | Tạo mã khuyến mãi cấp hệ thống áp dụng cho toàn bộ hoặc danh mục chỉ định |
+| **UC36** | Lưu Voucher vào Ví cá nhân | Khách hàng | Xem danh sách voucher khả dụng và lưu vào ví voucher của tài khoản |
+| **UC37** | Kiểm tra & Áp dụng Voucher | Hệ thống, Khách hàng | Tự động kiểm tra điều kiện (hạn dùng, lượt dùng, giá trị đơn) và tính số tiền giảm |
+| **UC38** | Quản trị phiên Flash Sale | Nhân viên, Admin | Thiết lập các khung giờ Flash Sale (ví dụ 0h-2h, 12h-14h) và mở đăng ký |
 | **UC39** | Đăng ký hàng tham gia Flash Sale | Người bán | Chọn sản phẩm biến thể, định mức giá sốc và số lượng cam kết bán Flash Sale |
 | **UC40** | Tự động vận hành Flash Sale | Hệ thống (Cron) | Tự động kích hoạt khi đến giờ và đóng phiên khi hết giờ hoặc hết hàng |
 
 #### Phân hệ 8: Giỏ hàng & Quy trình Đặt hàng (UC41 – UC47)
 | Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
 |---|---|---|---|
-| **UC41** | Thêm sản phẩm vào giỏ hàng | Khách, Buyer | Chọn biến thể size/màu và số lượng, lưu trữ giỏ hàng trên server |
-| **UC42** | Cập nhật & Xóa món trong giỏ | Khách, Buyer | Điều chỉnh tăng/giảm số lượng hoặc xóa từng sản phẩm khỏi giỏ hàng |
-| **UC43** | Phân nhóm giỏ hàng theo Shop | Khách, Buyer | Giao diện giỏ hàng thông minh tự động gom các món theo từng gian hàng |
-| **UC44** | Chọn địa chỉ & phương thức giao | Người mua | Chọn địa chỉ nhận hàng từ sổ địa chỉ, tính phí giao hàng |
-| **UC45** | Áp dụng Voucher kép khi mua | Người mua | Chọn đồng thời Voucher của Shop và Voucher của Sàn trong cùng 1 lần checkout |
-| **UC46** | Đặt hàng trừ kho nguyên tử | Người mua | Khóa dòng và trừ kho biến thể trong 1 transaction; tách đơn theo từng Shop |
+| **UC41** | Thêm sản phẩm vào giỏ hàng | Khách vãng lai, Khách hàng | Chọn biến thể size/màu và số lượng, lưu trữ giỏ hàng trên server |
+| **UC42** | Cập nhật & Xóa món trong giỏ | Khách vãng lai, Khách hàng | Điều chỉnh tăng/giảm số lượng hoặc xóa từng sản phẩm khỏi giỏ hàng |
+| **UC43** | Phân nhóm giỏ hàng theo Shop | Khách vãng lai, Khách hàng | Giao diện giỏ hàng thông minh tự động gom các món theo từng gian hàng |
+| **UC44** | Chọn địa chỉ & phương thức giao | Khách hàng | Chọn địa chỉ nhận hàng từ sổ địa chỉ cá nhân, tính phí giao hàng |
+| **UC45** | Áp dụng Voucher kép khi mua | Khách hàng | Chọn đồng thời Voucher của Shop và Voucher của Sàn trong cùng 1 lần checkout |
+| **UC46** | Đặt hàng trừ kho nguyên tử | Khách hàng | Khóa dòng và trừ kho biến thể trong 1 transaction; tách đơn theo từng Shop |
 | **UC47** | Tự động hủy đơn quá hạn | Hệ thống (Cron) | Hủy đơn VNPay chưa thanh toán sau 15 phút và hoàn trả lại số lượng tồn kho |
 
 #### Phân hệ 9: Tích hợp Thanh toán & VNPay (UC48 – UC52)
 | Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
 |---|---|---|---|
 | **UC48** | Khởi tạo giao dịch VNPay | Hệ thống | Tạo link thanh toán VNPay Sandbox với mã giao dịch an toàn và chữ ký HMAC SHA512 |
-| **UC49** | Điều hướng thanh toán WebView | Người mua | Mở trang thanh toán ngân hàng/QR trong WebView app Flutter an toàn |
+| **UC49** | Điều hướng thanh toán WebView | Khách hàng | Mở trang thanh toán ngân hàng/QR trong WebView app Flutter an toàn |
 | **UC50** | Xử lý Webhook IPN VNPay | Hệ thống | Nhận IPN từ VNPay, kiểm tra chữ ký bí mật, cập nhật đơn thành công Idempotent |
-| **UC51** | Xử lý thanh toán COD | Người mua, Shop | Đặt đơn thanh toán tiền mặt khi nhận hàng; ghi nhận trạng thái sau giao |
-| **UC52** | Xử lý hoàn tiền giao dịch | Admin, Hệ thống | Tạo yêu cầu hoàn tiền VNPay (Refund) khi đơn hàng bị hủy hoặc chấp thuận trả hàng |
+| **UC51** | Xử lý thanh toán COD | Khách hàng, Shop | Đặt đơn thanh toán tiền mặt khi nhận hàng; ghi nhận trạng thái sau giao |
+| **UC52** | Xử lý hoàn tiền giao dịch | Nhân viên, Admin, Hệ thống | Tạo yêu cầu hoàn tiền VNPay (Refund) khi đơn hàng bị hủy hoặc chấp thuận trả hàng |
 
 #### Phân hệ 10: Xử lý Đơn hàng, Trả hàng & Hoàn tiền (UC53 – UC62)
 | Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
 |---|---|---|---|
-| **UC53** | Xem danh sách đơn hàng | Người mua | Xem đơn theo trạng thái (Chờ xác nhận, Đang gói, Đang giao, Đã giao, Đã hủy) |
-| **UC54** | Khách tự hủy đơn hàng | Người mua | Tự hủy đơn khi Shop chưa bấm xác nhận (`pending_confirmation`), tự hoàn kho |
+| **UC53** | Xem danh sách đơn hàng | Khách hàng | Xem đơn theo trạng thái (Chờ xác nhận, Đang gói, Đang giao, Đã giao, Đã hủy) |
+| **UC54** | Khách tự hủy đơn hàng | Khách hàng | Tự hủy đơn khi Shop/Kho chưa bấm xác nhận (`pending_confirmation`), tự hoàn kho |
 | **UC55** | Tra cứu đơn hàng vãng lai | Khách vãng lai | Tra cứu nhanh lộ trình đơn hàng bằng Mã đơn hàng + SĐT nhận hàng |
-| **UC56** | Quản lý đơn hàng của Shop | Người bán | Xem danh sách các đơn hàng khách đặt tại cửa hàng của mình |
-| **UC57** | Xác nhận đơn hàng & Đóng gói | Người bán | Tiếp nhận đơn, xác nhận còn hàng và chuyển trạng thái sang Đang đóng gói |
-| **UC58** | Cập nhật tiến độ giao hàng | Người bán | Chuyển đơn sang trạng thái Đang giao hàng (`shipping`) và Đã giao (`delivered`) |
-| **UC59** | Gửi yêu cầu Trả hàng / Hoàn tiền | Người mua | Gửi khiếu nại trả hàng kèm lý do (lỗi size, sai màu, rách) và ảnh bằng chứng |
-| **UC60** | Shop phản hồi yêu cầu trả hàng | Người bán | Xem ảnh bằng chứng, chấp thuận nhận lại hàng hoặc từ chối kèm giải trình |
-| **UC61** | Admin xử lý tranh chấp khiếu nại | Admin | Đóng vai trò trọng tài, xem xét chứng cứ từ hai bên và đưa ra quyết định cuối |
+| **UC56** | Quản lý & Vận hành đơn hàng | Nhân viên, Admin, Người bán | Xem danh sách toàn bộ đơn hàng, lọc theo trạng thái, ngày đặt và mã đơn |
+| **UC57** | Xác nhận đơn hàng & Đóng gói | Nhân viên, Admin, Người bán | Tiếp nhận đơn, xác nhận còn hàng và chuyển trạng thái sang Đang đóng gói |
+| **UC58** | Cập nhật tiến độ giao hàng | Nhân viên, Admin, Người bán | Chuyển đơn sang trạng thái Đang giao hàng (`shipping`) và Đã giao (`delivered`) |
+| **UC59** | Gửi yêu cầu Trả hàng / Hoàn tiền | Khách hàng | Gửi khiếu nại trả hàng kèm lý do (lỗi size, sai màu, rách) và ảnh bằng chứng |
+| **UC60** | Phản hồi yêu cầu trả hàng | Người bán, Nhân viên | Xem ảnh bằng chứng, chấp thuận nhận lại hàng hoặc từ chối kèm giải trình |
+| **UC61** | Phân xử tranh chấp khiếu nại | Nhân viên, Admin | Đóng vai trò trọng tài vận hành, xem xét chứng cứ từ hai bên và ra phán quyết |
 | **UC62** | Thực hiện hoàn tiền & Nhập lại kho | Hệ thống | Hoàn tiền cho khách (VNPay/tiền mặt) và tự động cộng lại tồn kho cho shop |
 
 #### Phân hệ 11: Đánh giá, Chat Real-time, Thông báo & Thống kê (UC63 – UC74)
 | Mã | Tên chức năng | Tác nhân | Mô tả tóm tắt |
 |---|---|---|---|
-| **UC63** | Đánh giá & Nhận xét sản phẩm | Người mua | Chấm điểm 1-5 sao, viết nhận xét và đính kèm ảnh thực tế sau khi nhận hàng |
-| **UC64** | Shop phản hồi đánh giá | Người bán | Viết phản hồi công khai cho các đánh giá của khách hàng |
+| **UC63** | Đánh giá & Bình luận sản phẩm | Khách hàng | Chấm điểm 1-5 sao, viết comment bình luận nhận xét kèm ảnh thực tế sau mua |
+| **UC64** | Phản hồi bình luận đánh giá | Người bán, Nhân viên | Viết phản hồi công khai cho các đánh giá của khách hàng |
 | **UC65** | Tự động tính điểm uy tín | Hệ thống (Trigger) | Cập nhật điểm đánh giá trung bình và số lượt đánh giá cho sản phẩm và Shop |
-| **UC66** | Chat trực tiếp thời gian thực | Buyer, Seller | Trò chuyện 1-1 tức thời qua Socket.io giữa người mua và người bán |
-| **UC67** | Quản lý lịch sử tin nhắn chat | Buyer, Seller | Lưu trữ hội thoại trong Postgres, phân trang tin nhắn cũ, đánh dấu đã đọc |
-| **UC68** | Thông báo đẩy trạng thái đơn | Người mua | Nhận notification khi đơn đổi trạng thái (xác nhận, giao hàng, hủy, hoàn tiền) |
-| **UC69** | Thông báo khuyến mãi & Flash Sale | Buyer, Seller | Nhận thông báo khi có voucher mới, giảm giá đặc biệt hoặc sắp mở Flash Sale |
+| **UC66** | Chat trực tiếp thời gian thực | Khách hàng, Nhân viên, Shop | Trò chuyện 1-1 tức thời qua Socket.io giữa người mua và bộ phận hỗ trợ/bán hàng |
+| **UC67** | Quản lý lịch sử tin nhắn chat | Khách hàng, Nhân viên, Shop | Lưu trữ hội thoại trong Postgres, phân trang tin nhắn cũ, đánh dấu đã đọc |
+| **UC68** | Thông báo đẩy trạng thái đơn | Khách hàng | Nhận notification khi đơn đổi trạng thái (xác nhận, giao hàng, hủy, hoàn tiền) |
+| **UC69** | Thông báo khuyến mãi & Flash Sale | Khách hàng, Nhân viên | Nhận thông báo khi có voucher mới, giảm giá đặc biệt hoặc sắp mở Flash Sale |
 | **UC70** | Gửi thông báo toàn hệ thống | Admin | Tạo và gửi thông báo chung tới toàn bộ người dùng sàn hoặc nhóm đối tượng |
 | **UC71** | Dashboard phân tích cho Người bán | Người bán | Thống kê doanh thu, số đơn, top sản phẩm bán chạy, biểu đồ doanh thu ngày/tháng |
-| **UC72** | Dashboard tổng quan cho Admin | Admin | Giám sát tổng giá trị giao dịch sàn (GMV), số đơn toàn sàn, tăng trưởng shop/user |
-| **UC73** | Xem nhật ký biến động tồn kho | Người bán, Admin | Xem chi tiết lịch sử xuất/nhập/điều chỉnh kho của từng SKU (Inventory Log) |
-| **UC74** | Quản lý nhật ký hệ thống (Audit) | Admin | Ghi vết mọi hành động quản trị quan trọng (duyệt shop, duyệt hàng, khóa tài khoản) |
+| **UC72** | Dashboard tổng quan hệ thống | Admin, Nhân viên | Giám sát GMV sàn, số đơn, tăng trưởng shop/user (Nhân viên chỉ xem số liệu vận hành) |
+| **UC73** | Kiểm kê & Quản lý tồn kho | Nhân viên, Admin | Điều chỉnh số lượng tồn kho SKU (`admin_restock`/`admin_correction`), xem nhật ký xuất nhập kho |
+| **UC74** | Quản lý nhật ký kiểm toán (Audit) | Admin | *(Độc quyền Admin tối cao)* Ghi vết mọi hành động quản trị nhạy cảm (phân quyền, khóa tài khoản) |
 
 ---
 
@@ -1067,23 +1072,42 @@ Backend ánh xạ lỗi: message bắt đầu bằng `OUT_OF_STOCK:` thành `App
 
 ### 4.7 Vai trò và khách vãng lai
 
-Nguồn sự thật của vai trò (`customer`/`admin`) là `auth.users.raw_app_meta_data`, vì đây là phần duy nhất PostgREST đưa vào JWT mà RLS đọc được qua `auth.jwt()`. `profiles.role` chỉ là bản sao để truy vấn/join cho tiện, luôn được đồng bộ trong cùng một hàm.
+Hệ thống phân chia 3 phân tầng vai trò định danh rõ ràng trong cơ sở dữ liệu:
+1. **`admin` (Quản trị viên tối cao):** Toàn quyền kiểm soát hệ thống, quản lý tài khoản người dùng/nhân viên, phân quyền vai trò, giám sát audit log, duyệt shop, và xem báo cáo tài chính cấp cao.
+2. **`staff` (Nhân viên vận hành):** Quản lý toàn bộ nghiệp vụ vận hành hàng ngày (tiếp nhận & đổi trạng thái đơn hàng, kiểm kê & điều chỉnh tồn kho, kiểm duyệt sản phẩm, xử lý đổi trả, CSKH). **Nhân viên có thể trực tiếp Đăng ký và Đăng nhập** tài khoản của mình. Nhân viên bị chặn truy cập quản lý người dùng và audit log.
+3. **`customer` (Khách hàng):** Chỉ được xem, mua sắm (đặt hàng & thanh toán), bình luận/đánh giá sản phẩm, lưu sản phẩm yêu thích (Wishlist), tự đăng ký và đăng nhập tài khoản cá nhân.
+
+Nguồn sự thật của vai trò (`customer` / `staff` / `admin`) là `auth.users.raw_app_meta_data`, vì đây là phần duy nhất PostgREST đưa vào JWT mà RLS đọc được qua `auth.jwt()`. `profiles.role` là bản sao để truy vấn và join cho tiện, luôn được đồng bộ tức thời trong cùng một hàm.
 
 Khách vãng lai không có bảng riêng. Ứng dụng tạo một phiên Supabase Anonymous Auth ngay khi mở lần đầu (`supabase.auth.signInAnonymously()`); phiên này có `user_id` thật, dùng nguyên vẹn `cart_items`, `orders`, `order_items`, `payments` như một khách hàng bình thường. Khi khách vãng lai tạo tài khoản thật (gắn email/mật khẩu vào phiên ẩn danh qua `linkIdentity`), `auth.users.is_anonymous` chuyển từ `true` sang `false`, `user_id` giữ nguyên nên giỏ hàng và lịch sử đơn không mất.
 
 ```sql
 -- File: supabase/migrations/004_roles_and_guest.sql
-alter table profiles
-  add column role text not null default 'customer' check (role in ('customer', 'admin')),
-  add column is_guest boolean not null default false,
-  add column is_active boolean not null default true;
+alter table public.profiles
+  add column if not exists role text not null default 'customer',
+  add column if not exists is_guest boolean not null default false,
+  add column if not exists is_active boolean not null default true,
+  add column if not exists is_locked boolean not null default false;
+
+do $$ begin
+  alter table public.profiles drop constraint if exists profiles_role_check;
+  alter table public.profiles add constraint profiles_role_check check (role in ('customer', 'admin', 'user', 'seller', 'staff'));
+exception
+  when others then null;
+end $$;
 
 -- Cap nhat lai ham tao profile: khoi tao is_guest theo auth.users.is_anonymous
 create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, full_name, is_guest)
-  values (new.id, new.raw_user_meta_data->>'full_name', coalesce(new.is_anonymous, false));
+  insert into public.profiles (id, full_name, email, role, is_guest)
+  values (
+    new.id,
+    new.raw_user_meta_data->>'full_name',
+    new.email,
+    coalesce(new.raw_app_meta_data->>'role', 'customer'),
+    coalesce(new.is_anonymous, false)
+  );
   return new;
 end $$;
 
@@ -1101,18 +1125,27 @@ create trigger on_auth_user_anonymity_change
 after update of is_anonymous on auth.users
 for each row execute function public.handle_user_anonymity_change();
 
--- Ham tro giup RLS: doc vai tro tu app_metadata trong JWT cua request hien tai
+-- 1. Ham kiem tra quyen Admin toi cao (cho user management, audit logs, phan quyen)
 create or replace function public.is_admin() returns boolean
 language sql stable as $$
   select coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false);
 $$;
 
--- Gan vai tro: dong bo ca app_metadata (nguon that) va profiles.role (ban sao)
+-- 2. Ham kiem tra quyen Nhan vien van hanh hoac Admin (cho don hang, ton kho, san pham, voucher)
+create or replace function public.is_staff_or_admin() returns boolean
+language sql stable as $$
+  select coalesce(
+    (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'staff'),
+    false
+  );
+$$;
+
+-- 3. Gan vai tro: dong bo ca app_metadata (nguon that) va profiles.role (ban sao)
 create or replace function public.set_user_role(p_user_id uuid, p_role text)
 returns void
 language plpgsql security definer set search_path = public as $$
 begin
-  if p_role not in ('customer', 'admin') then
+  if p_role not in ('customer', 'admin', 'staff') then
     raise exception 'INVALID_ROLE:%', p_role;
   end if;
   update auth.users
@@ -1128,37 +1161,63 @@ revoke all on function public.set_user_role(uuid, text) from public, anon, authe
 grant execute on function public.set_user_role(uuid, text) to service_role;
 ```
 
-Lưu ý quan trọng: sau `set_user_role`, JWT của phiên đang đăng nhập chỉ nhận vai trò mới sau khi làm mới token (đăng xuất/đăng nhập lại, hoặc lần refresh token kế tiếp), vì claim đã được ký sẵn trong token cũ. Node backend nên gọi lại `supabase.auth.admin.signOut(userId, 'others')` hoặc yêu cầu người dùng đăng nhập lại sau khi đổi vai trò nếu cần áp dụng ngay.
+Hệ thống được khởi tạo sẵn với 2 tài khoản quản trị mẫu mặc định:
+- **Quản trị viên (Admin):** `admin@gmail.com` / `123456` (role: `admin`, toàn quyền kiểm soát).
+- **Nhân viên vận hành (Staff):** `staff@gmail.com` / `123456` (role: `staff`, chuyên trách đơn hàng, kho, sản phẩm).
 
-Khởi tạo admin đầu tiên là bài toán con gà quả trứng (chưa có admin nào để gọi API admin-only). Chạy một lần duy nhất trong SQL Editor của Supabase Dashboard, với quyền chủ dự án:
+### 4.8 RLS cho Quản trị viên (Admin) và Nhân viên vận hành (Staff)
 
-```sql
-select public.set_user_role('<uuid-cua-tai-khoan>', 'admin');
-```
-
-### 4.8 RLS cho admin
-
-Nguyên tắc: danh mục và sản phẩm cho admin CRUD trực tiếp qua RLS (hữu ích nếu sau này có công cụ quản trị nối thẳng Supabase, hoặc dùng Supabase Studio với phiên đăng nhập của admin). Đơn hàng, thanh toán, giỏ hàng, hồ sơ chỉ cho admin SELECT — mọi thao tác ghi đi qua các hàm RPC ở mục 4.9 để giữ log audit và tồn kho, không UPDATE trực tiếp (quyết định D13, mục 3.2).
+Nguyên tắc phân quyền tầng cơ sở dữ liệu:
+- **Dữ liệu Vận hành (Sản phẩm, Biến thể, Danh mục, Đơn hàng, Tồn kho, Thanh toán, Banners, Vouchers):** Cho phép cả Nhân viên vận hành (`staff`) và Quản trị viên (`admin`) truy cập và xử lý thông qua hàm bảo mật `public.is_staff_or_admin()`.
+- **Dữ liệu Nhạy cảm (Hồ sơ người dùng `profiles`, Nhật ký kiểm toán `admin_audit_log`):** Giới hạn độc quyền cho Quản trị viên tối cao thông qua `public.is_admin()`. Nhân viên vận hành bị chặn hoàn toàn (403 Forbidden).
 
 ```sql
--- File: supabase/migrations/005_admin_rls.sql
-create policy "admin write categories" on categories
-  for all to authenticated using (public.is_admin()) with check (public.is_admin());
-create policy "admin write products" on products
-  for all to authenticated using (public.is_admin()) with check (public.is_admin());
-create policy "admin write product_variants" on product_variants
-  for all to authenticated using (public.is_admin()) with check (public.is_admin());
-create policy "admin write product_images" on product_images
+-- File: supabase/migrations/005_admin_and_staff_rls.sql
+
+-- 1. Quan ly danh muc & san pham & hinh anh (Nhan vien van hanh & Admin)
+create policy "admin write categories" on public.categories
+  for all to authenticated using (public.is_staff_or_admin()) with check (public.is_staff_or_admin());
+
+create policy "admin write products" on public.products
+  for all to authenticated using (public.is_staff_or_admin()) with check (public.is_staff_or_admin());
+
+create policy "admin write product_variants" on public.product_variants
+  for all to authenticated using (public.is_staff_or_admin()) with check (public.is_staff_or_admin());
+
+create policy "admin write product_images" on public.product_images
+  for all to authenticated using (public.is_staff_or_admin()) with check (public.is_staff_or_admin());
+
+-- 2. Quan ly ho so nguoi dung (DOC QUYEN CHO ADMIN TOI CAO)
+create policy "admin read profiles" on public.profiles
+  for select to authenticated using (public.is_admin());
+
+create policy "admin write profiles" on public.profiles
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
-create policy "admin read profiles"    on profiles    for select to authenticated using (public.is_admin());
-create policy "admin read cart_items"  on cart_items   for select to authenticated using (public.is_admin());
-create policy "admin read orders"      on orders       for select to authenticated using (public.is_admin());
-create policy "admin read order_items" on order_items  for select to authenticated using (public.is_admin());
-create policy "admin read payments"    on payments     for select to authenticated using (public.is_admin());
+-- 3. Quan ly don hang & thanh toan (Nhan vien van hanh & Admin)
+create policy "admin read orders" on public.orders
+  for select to authenticated using (public.is_staff_or_admin());
+
+create policy "admin write orders" on public.orders
+  for all to authenticated using (public.is_staff_or_admin()) with check (public.is_staff_or_admin());
+
+create policy "admin read order_items" on public.order_items
+  for select to authenticated using (public.is_staff_or_admin());
+
+create policy "admin read payments" on public.payments
+  for select to authenticated using (public.is_staff_or_admin());
+
+-- 4. Quan ly banner & voucher & shop (Nhan vien van hanh & Admin)
+create policy "admin manage banners" on public.banners
+  for all to authenticated using (public.is_staff_or_admin()) with check (public.is_staff_or_admin());
+
+create policy "admin manage vouchers" on public.vouchers
+  for all to authenticated using (public.is_staff_or_admin()) with check (public.is_staff_or_admin());
+
+create policy "admin manage shops" on public.shops
+  for all to authenticated using (public.is_staff_or_admin()) with check (public.is_staff_or_admin());
 ```
 
-Vì RLS là permissive (nhiều policy cùng loại lệnh được gộp bằng OR), policy "catalog read" hiện có (chỉ `is_active`) và policy admin ở trên không xung đột: khách thường chỉ thấy sản phẩm đang bán, admin thấy tất cả nhờ vế `public.is_admin()` không lọc `is_active`.
 
 ### 4.9 Tồn kho, lịch sử đơn và audit log
 
@@ -1561,16 +1620,24 @@ export const requireAuth = (db: SupabaseClient): RequestHandler => async (req, _
   if (error || !data.user) throw new AppError('UNAUTHORIZED', 401, 'Token không hợp lệ');
   req.user = {
     id: data.user.id,
-    // Khach vang lai (phien Supabase Anonymous Auth) khong co app_metadata.role;
-    // is_anonymous do Supabase tra ve, uu tien kiem tra truoc admin/customer.
+    // Khach vang lai khong co app_metadata.role; is_anonymous do Supabase tra ve.
+    // Nguoi dung dinh danh doc role: 'customer' | 'staff' | 'admin'.
     role: data.user.is_anonymous ? 'guest' : (data.user.app_metadata?.role ?? 'customer'),
   };
   next();
 };
 
-// Dat sau requireAuth. Khach vang lai va khach hang thuong deu bi chan giong nhau.
+// Cho phep ca Nhan vien van hanh va Admin (Orders, Inventory, Products, Returns)
+export const requireStaffOrAdmin: RequestHandler = (req, _res, next) => {
+  if (req.user?.role !== 'admin' && req.user?.role !== 'staff') {
+    throw new AppError('FORBIDDEN', 403, 'Yêu cầu quyền nhân viên vận hành hoặc quản trị viên');
+  }
+  next();
+};
+
+// Doc quyen cho Admin toi cao (User management, Audit logs, Phan quyen vai tro)
 export const requireAdmin: RequestHandler = (req, _res, next) => {
-  if (req.user?.role !== 'admin') throw new AppError('FORBIDDEN', 403, 'Yêu cầu quyền quản trị');
+  if (req.user?.role !== 'admin') throw new AppError('FORBIDDEN', 403, 'Yêu cầu quyền quản trị viên tối cao');
   next();
 };
 ```
@@ -1579,25 +1646,32 @@ Tối ưu sau này: xác thực JWT cục bộ bằng JWKS của Supabase để 
 
 ### 5.4 Danh mục API đầy đủ (tiền tố `/api/v1`)
 
-`user` trong cột Auth nghĩa là có JWT hợp lệ qua `requireAuth` (bao gồm khách hàng đã đăng ký và khách vãng lai). `seller` yêu cầu vai trò `seller` hoặc `admin`. `admin` yêu cầu vai trò `admin`.
+- `không`: Công khai (không yêu cầu token).
+- `user`: Đã đăng nhập (`customer`, `staff`, `admin` hoặc `guest` qua `requireAuth`).
+- `staff | admin`: Yêu cầu quyền Nhân viên vận hành hoặc Quản trị viên (`requireStaffOrAdmin`).
+- `admin`: Độc quyền Quản trị viên tối cao (`requireAdmin`).
 
 | Nhóm chức năng | Method | Đường dẫn | Auth | Mô tả & Tham số chính |
 |---|---|---|---|---|
+| **Xác thực & Bảo mật** | POST | /auth/register | không | Đăng ký tài khoản Khách hàng hoặc Nhân viên vận hành (`role: 'staff'`) |
+| | POST | /auth/login | không | Đăng nhập tài khoản; khóa lũy tiến (5-10-20-30-60 phút) khi nhập sai mật khẩu |
+| | GET | /auth/status | không | Tra cứu tình trạng khóa tài khoản theo query `?email=...` |
+| | POST | /auth/unlock | admin | Quản trị viên mở khóa tài khoản khẩn cấp |
 | **Hệ thống** | GET | /health | không | Kiểm tra DB và trạng thái dịch vụ |
 | **Danh mục** | GET | /categories | không | Cache 5 phút, trả danh mục cha và danh mục con |
 | **Banner** | GET | /banners | không | Lấy danh sách banner trang chủ đang hoạt động (Cache LRU) |
 | **Khám phá hàng hóa** | GET | /products | không | Query: `limit, cursor, sort, categoryId, q, minPrice, maxPrice, shopId, rating` |
 | | GET | /products/:id | không | Chi tiết sản phẩm, danh sách biến thể, bảng size, ảnh, thông tin Shop |
-| | GET | /products/:id/reviews | không | Danh sách đánh giá sao + ảnh + phản hồi shop, phân trang cursor |
+| | GET | /products/:id/reviews | không | Danh sách comment & đánh giá sao + ảnh + phản hồi shop, phân trang cursor |
 | **Tài khoản & Địa chỉ**| GET | /users/me | user | Thông tin hồ sơ cá nhân |
 | | PUT | /users/me | user | Cập nhật họ tên, avatar, số điện thoại |
 | | GET | /users/addresses | user | Danh sách sổ địa chỉ nhận hàng |
 | | POST | /users/addresses | user | Thêm địa chỉ mới (Body `{recipientName, phone, province, district, ward, detailAddress, isDefault}`) |
 | | PUT | /users/addresses/:id | user | Cập nhật hoặc đặt làm địa chỉ mặc định |
 | | DELETE | /users/addresses/:id | user | Xóa địa chỉ khỏi sổ địa chỉ |
-| **Yêu thích & Theo dõi**| GET | /wishlist | user | Danh sách sản phẩm đã bấm tim |
-| | POST | /wishlist/:productId | user | Thêm sản phẩm vào Wishlist |
-| | DELETE | /wishlist/:productId | user | Bỏ thích sản phẩm |
+| **Yêu thích & Theo dõi**| GET | /wishlist | user | Danh sách sản phẩm đã bấm tim (Yêu thích) |
+| | POST | /wishlist/:productId | user | Thêm sản phẩm vào Wishlist yêu thích |
+| | DELETE | /wishlist/:productId | user | Bỏ thích sản phẩm khỏi Wishlist |
 | | POST | /shops/:id/follow | user | Theo dõi shop |
 | | DELETE | /shops/:id/follow | user | Hủy theo dõi shop |
 | **Giỏ hàng** | GET | /cart | user | Trả giỏ hàng nhóm theo từng Shop |
@@ -1615,51 +1689,34 @@ Tối ưu sau này: xác thực JWT cục bộ bằng JWKS của Supabase để 
 | | POST | /payments/vnpay/create | user | Body `{orderId}`; tạo URL cổng thanh toán VNPay Sandbox |
 | | GET | /payments/vnpay/ipn | VNPay | Nhận webhook IPN từ VNPay, kiểm tra HMAC SHA512, cập nhật trạng thái |
 | | GET | /payments/vnpay/return | user | Trang hiển thị kết quả điều hướng từ VNPay |
-| **Đánh giá sau mua** | POST | /orders/:orderId/items/:itemId/review | user | Viết đánh giá 1-5 sao, bình luận, đính kèm ảnh sau khi hoàn thành đơn |
+| **Đánh giá sau mua** | POST | /orders/:orderId/items/:itemId/review | user | Viết đánh giá 1-5 sao, bình luận comment, đính kèm ảnh sau khi hoàn thành đơn |
 | **Đổi trả / Hoàn tiền**| POST | /orders/:id/return | user | Gửi yêu cầu trả hàng (Body `{reason, proofImages: []}`) |
 | | GET | /returns/:id | user | Xem tiến trình và phản hồi khiếu nại trả hàng |
-| | POST | /returns/:id/dispute | user | Yêu cầu Admin can thiệp phân xử khi Shop từ chối |
-| **Chat Real-time** | GET | /chats/conversations | user | Danh sách hội thoại giữa người mua và các shop |
+| | POST | /returns/:id/dispute | user | Yêu cầu can thiệp phân xử khi Shop từ chối |
+| **Chat Real-time** | GET | /chats/conversations | user | Danh sách hội thoại giữa khách hàng và nhân viên/shop |
 | | GET | /chats/conversations/:id/messages | user | Lịch sử tin nhắn hội thoại, phân trang cursor |
 | | POST | /chats/conversations/:id/messages | user | Gửi tin nhắn qua HTTP (nếu rớt WebSocket) |
 | **Thông báo (Push)** | GET | /notifications | user | Danh sách thông báo (đơn hàng, khuyến mãi, hệ thống) |
 | | PUT | /notifications/:id/read | user | Đánh dấu đã đọc |
 | | PUT | /notifications/read-all | user | Đánh dấu đọc tất cả |
-| **Kênh Người Bán (Shop)**| POST | /shops/register | user | Đăng ký mở shop bán hàng (Body `{name, phone, address, description}`) |
-| | GET | /shops/:slugOrId | không | Trang hồ sơ Shop công khai và danh sách hàng của shop |
-| | GET | /seller/shop | seller | Xem thông tin chi tiết gian hàng của tôi |
-| | PUT | /seller/shop | seller | Cập nhật logo, banner, mô tả, địa chỉ kho |
-| | GET | /seller/products | seller | Danh sách sản phẩm của shop (cả đang duyệt, ẩn, hiện) |
-| | POST | /seller/products | seller | Đăng sản phẩm mới (Body `{name, categoryId, description, variants, images}`) |
-| | PUT | /seller/products/:id | seller | Chỉnh sửa sản phẩm và biến thể |
-| | DELETE | /seller/products/:id | seller | Ẩn hoặc xóa sản phẩm khỏi gian hàng |
-| | GET | /seller/orders | seller | Danh sách đơn khách đặt tại shop, lọc theo trạng thái |
-| | PUT | /seller/orders/:id/status | seller | Tiếp nhận đơn: 'pending_confirmation' -> 'processing' -> 'shipping' -> 'delivered' |
-| | GET | /seller/returns | seller | Danh sách khách yêu cầu trả hàng tại shop |
-| | POST | /seller/returns/:id/accept | seller | Duyệt nhận lại hàng và đồng ý hoàn tiền |
-| | POST | /seller/returns/:id/reject | seller | Từ chối yêu cầu kèm lý do và ảnh bằng chứng |
-| | POST | /seller/reviews/:id/reply | seller | Phản hồi công khai bình luận đánh giá của khách |
-| | GET | /seller/vouchers | seller | Quản lý danh sách voucher riêng của shop |
-| | POST | /seller/vouchers | seller | Tạo voucher giảm giá mới cho shop |
-| | GET | /seller/analytics | seller | Báo cáo doanh thu, số đơn, biểu đồ tăng trưởng, top hàng bán chạy |
-| **Quản trị Sàn (Admin)** | GET | /admin/users | admin | Danh sách người dùng sàn, tìm kiếm, xem chi tiết |
-| | PUT | /admin/users/:id/status | admin | Khóa hoặc mở khóa tài khoản vi phạm |
-| | PUT | /admin/users/:id/role | admin | Gán vai trò (`buyer`, `seller`, `admin`); gọi RPC `set_user_role` |
-| | GET | /admin/shops | admin | Danh sách các shop, lọc theo trạng thái duyệt |
-| | PUT | /admin/shops/:id/approve | admin | Phê duyệt shop mới mở |
-| | PUT | /admin/shops/:id/reject | admin | Từ chối hồ sơ đăng ký shop |
-| | GET | /admin/products/pending | admin | Hàng đợi sản phẩm chờ kiểm duyệt nội dung |
-| | PUT | /admin/products/:id/approve | admin | Phê duyệt sản phẩm lên sàn |
-| | PUT | /admin/products/:id/reject | admin | Từ chối hoặc gỡ bỏ sản phẩm vi phạm |
-| | POST/PUT/DELETE | /admin/categories | admin | Quản lý danh mục ngành hàng |
-| | POST/PUT/DELETE | /admin/banners | admin | Quản lý Banner quảng cáo trang chủ |
-| | POST | /admin/vouchers | admin | Tạo mã voucher toàn sàn do Admin tài trợ |
-| | POST/PUT | /admin/flash-sales | admin | Quản lý khung giờ Flash Sale và duyệt hàng tham gia |
-| | GET | /admin/returns/disputes | admin | Danh sách khiếu nại tranh chấp đổi trả giữa khách và shop |
-| | POST | /admin/returns/:id/resolve | admin | Phán quyết chung thẩm: Hoàn tiền hoặc Bác bỏ khiếu nại |
-| | POST | /admin/notifications/broadcast | admin | Gửi thông báo hệ thống tới toàn bộ người dùng |
-| | GET | /admin/analytics/overview | admin | Dashboard tổng quan: GMV sàn, số đơn, tăng trưởng shop/user |
-| | GET | /admin/audit-log | admin | Nhật ký theo dõi hoạt động quản trị viên |
+| **Vận hành Đơn & Kho (Staff/Admin)** | GET | /admin/orders | staff \| admin | Danh sách toàn bộ đơn hàng sàn, lọc theo trạng thái, ngày, phân trang cursor |
+| | PUT | /admin/orders/:id/status | staff \| admin | Cập nhật tiến độ đơn hàng: 'processing', 'shipping', 'completed', 'cancelled' |
+| | POST | /admin/inventory/adjust | staff \| admin | Điều chỉnh số lượng tồn kho biến thể SKU (`admin_restock` / `admin_correction`) |
+| | GET | /admin/inventory/movements | staff \| admin | Tra cứu lịch sử xuất nhập biến động tồn kho |
+| | GET | /admin/products | staff \| admin | Danh sách quản lý sản phẩm nội bộ sàn |
+| | PUT | /admin/products/:id | staff \| admin | Chỉnh sửa nhanh thông tin sản phẩm và trạng thái kinh doanh |
+| | POST/PUT/DELETE | /admin/categories | staff \| admin | Thêm, sửa, đổi vị trí danh mục thời trang nam |
+| | POST/PUT/DELETE | /admin/banners | staff \| admin | Quản lý banner slider chiến dịch khuyến mãi |
+| | POST | /admin/vouchers | staff \| admin | Thiết lập mã voucher ưu đãi toàn sàn |
+| | POST/PUT | /admin/flash-sales | staff \| admin | Cấu hình khung giờ và kích hoạt Flash Sale |
+| | GET | /admin/returns/disputes | staff \| admin | Danh sách khiếu nại tranh chấp đổi trả hàng |
+| | POST | /admin/returns/:id/resolve | staff \| admin | Phán quyết khiếu nại: Đồng ý hoàn tiền hoặc Bác bỏ |
+| **Quản trị Tối cao (Admin Only)** | GET | /admin/users | admin | Tra cứu danh sách toàn bộ tài khoản người dùng và nhân viên |
+| | PUT | /admin/users/:id/status | admin | Khóa hoặc mở khóa tài khoản vi phạm chính sách |
+| | PUT | /admin/users/:id/role | admin | Gán vai trò người dùng (`admin`, `staff`, `customer`) qua RPC `set_user_role` |
+| | GET | /admin/audit-log | admin | Tra cứu nhật ký kiểm toán hệ thống (Audit Logs) |
+| | POST | /admin/notifications/broadcast | admin | Phát thông báo khẩn cấp toàn hệ thống |
+| | GET | /admin/analytics/overview | admin | Báo cáo tài chính cấp cao, tổng doanh thu GMV sàn |
 
 **Các sự kiện WebSocket (Socket.io Real-time Chat):**
 - Client emit `join_room` `{ conversationId }`: Tham gia phòng chat giữa Buyer và Shop.
@@ -2114,21 +2171,32 @@ Dùng bộ Material `Icons` chuẩn qua một file `AppIcons` duy nhất cho đi
 
 ### 7.8 Kênh Quản trị Web Admin (Next.js Dashboard)
 
-Để phục vụ quản trị toàn diện sàn thương mại điện tử đa người bán, hệ thống trang bị Kênh Quản trị Web Admin độc lập đặt tại thư mục [`admin/`](file:///c:/Users/ThanhToan/DATN_Mua-sam-thoi-trang-nam-Menly/admin):
+Để phục vụ quản trị và vận hành toàn diện hệ sinh thái sàn thương mại điện tử, hệ thống trang bị Kênh Quản trị Web Admin độc lập đặt tại thư mục [`admin/`](file:///c:/Users/ThanhToan/DATN_Mua-sam-thoi-trang-nam-Menly/admin):
 
 - **Công nghệ áp dụng:** Next.js 15+ (App Router), TypeScript, TailwindCSS, Lucide Icons, Recharts (vẽ biểu đồ phân tích số liệu).
-- **Cơ chế xác thực:** Đăng nhập tài khoản Admin qua Supabase Auth, lưu JWT trong Cookie `httpOnly`, middleware Next.js kiểm tra claim `role === 'admin'`.
-- **Cấu trúc phân trang quản trị (`admin/src/app/`):**
-  - `/` (Dashboard Tổng quan): Các thẻ chỉ số KPI sàn (Tổng GMV, Doanh số hôm nay, Tổng số đơn, Số shop đang hoạt động), biểu đồ cột doanh thu theo tuần/tháng, top 5 shop bán chạy nhất.
-  - `/shops` (Quản lý Cửa hàng): Bảng danh sách shop kèm bộ lọc trạng thái (`pending`, `active`, `suspended`); Modal duyệt hồ sơ đăng ký mở shop (xem CCCD/MST, địa chỉ kho) với nút Duyệt / Từ chối kèm lý do.
-  - `/products/pending` (Kiểm duyệt Hàng hóa): Hàng đợi sản phẩm mới do các shop gửi lên; xem chi tiết bảng size, ảnh sản phẩm, duyệt đưa lên sàn hoặc yêu cầu sửa đổi nội dung.
-  - `/categories` (Danh mục Ngành hàng): Thêm/sửa danh mục đa cấp, sắp xếp thứ tự hiển thị, tải lên biểu tượng danh mục.
-  - `/banners` (Banner Trang chủ): Upload ảnh banner, thiết lập liên kết khuyến mãi, đặt thời hạn bắt đầu/kết thúc, bật/tắt hiển thị.
-  - `/vouchers` (Mã giảm giá Toàn sàn): Cấu hình mã voucher cấp hệ thống do Admin tài trợ ngân sách, phân bổ ngân sách khuyến mãi.
-  - `/flash-sales` (Quản trị Flash Sale): Thiết lập các khung giờ vàng trong ngày, duyệt danh sách sản phẩm đăng ký tham gia của các shop.
-  - `/returns/disputes` (Trọng tài Khiếu nại Tranh chấp): Tiếp nhận các ca trả hàng mà Người mua và Người bán không tìm được tiếng nói chung; xem xét hình ảnh đối chứng hai bên và ra phán quyết cuối cùng (Hoàn tiền hoặc Bác bỏ).
-  - `/users` (Quản lý Người dùng): Danh sách tài khoản khách hàng và chủ shop, nút khóa/mở khóa tài khoản vi phạm chính sách sàn.
-  - `/audit-logs` (Nhật ký Hệ thống): Bảng tra cứu toàn bộ các thao tác quản trị nhạy cảm đã thực hiện trên sàn.
+- **Cơ chế xác thực & Phân quyền (RBAC):** Đăng nhập tài khoản qua Supabase Auth, lưu JWT trong Cookie `httpOnly`. Middleware Next.js kiểm tra claim `role` trong JWT:
+  - Cho phép cả `admin` và `staff` truy cập vào hệ thống Web Admin.
+  - Tuy nhiên, giao diện Sidebar và Route Guard phân tách rõ ràng quyền hạn giữa Quản trị viên và Nhân viên vận hành.
+
+#### Ma trận Phân quyền Giao diện Web Admin (Admin vs Nhân viên Vận hành):
+
+| Phân hệ / URL Route | Tên chức năng trên Sidebar | Quyền Nhân viên (Staff) | Quyền Quản trị viên (Admin) | Mô tả chi tiết nghiệp vụ |
+|---|---|:---:|:---:|---|
+| `/` | **Dashboard Tổng quan** | Chỉ xem KPI vận hành | Toàn quyền (GMV + Tài chính) | Thẻ chỉ số tổng đơn, tỷ lệ giao hàng thành công, doanh thu |
+| `/orders` | **Vận hành Đơn hàng** | Có | Có | Tiếp nhận, xác nhận đóng gói, điều phối vận chuyển, cập nhật trạng thái đơn |
+| `/inventory` | **Kiểm kê & Quản lý Kho** | Có | Có | Kiểm kê số lượng tồn kho biến thể SKU, điều chỉnh kho (`restock`/`correction`) |
+| `/products` | **Quản lý Sản phẩm** | Có | Có | Xem danh sách sản phẩm, cập nhật giá, bảng size, hình ảnh mô tả |
+| `/products/pending` | **Kiểm duyệt Hàng hóa** | Có | Có | Hàng đợi duyệt sản phẩm mới, kiểm tra hình ảnh và tiêu chuẩn thời trang |
+| `/categories` | **Danh mục Ngành hàng** | Có | Có | Thêm, sửa, sắp xếp cây danh mục thời trang nam đa cấp |
+| `/banners` | **Banner Quảng cáo** | Có | Có | Upload banner slider chiến dịch, thiết lập thời gian hiển thị trang chủ |
+| `/vouchers` | **Mã giảm giá Toàn sàn** | Có | Có | Tạo voucher khuyến mãi, quản lý số lượt dùng và giá trị giảm |
+| `/returns/disputes` | **Đổi trả & Khiếu nại** | Có | Có | Tiếp nhận khiếu nại trả hàng từ khách, xem xét bằng chứng và xử lý hoàn tiền |
+| `/users` | **Quản lý Người dùng** | **Ẩn (403 Forbidden)** | **Toàn quyền** | Tra cứu thông tin người dùng, tạm khóa / mở khóa tài khoản vi phạm |
+| `/users/roles` | **Phân quyền Vai trò** | **Ẩn (403 Forbidden)** | **Toàn quyền** | Gán vai trò tài khoản (`admin`, `staff`, `customer`) qua hàm RPC bảo mật |
+| `/audit-logs` | **Nhật ký Kiểm toán** | **Ẩn (403 Forbidden)** | **Toàn quyền** | Tra cứu mọi hành động nhạy cảm của ban quản trị hệ thống |
+
+*(Ghi chú: Đối với tài khoản Nhân viên vận hành, các mục `/users`, `/users/roles` và `/audit-logs` sẽ bị ẩn hoàn toàn trên thanh điều hướng Menu Sidebar. Nếu nhân viên cố tình nhập URL trực tiếp, Next.js Middleware và API Backend sẽ chặn lại và trả về lỗi 403 Forbidden - Quyền truy cập bị từ chối).*
+
 
 ---
 

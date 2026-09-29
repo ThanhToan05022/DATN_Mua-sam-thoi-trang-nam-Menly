@@ -1,13 +1,14 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/config/api_config.dart';
+import 'package:provider/provider.dart';
+
 import '../../../../core/theme/app_theme.dart';
+import '../../../wishlist/presentation/providers/wishlist_provider.dart';
+import '../providers/auth_provider.dart';
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+  final String? redirect;
+  const RegisterPage({super.key, this.redirect});
   @override
   State<RegisterPage> createState() => _RegisterPageState();
 }
@@ -17,7 +18,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
-  bool _loading = false;
+  String _selectedRole = 'customer'; // 'customer' | 'staff'
   bool _obscure = true;
   bool _obscureConfirm = true;
 
@@ -49,44 +50,58 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    setState(() => _loading = true);
-    try {
-      final res = await http.post(
-        Uri.parse('${ApiConfig.apiBase}/auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'name': name, 'email': email, 'password': pass}),
+    final auth = context.read<AuthProvider>();
+    final success = await auth.register(
+      name,
+      email,
+      pass,
+      role: _selectedRole,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _selectedRole == 'staff'
+                ? '🎉 Đăng ký tài khoản Nhân viên thành công!'
+                : '🎉 Đăng ký tài khoản Khách hàng thành công!',
+          ),
+          backgroundColor: AppTheme.success,
+        ),
       );
-      final body = jsonDecode(res.body);
-      if (res.statusCode == 201 || res.statusCode == 200) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('accessToken', body['accessToken'] ?? '');
-        await prefs.setString('userName', body['user']?['name'] ?? name);
-        await prefs.setString('userEmail', body['user']?['email'] ?? email);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('🎉 Đăng ký thành công!'), backgroundColor: AppTheme.success),
-          );
-          await Future.delayed(const Duration(milliseconds: 800));
-          if (mounted) context.go('/');
+      context.read<WishlistProvider>().fetchWishlist(forceRefresh: true);
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (mounted) {
+        final target = widget.redirect ??
+            GoRouterState.of(context).uri.queryParameters['redirect'];
+        if (target != null && target.isNotEmpty) {
+          context.go(target);
+        } else {
+          context.go('/');
         }
-      } else {
-        _snack(body['error']?['message'] ?? 'Đăng ký thất bại');
       }
-    } catch (e) {
-      _snack('Lỗi kết nối: $e');
-    } finally {
-      if (mounted) setState(() => _loading = false);
+    } else {
+      _snack(auth.state.message ?? 'Đăng ký thất bại. Vui lòng thử lại.');
     }
   }
 
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: AppTheme.error),
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: AppTheme.error,
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = context.watch<AuthProvider>().state;
+    final isLoading = authState.isLoading;
+
     return Scaffold(
       backgroundColor: AppTheme.bg,
       body: SafeArea(
@@ -95,35 +110,156 @@ class _RegisterPageState extends State<RegisterPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
               // Back
               Align(
                 alignment: Alignment.centerLeft,
                 child: GestureDetector(
-                  onTap: () { if (context.canPop()) context.pop(); else context.go('/login'); },
+                  onTap: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/login');
+                    }
+                  },
                   child: Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 18),
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: const Icon(Icons.arrow_back_ios_rounded,
+                        color: Colors.white, size: 18),
                   ),
                 ),
               ),
-              const SizedBox(height: 28),
-              const Text('Tạo tài khoản', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white)),
+              const SizedBox(height: 24),
+              const Text('Tạo tài khoản',
+                  style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white)),
               const SizedBox(height: 6),
-              const Text('Đăng ký để mua sắm dễ dàng hơn', style: TextStyle(fontSize: 14, color: AppTheme.textMuted)),
-              const SizedBox(height: 32),
+              const Text('Đăng ký để mua sắm hoặc quản lý vận hành Menly',
+                  style: TextStyle(fontSize: 14, color: AppTheme.textMuted)),
+              const SizedBox(height: 24),
+
+              // Vai trò tài khoản (Khách hàng vs Nhân viên)
+              _label('Loại tài khoản'),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppTheme.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedRole = 'customer'),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _selectedRole == 'customer'
+                                ? AppTheme.primary
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.person_rounded,
+                                  size: 16,
+                                  color: _selectedRole == 'customer'
+                                      ? Colors.black
+                                      : AppTheme.textSecondary,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Khách hàng',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: _selectedRole == 'customer'
+                                        ? Colors.black
+                                        : AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedRole = 'staff'),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _selectedRole == 'staff'
+                                ? AppTheme.primary
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.badge_rounded,
+                                  size: 16,
+                                  color: _selectedRole == 'staff'
+                                      ? Colors.black
+                                      : AppTheme.textSecondary,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Nhân viên',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: _selectedRole == 'staff'
+                                        ? Colors.black
+                                        : AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
 
               // Name
               _label('Họ và tên'),
               const SizedBox(height: 8),
-              _inputField(controller: _nameCtrl, hint: 'Nguyễn Văn A', icon: Icons.person_outline_rounded),
+              _inputField(
+                  controller: _nameCtrl,
+                  hint: 'Nguyễn Văn A',
+                  icon: Icons.person_outline_rounded),
               const SizedBox(height: 16),
 
               // Email
               _label('Email'),
               const SizedBox(height: 8),
-              _inputField(controller: _emailCtrl, hint: 'example@email.com', icon: Icons.email_outlined, type: TextInputType.emailAddress),
+              _inputField(
+                  controller: _emailCtrl,
+                  hint: 'example@email.com',
+                  icon: Icons.email_outlined,
+                  type: TextInputType.emailAddress),
               const SizedBox(height: 16),
 
               // Password
@@ -135,7 +271,12 @@ class _RegisterPageState extends State<RegisterPage> {
                 icon: Icons.lock_outline_rounded,
                 obscure: _obscure,
                 suffix: IconButton(
-                  icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: AppTheme.textMuted, size: 20),
+                  icon: Icon(
+                      _obscure
+                          ? Icons.visibility_off_rounded
+                          : Icons.visibility_rounded,
+                      color: AppTheme.textMuted,
+                      size: 20),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
@@ -150,26 +291,44 @@ class _RegisterPageState extends State<RegisterPage> {
                 icon: Icons.lock_outline_rounded,
                 obscure: _obscureConfirm,
                 suffix: IconButton(
-                  icon: Icon(_obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: AppTheme.textMuted, size: 20),
-                  onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                  icon: Icon(
+                      _obscureConfirm
+                          ? Icons.visibility_off_rounded
+                          : Icons.visibility_rounded,
+                      color: AppTheme.textMuted,
+                      size: 20),
+                  onPressed: () =>
+                      setState(() => _obscureConfirm = !_obscureConfirm),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
 
               // Register button
               SizedBox(
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: _loading ? null : _register,
+                  onPressed: isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
-                  child: _loading
-                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                      : const Text('Đăng ký', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2.5),
+                        )
+                      : Text(
+                          _selectedRole == 'staff'
+                              ? 'Đăng ký Nhân viên'
+                              : 'Đăng ký Khách hàng',
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -178,10 +337,16 @@ class _RegisterPageState extends State<RegisterPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Đã có tài khoản? ', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+                  const Text('Đã có tài khoản? ',
+                      style: TextStyle(
+                          color: AppTheme.textMuted, fontSize: 14)),
                   GestureDetector(
                     onTap: () => context.go('/login'),
-                    child: const Text('Đăng nhập', style: TextStyle(color: AppTheme.primary, fontSize: 14, fontWeight: FontWeight.w700)),
+                    child: const Text('Đăng nhập',
+                        style: TextStyle(
+                            color: AppTheme.primary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
@@ -193,7 +358,11 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _label(String text) => Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary));
+  Widget _label(String text) => Text(text,
+      style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.textSecondary));
 
   Widget _inputField({
     required TextEditingController controller,
@@ -216,7 +385,7 @@ class _RegisterPageState extends State<RegisterPage> {
         style: const TextStyle(color: Colors.white, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 14),
+          hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
           prefixIcon: Icon(icon, color: AppTheme.textMuted, size: 20),
           suffixIcon: suffix,
           border: InputBorder.none,

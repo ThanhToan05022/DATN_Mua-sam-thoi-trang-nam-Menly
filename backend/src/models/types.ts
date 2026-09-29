@@ -133,6 +133,7 @@ export interface Order {
   id: string;
   code: string;
   userId: string;
+  userEmail?: string;
   status: OrderStatus;
   paymentMethod: 'cod' | 'vnpay';
   subtotal: number;
@@ -141,6 +142,7 @@ export interface Order {
   shipName: string;
   shipPhone: string;
   shipAddress: string;
+  note?: string;
   idempotencyKey?: string | null;
   expiresAt?: string | null;
   createdAt: string;
