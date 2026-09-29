@@ -22,6 +22,11 @@ import 'features/order/presentation/providers/order_provider.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/register_page.dart';
 import 'features/auth/presentation/pages/profile_page.dart';
+import 'features/auth/presentation/pages/change_password_page.dart';
+import 'features/auth/presentation/pages/shipping_address_page.dart';
+import 'features/auth/presentation/pages/notifications_page.dart';
+import 'features/auth/presentation/pages/help_support_page.dart';
+import 'features/order/presentation/pages/my_orders_page.dart';
 import 'features/splash/presentation/pages/splash_page.dart';
 
 Future<void> main() async {
@@ -95,6 +100,11 @@ final _router = GoRouter(
           builder: (ctx, s) => const AdminOrderManagementPage(),
         ),
         GoRoute(path: '/profile', builder: (ctx, s) => const ProfilePage()),
+        GoRoute(path: '/my-orders', builder: (ctx, s) => const MyOrdersPage()),
+        GoRoute(path: '/shipping-address', builder: (ctx, s) => const ShippingAddressPage()),
+        GoRoute(path: '/change-password', builder: (ctx, s) => const ChangePasswordPage()),
+        GoRoute(path: '/notifications', builder: (ctx, s) => const NotificationsPage()),
+        GoRoute(path: '/help-support', builder: (ctx, s) => const HelpSupportPage()),
       ],
     ),
   ],

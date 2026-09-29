@@ -257,6 +257,7 @@ dist
 [Bb]in
 [Ii]nclude
 [Ll]ib
+!frontend/lib/
 [Ll]ib64
 [Ll]ocal
 [Ss]cripts
@@ -326,7 +327,3 @@ dist/
 .env.*
 !.env.example
 .turbo/
-!admin/src/lib/
-!admin/src/lib/**
-!frontend/lib/
-!frontend/lib/**
