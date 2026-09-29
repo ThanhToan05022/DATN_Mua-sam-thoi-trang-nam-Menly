@@ -151,11 +151,11 @@ class _ProfilePageState extends State<ProfilePage> {
         const SizedBox(height: 32),
 
         // Menu items
-        _menuItem(icon: Icons.shopping_bag_outlined, label: 'Đơn hàng của tôi', onTap: () {}),
-        _menuItem(icon: Icons.location_on_outlined, label: 'Địa chỉ giao hàng', onTap: () {}),
+        _menuItem(icon: Icons.shopping_bag_outlined, label: 'Đơn hàng của tôi', onTap: () => context.push('/my-orders')),
+        _menuItem(icon: Icons.location_on_outlined, label: 'Địa chỉ giao hàng', onTap: () => context.push('/shipping-address')),
         _menuItem(icon: Icons.lock_outline_rounded, label: 'Đổi mật khẩu', onTap: () => context.push('/change-password')),
-        _menuItem(icon: Icons.notifications_outlined, label: 'Thông báo', onTap: () {}),
-        _menuItem(icon: Icons.help_outline_rounded, label: 'Trợ giúp & Hỗ trợ', onTap: () {}),
+        _menuItem(icon: Icons.notifications_outlined, label: 'Thông báo', onTap: () => context.push('/notifications')),
+        _menuItem(icon: Icons.help_outline_rounded, label: 'Trợ giúp & Hỗ trợ', onTap: () => context.push('/help-support')),
         const SizedBox(height: 12),
         const Divider(color: AppTheme.surface2),
         const SizedBox(height: 12),
