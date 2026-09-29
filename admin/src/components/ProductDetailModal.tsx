@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Product, ProductVariant } from '../lib/types';
 import { adjustInventory } from '../lib/api';
 import { Boxes, Sparkles, SlidersHorizontal } from 'lucide-react';
@@ -18,20 +18,18 @@ export function ProductDetailModal({ product, onClose, onStockAdjusted }: Produc
   const [adjustReason, setAdjustReason] = useState<'admin_restock' | 'admin_correction'>('admin_restock');
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ text: string; success: boolean } | null>(null);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+
+  // Dong bo lai bien the moi khi san pham doi
+  useEffect(() => {
+    setSelectedSize(null);
+    setAdjustingVariant(null);
+    setFeedback(null);
+    setVariants(product?.variants ?? []);
+  }, [product]);
 
   if (!product) return null;
 
-  const variants: ProductVariant[] = product.variants?.length
-    ? product.variants
-    : [
-        { id: 'v-s', productId: product.id, size: 'S', color: 'Tiêu chuẩn', sku: `SKU-${product.id.slice(0, 4)}-S`, stock: 15 },
-        { id: 'v-m', productId: product.id, size: 'M', color: 'Tiêu chuẩn', sku: `SKU-${product.id.slice(0, 4)}-M`, stock: 35 },
-        { id: 'v-l', productId: product.id, size: 'L', color: 'Tiêu chuẩn', sku: `SKU-${product.id.slice(0, 4)}-L`, stock: 40 },
-        { id: 'v-xl', productId: product.id, size: 'XL', color: 'Tiêu chuẩn', sku: `SKU-${product.id.slice(0, 4)}-XL`, stock: 25 },
-        { id: 'v-xxl', productId: product.id, size: 'XXL', color: 'Tiêu chuẩn', sku: `SKU-${product.id.slice(0, 4)}-XXL`, stock: 10 },
-      ];
-
-  const totalStock = variants.reduce((sum, v) => sum + v.stock, 0);
   const totalSizesCount = variants.length;
   const filteredVariants = selectedSize ? variants.filter((v) => v.size === selectedSize) : variants;
 
@@ -40,10 +38,15 @@ export function ProductDetailModal({ product, onClose, onStockAdjusted }: Produc
     if (!adjustingVariant) return;
     setLoading(true);
     setFeedback(null);
+    const variantId = adjustingVariant.id;
+    const variantSize = adjustingVariant.size;
+    const appliedDelta = deltaAmount;
     try {
-      await adjustInventory(adjustingVariant.id, deltaAmount, adjustReason);
-      setFeedback({ text: `Đã cập nhật tồn kho size ${adjustingVariant.size} thành công!`, success: true });
-      adjustingVariant.stock = Math.max(0, adjustingVariant.stock + deltaAmount);
+      await adjustInventory(variantId, appliedDelta, adjustReason);
+      setVariants((prev) =>
+        prev.map((v) => (v.id === variantId ? { ...v, stock: Math.max(0, v.stock + appliedDelta) } : v))
+      );
+      setFeedback({ text: `Đã cập nhật tồn kho size ${variantSize} thành công!`, success: true });
       setTimeout(() => {
         setAdjustingVariant(null);
         if (onStockAdjusted) onStockAdjusted();
@@ -81,6 +84,13 @@ export function ProductDetailModal({ product, onClose, onStockAdjusted }: Produc
         </div>
 
 
+        {variants.length === 0 ? (
+          <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs text-center">
+            Sản phẩm này chưa có biến thể (size/màu) nào trong hệ thống. Hãy tạo biến thể ở trang
+            quản lý sản phẩm trước khi điều chỉnh tồn kho.
+          </div>
+        ) : (
+          <>
         {/* Interactive Size Pill Selector */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
@@ -186,6 +196,8 @@ export function ProductDetailModal({ product, onClose, onStockAdjusted }: Produc
               {loading ? 'Đang lưu...' : `Xác nhận điều chỉnh Size ${adjustingVariant.size}`}
             </button>
           </form>
+        )}
+          </>
         )}
       </div>
     </div>

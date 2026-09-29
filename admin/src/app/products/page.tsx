@@ -1,14 +1,12 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Header } from '../../components/Header';
 import { ProductDetailModal } from '../../components/ProductDetailModal';
 import { fetchAdminProducts, fetchCategories, fetchProductDetail, updateProduct } from '../../lib/api';
-import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../../lib/mock-admin-data';
 import { Product, Category } from '../../lib/types';
 import {
   Search,
-  Filter,
   Eye,
   ArrowUpDown,
   Layers,
@@ -16,7 +14,7 @@ import {
   List,
   CheckCircle2,
   FolderOpen,
-  Boxes,
+  AlertCircle,
 } from 'lucide-react';
 
 type SortOption =
@@ -28,9 +26,10 @@ type SortOption =
   | 'stock_asc';
 
 export default function ProductsPage() {
-  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('category');
@@ -43,19 +42,15 @@ export default function ProductsPage() {
     try {
       const [cats, prods] = await Promise.all([
         fetchCategories(),
-        fetchAdminProducts({ limit: 125 }),
+        fetchAdminProducts({ limit: 200 }),
       ]);
-      if (cats && cats.length > 0) {
-        setCategories(cats);
-      }
-      if (prods && prods.items && prods.items.length > 0) {
-        setProducts(prods.items);
-      } else {
-        setProducts(INITIAL_PRODUCTS);
-      }
-    } catch {
-      setCategories(INITIAL_CATEGORIES);
-      setProducts(INITIAL_PRODUCTS);
+      setCategories(cats);
+      setProducts(prods.items);
+      setLoadError(null);
+    } catch (err) {
+      setCategories([]);
+      setProducts([]);
+      setLoadError(err instanceof Error ? err.message : 'Không tải được dữ liệu sản phẩm');
     } finally {
       setLoading(false);
     }
@@ -65,69 +60,82 @@ export default function ProductsPage() {
     loadData();
   }, []);
 
-  const getProductCategory = (p: Product): Category => {
-    if (p.categoryId) {
-      const found = categories.find((c) => c.id === p.categoryId || c.slug === p.categoryId);
-      if (found) return found;
-    }
-    const s = p.slug.toLowerCase();
-    if (s.startsWith('ao-so-mi')) {
-      const cat = categories.find((c) => c.slug === 'ao-so-mi-nam');
-      if (cat) return cat;
-    }
-    if (s.startsWith('ao-polo') || s.startsWith('ao-thun')) {
-      const cat = categories.find((c) => c.slug === 'ao-polo-t-shirt');
-      if (cat) return cat;
-    }
-    if (
-      s.startsWith('quan-jeans') ||
-      s.startsWith('quan-bo') ||
-      s.includes('jeans') ||
-      s.includes('quan-short-jeans') ||
-      s.includes('quan-short-bo')
-    ) {
-      const cat = categories.find((c) => c.slug === 'quan-jeans-nam');
-      if (cat) return cat;
-    }
-    if (
-      s.startsWith('quan-tay') ||
-      s.startsWith('quan-kaki') ||
-      s.startsWith('quan-au') ||
-      s.startsWith('quan-short')
-    ) {
-      const cat = categories.find((c) => c.slug === 'quan-tay-kaki');
-      if (cat) return cat;
-    }
-    if (
-      s.startsWith('ao-khoac') ||
-      s.startsWith('ao-blazer') ||
-      s.startsWith('ao-mang-to') ||
-      s.startsWith('ao-phao') ||
-      s.startsWith('ao-gile') ||
-      s.startsWith('ao-hoodie')
-    ) {
-      const cat = categories.find((c) => c.slug === 'ao-khoac-blazer');
-      if (cat) return cat;
-    }
-    return categories[0] || INITIAL_CATEGORIES[0];
-  };
+  // Nhom gom khi san pham khong khop danh muc nao trong DB
+  // (vi du DB chua seed duoc danh muc). Tranh vie tra ve undefined
+  // gay crash o cac cho dang doc `cat.id`.
+  const uncategorized: Category = useMemo(
+    () => ({ id: '__uncategorized__', name: 'Chưa phân loại', slug: 'chua-phan-loai' }),
+    []
+  );
+
+  const getProductCategory = useCallback(
+    (p: Product): Category => {
+      if (p.categoryId) {
+        const found = categories.find((c) => c.id === p.categoryId || c.slug === p.categoryId);
+        if (found) return found;
+      }
+      const s = p.slug.toLowerCase();
+      if (s.startsWith('ao-so-mi')) {
+        const cat = categories.find((c) => c.slug === 'ao-so-mi-nam');
+        if (cat) return cat;
+      }
+      if (s.startsWith('ao-polo') || s.startsWith('ao-thun')) {
+        const cat = categories.find((c) => c.slug === 'ao-polo-t-shirt');
+        if (cat) return cat;
+      }
+      if (
+        s.startsWith('quan-jeans') ||
+        s.startsWith('quan-bo') ||
+        s.includes('jeans') ||
+        s.includes('quan-short-jeans') ||
+        s.includes('quan-short-bo')
+      ) {
+        const cat = categories.find((c) => c.slug === 'quan-jeans-nam');
+        if (cat) return cat;
+      }
+      if (
+        s.startsWith('quan-tay') ||
+        s.startsWith('quan-kaki') ||
+        s.startsWith('quan-au') ||
+        s.startsWith('quan-short')
+      ) {
+        const cat = categories.find((c) => c.slug === 'quan-tay-kaki');
+        if (cat) return cat;
+      }
+      if (
+        s.startsWith('ao-khoac') ||
+        s.startsWith('ao-blazer') ||
+        s.startsWith('ao-mang-to') ||
+        s.startsWith('ao-phao') ||
+        s.startsWith('ao-gile') ||
+        s.startsWith('ao-hoodie')
+      ) {
+        const cat = categories.find((c) => c.slug === 'ao-khoac-blazer');
+        if (cat) return cat;
+      }
+      return categories[0] ?? uncategorized;
+    },
+    [categories, uncategorized]
+  );
 
   // Change product category directly and persist to backend
   const handleUpdateProductCategory = async (productId: string, newCategoryId: string) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id === productId) {
-          return { ...p, categoryId: newCategoryId };
-        }
-        return p;
-      })
-    );
+    const previous = products.find((p) => p.id === productId)?.categoryId;
     const targetCat = categories.find((c) => c.id === newCategoryId);
+    // Cap nhat toi uu tren UI, revert neu backend that bai
+    setProducts((prev) => prev.map((p) => (p.id === productId ? { ...p, categoryId: newCategoryId } : p)));
     try {
       await updateProduct(productId, { categoryId: newCategoryId });
       setNotification(`Đã chuyển sản phẩm sang danh mục "${targetCat?.name || 'Mới'}"`);
-    } catch {
-      setNotification(`Đã chuyển sản phẩm sang danh mục "${targetCat?.name || 'Mới'}"`);
+    } catch (err) {
+      if (previous !== undefined) {
+        setProducts((prev) =>
+          prev.map((p) => (p.id === productId ? { ...p, categoryId: previous } : p))
+        );
+      }
+      setNotification(
+        `Lỗi: ${err instanceof Error ? err.message : 'không lưu được danh mục mới'}`
+      );
     }
     setTimeout(() => setNotification(null), 3000);
   };
@@ -151,7 +159,7 @@ export default function ProductsPage() {
         p.id.toLowerCase().includes(searchQuery.toLowerCase());
       return matchCat && matchSearch;
     });
-  }, [products, selectedCategory, searchQuery, categories]);
+  }, [products, selectedCategory, searchQuery, getProductCategory]);
 
   // Sort products based on selected sort option
   const sortedProducts = useMemo(() => {
@@ -181,7 +189,7 @@ export default function ProductsPage() {
       list.sort((a, b) => getProductStock(a) - getProductStock(b));
     }
     return list;
-  }, [filteredProducts, sortBy, categories]);
+  }, [filteredProducts, sortBy, categories, getProductCategory]);
 
   // Group products by category for Grouped View
   const groupedProducts = useMemo(() => {
@@ -201,17 +209,27 @@ export default function ProductsPage() {
     return Array.from(map.values()).filter((g) =>
       selectedCategory === 'all' ? g.items.length > 0 : g.category.id === selectedCategory
     );
-  }, [sortedProducts, categories, selectedCategory]);
+  }, [sortedProducts, categories, selectedCategory, getProductCategory]);
 
   return (
     <div className="flex-1 flex flex-col">
       <Header
         title="Quản lý Sản phẩm & Danh mục Phân loại"
-        subtitle="Hiển thị và sắp xếp toàn diện 125 sản phẩm vào từng danh mục thời trang nam chuẩn mực"
+        subtitle="Hiển thị và sắp xếp toàn diện sản phẩm theo từng danh mục thời trang nam chuẩn mực"
         onRefresh={loadData}
       />
 
       <div className="p-8 space-y-6 flex-1">
+        {loadError && (
+          <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>
+              Không tải được danh sách sản phẩm: {loadError}. Kiểm tra backend có đang chạy tại{' '}
+              <code className="font-mono">http://localhost:5000</code> không.
+            </span>
+          </div>
+        )}
+
         {/* Toast Notification */}
         {notification && (
           <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg animate-fade-in">

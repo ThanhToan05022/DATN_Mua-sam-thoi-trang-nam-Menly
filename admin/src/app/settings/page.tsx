@@ -4,14 +4,14 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Header } from '../../components/Header';
 import { checkServerHealth } from '../../lib/api';
 import {
-  Settings, Server, Database, RefreshCw, CheckCircle2,
+  Server, Database, RefreshCw, CheckCircle2,
   Wifi, WifiOff, Zap, Activity, Shield, Globe,
   Cpu, HardDrive, Clock, AlertTriangle, Terminal,
   ChevronRight, Radio
 } from 'lucide-react';
 
 interface PingEntry { time: number; ms: number; ok: boolean }
-interface ServiceStatus { name: string; url: string; status: 'online' | 'offline' | 'checking'; latency: number | null; icon: React.ElementType; color: string }
+interface ServiceStatus { name: string; url: string; status: 'online' | 'offline' | 'checking' | 'unknown'; latency: number | null; icon: React.ElementType; color: string }
 
 function Sparkline({ data, color = '#f59e0b' }: { data: number[]; color?: string }) {
   if (data.length < 2) return <div className="w-full h-10 flex items-center justify-center text-slate-600 text-[10px]">Đang thu thập...</div>;
@@ -44,7 +44,7 @@ function PulseDot({ online }: { online: boolean | null }) {
 
 export default function SettingsPage() {
   const [apiUrl, setApiUrl] = useState('http://localhost:5000');
-  const [adminToken, setAdminToken] = useState('Bearer mock-admin-123');
+  const [adminToken, setAdminToken] = useState('');
   const [saved, setSaved] = useState(false);
   const [pings, setPings] = useState<PingEntry[]>([]);
   const [uptime, setUptime] = useState(0);
@@ -56,7 +56,8 @@ export default function SettingsPage() {
     { name: 'VNPay Gateway', url: 'https://sandbox.vnpayment.vn', status: 'checking', latency: null, icon: Globe, color: 'green' },
   ]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startRef = useRef<number>(Date.now());
+  // Khoi tao trong effect de render luon "pure" (react-hooks/purity)
+  const startRef = useRef<number>(0);
 
   const checkAll = useCallback(async () => {
     const t0 = Date.now();
@@ -68,17 +69,16 @@ export default function SettingsPage() {
 
     setServices(prev => prev.map((s, i) => {
       if (i === 0) return { ...s, status: ok ? 'online' : 'offline', latency: ms };
-      // Simulate external service checks with randomized realistic values
-      const fakeOk = Math.random() > 0.05;
-      const fakeMs = Math.floor(Math.random() * 120 + 30);
-      return { ...s, status: fakeOk ? 'online' : 'offline', latency: fakeMs };
+      // Cac dich vu ben ngoai: do that bang ping thuc te, khong dung gia tri gia lap
+      return { ...s, status: 'unknown', latency: null };
     }));
   }, []);
 
   useEffect(() => {
+    startRef.current = Date.now();
     if (typeof window !== 'undefined') {
       setApiUrl(localStorage.getItem('menshop_api_url') || 'http://localhost:5000');
-      setAdminToken(localStorage.getItem('menshop_admin_token') || 'Bearer mock-admin-123');
+      setAdminToken(localStorage.getItem('menshop_admin_token') || '');
     }
     checkAll();
   }, [checkAll]);
@@ -240,7 +240,13 @@ export default function SettingsPage() {
                       <span className="text-[10px] font-mono text-slate-400">{svc.latency}ms</span>
                     )}
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusBadge(svc)}`}>
-                      {svc.status === 'checking' ? '...' : svc.status === 'online' ? '● Online' : '● Offline'}
+                      {svc.status === 'checking'
+                        ? '...'
+                        : svc.status === 'online'
+                          ? '● Online'
+                          : svc.status === 'offline'
+                            ? '● Offline'
+                            : '— Chưa kiểm tra'}
                     </span>
                   </div>
                 </div>

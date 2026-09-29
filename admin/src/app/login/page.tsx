@@ -11,8 +11,8 @@ export default function LoginPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
 
   // Form states
-  const [email, setEmail] = useState('admin@gmail.com');
-  const [password, setPassword] = useState('123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -39,8 +39,11 @@ export default function LoginPage() {
         router.push('/');
       }, 800);
     } catch (err: unknown) {
-      const error = err as { message?: string; status?: number };
-      setErrorMsg(error.message || 'Đăng nhập không thành công');
+      const error = err as { message?: string };
+      setErrorMsg(
+        error.message ||
+          'Không kết nối được tới máy chủ. Hãy chắc chắn backend đang chạy tại http://localhost:5000'
+      );
       try {
         await getLockoutStatus(email);
       } catch {
@@ -62,7 +65,7 @@ export default function LoginPage() {
     setSuccessMsg(null);
 
     try {
-      const res = await registerUser(name, email, password, 'user');
+      const res = await registerUser(name, email, password);
       setSuccessMsg(`Đăng ký thành công tài khoản người dùng ${res.user.email}! Đang chuyển sang đăng nhập...`);
       setTimeout(() => {
         setMode('login');

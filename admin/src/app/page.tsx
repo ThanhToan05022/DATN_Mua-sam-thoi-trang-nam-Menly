@@ -13,7 +13,7 @@ import {
   fetchAdminProducts,
 } from '../lib/api';
 import { Order, Category, InventoryMovement, Product } from '../lib/types';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, AlertCircle } from 'lucide-react';
 
 function toLocalDateString(d: Date): string {
   const y = d.getFullYear();
@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [, setMovements] = useState<InventoryMovement[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Date filter state
   const [preset, setPreset] = useState<DateFilterPreset>('all');
@@ -40,14 +41,20 @@ export default function DashboardPage() {
         fetchCategories(),
         fetchAdminOrders(),
         fetchInventoryMovements(),
-        fetchAdminProducts({ limit: 125 }),
+        fetchAdminProducts({ limit: 200 }),
       ]);
       setCategories(cats);
       setOrders(ords);
       setMovements(movs);
       setProducts(prods.items || []);
+      setLoadError(null);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
+      setLoadError(
+        err instanceof Error
+          ? err.message
+          : 'Không tải được dữ liệu từ máy chủ. Hãy chắc chắn backend đang chạy.'
+      );
     }
   }, []);
 
@@ -125,26 +132,18 @@ export default function DashboardPage() {
     return 'Tất cả các ngày';
   }, [preset, customDay, fromDay, toDay]);
 
-  // Category donut segments (5 categories x 25 items)
+  // Category donut segments — so sanh vo so sanh thuoc ve moi danh muc
   const categoryColors = ['#f59e0b', '#3b82f6', '#10b981', '#6366f1', '#a855f7'];
-  const donutSegments: DonutSegment[] = categories.map((cat, idx) => ({
-    id: cat.id,
-    label: cat.name,
-    value: 25,
-    count: 25,
-    color: categoryColors[idx % categoryColors.length],
-  }));
-
-  const finalDonutSegments: DonutSegment[] =
-    donutSegments.length > 0
-      ? donutSegments
-      : [
-          { id: 'c1', label: 'Áo Sơ Mi Nam', value: 25, count: 25, color: '#f59e0b' },
-          { id: 'c2', label: 'Áo Polo & T-Shirt', value: 25, count: 25, color: '#3b82f6' },
-          { id: 'c3', label: 'Quần Tây & Kaki', value: 25, count: 25, color: '#10b981' },
-          { id: 'c4', label: 'Quần Jeans Nam', value: 25, count: 25, color: '#6366f1' },
-          { id: 'c5', label: 'Áo Khoác & Blazer', value: 25, count: 25, color: '#a855f7' },
-        ];
+  const donutSegments: DonutSegment[] = categories.map((cat, idx) => {
+    const count = products.filter((p) => p.categoryId === cat.id).length;
+    return {
+      id: cat.id,
+      label: cat.name,
+      value: count,
+      count,
+      color: categoryColors[idx % categoryColors.length],
+    };
+  });
 
   return (
     <div className="flex-1 flex flex-col">
@@ -155,6 +154,23 @@ export default function DashboardPage() {
       />
 
       <div className="p-8 space-y-8 flex-1">
+        {loadError && (
+          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>
+              Không tải được dữ liệu: {loadError}. Kiểm tra backend có đang chạy tại{' '}
+              <code className="font-mono text-xs">http://localhost:5000</code> không.
+            </span>
+          </div>
+        )}
+
+        {products.length === 0 && categories.length === 0 && !loadError && (
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm">
+            Chưa có dữ liệu. Hãy chạy <code className="font-mono text-xs">npm run seed</code> trong thư mục
+            backend để nạp dữ liệu mẫu.
+          </div>
+        )}
+
         {/* 1. DATE FILTER TOOLBAR */}
         <DashboardDateFilter
           preset={preset}
@@ -199,7 +215,7 @@ export default function DashboardPage() {
           completedOrProcessing={completedOrProcessing}
           totalOrdersCount={totalOrdersCount}
           totalRevenue={totalRevenue}
-          finalDonutSegments={finalDonutSegments}
+          finalDonutSegments={donutSegments}
           dateLabel={dateLabel}
         />
       </div>
