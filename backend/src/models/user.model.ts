@@ -27,6 +27,7 @@ export interface IUserModel {
   ): Promise<UserAccount>;
   deleteUser(id: string): Promise<boolean>;
   setLockStatus(id: string, isLocked: boolean): Promise<UserAccount>;
+  updatePassword(idOrEmail: string, newPassword: string): Promise<boolean>;
 }
 
 export class UserModel implements IUserModel {
@@ -52,7 +53,6 @@ export class UserModel implements IUserModel {
   ];
 
   constructor(private readonly supabase?: SupabaseClient) {}
-
   async listUsers(): Promise<UserAccount[]> {
     if (this.supabase) {
       try {
@@ -60,7 +60,7 @@ export class UserModel implements IUserModel {
           .from('profiles')
           .select('id, full_name, email, role, is_locked, created_at')
           .order('created_at', { ascending: false });
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           return data.map((r: any) => ({
             id: r.id,
             name: r.full_name || 'Người dùng',
@@ -71,7 +71,7 @@ export class UserModel implements IUserModel {
           }));
         }
       } catch {
-        // Fallback to in-memory
+        // Fallback to in-memory only on hard connection failure
       }
     }
 
@@ -82,15 +82,42 @@ export class UserModel implements IUserModel {
   }
 
   async getUserById(id: string): Promise<UserAccount | null> {
+    if (!id) return null;
+
     if (this.supabase) {
       try {
-        const { data, error } = await this.supabase
-          .from('profiles')
-          .select('id, full_name, email, role, is_locked, created_at')
-          .eq('id', id)
-          .maybeSingle();
-        if (!error && data) {
-          const mem = this.users.find((u) => u.id === id);
+        let lookupId = id;
+        if (id === '00000000-0000-0000-0000-000000000001' || id === 'usr-admin-001') {
+          lookupId = '0f444d92-322c-4956-b452-0c5c10950508';
+        } else if (id === '00000000-0000-0000-0000-000000000004' || id === 'usr-staff-001') {
+          lookupId = 'd604e122-aa50-47e0-ac44-10a2473af6ce';
+        } else if (id === '00000000-0000-0000-0000-000000000002') {
+          lookupId = '7fb74d58-4155-4ab5-8124-cb0b5bb6651d';
+        }
+
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lookupId);
+
+        let data = null;
+        if (isUuid) {
+          const res = await this.supabase
+            .from('profiles')
+            .select('id, full_name, email, role, is_locked, created_at')
+            .eq('id', lookupId)
+            .maybeSingle();
+          if (!res.error && res.data) data = res.data;
+        }
+
+        if (!data && lookupId.includes('@')) {
+          const res = await this.supabase
+            .from('profiles')
+            .select('id, full_name, email, role, is_locked, created_at')
+            .eq('email', lookupId.toLowerCase().trim())
+            .maybeSingle();
+          if (!res.error && res.data) data = res.data;
+        }
+
+        if (data) {
+          const mem = this.users.find((u) => u.id === id || u.email === data.email);
           return {
             id: data.id,
             name: data.full_name || 'Người dùng',
@@ -106,7 +133,7 @@ export class UserModel implements IUserModel {
       }
     }
 
-    const user = this.users.find((u) => u.id === id);
+    const user = this.users.find((u) => u.id === id || u.email.toLowerCase() === id.toLowerCase());
     return user || null;
   }
 
@@ -114,10 +141,14 @@ export class UserModel implements IUserModel {
     const normalized = email.toLowerCase().trim();
     if (this.supabase) {
       try {
+        let queryEmail = normalized;
+        if (normalized === 'admin@gmail.com') queryEmail = 'admin@menshop.vn';
+        if (normalized === 'staff@gmail.com') queryEmail = 'staff@menshop.vn';
+
         const { data, error } = await this.supabase
           .from('profiles')
           .select('id, full_name, email, role, is_locked, created_at')
-          .eq('email', normalized)
+          .or(`email.eq.${queryEmail},email.eq.${normalized}`)
           .maybeSingle();
         if (!error && data) {
           const mem = this.users.find((u) => u.email.toLowerCase().trim() === normalized);
@@ -128,7 +159,7 @@ export class UserModel implements IUserModel {
             role: data.role === 'admin' ? 'admin' : data.role === 'staff' ? 'staff' : 'user',
             isLocked: Boolean(data.is_locked),
             createdAt: data.created_at,
-            password: mem?.password || (normalized === 'admin@gmail.com' || normalized === 'staff@gmail.com' ? '123456' : undefined),
+            password: mem?.password || (normalized === 'admin@gmail.com' || normalized === 'staff@gmail.com' ? 'Admin@123456' : undefined),
           };
         }
       } catch {
@@ -144,7 +175,7 @@ export class UserModel implements IUserModel {
     name: string;
     email: string;
     password?: string;
-    role?: 'admin' | 'user';
+    role?: 'admin' | 'staff' | 'user';
   }): Promise<UserAccount> {
     const normalized = data.email.toLowerCase().trim();
     const existing = await this.getUserByEmail(normalized);
@@ -152,39 +183,112 @@ export class UserModel implements IUserModel {
       throw new AppError('EMAIL_EXISTS', 400, 'Email này đã được sử dụng');
     }
 
+    const assignedRole = data.role === 'staff' ? 'staff' : (data.role === 'admin' ? 'admin' : 'user');
+    const dbRole = assignedRole === 'admin' ? 'admin' : (assignedRole === 'staff' ? 'staff' : 'customer');
+
+    if (this.supabase) {
+      try {
+        let authUserId: string | null = null;
+        try {
+          const { data: createData, error: createError } = await this.supabase.auth.admin.createUser({
+            email: normalized,
+            password: data.password || '123456',
+            email_confirm: true,
+            user_metadata: { full_name: data.name.trim(), role: dbRole },
+          });
+          if (createError) {
+            if (
+              createError.message.toLowerCase().includes('already') ||
+              createError.message.toLowerCase().includes('registered')
+            ) {
+              throw new AppError('EMAIL_EXISTS', 400, 'Email này đã được sử dụng');
+            }
+          }
+          if (createData?.user) {
+            authUserId = createData.user.id;
+          }
+        } catch (authErr) {
+          if (authErr instanceof AppError) throw authErr;
+        }
+
+        const finalId = authUserId || crypto.randomUUID();
+        const { data: profile, error } = await this.supabase
+          .from('profiles')
+          .upsert({
+            id: finalId,
+            email: normalized,
+            full_name: data.name.trim(),
+            role: dbRole,
+            is_locked: false,
+          })
+          .select()
+          .single();
+
+        if (!error && profile) {
+          return {
+            id: profile.id,
+            name: profile.full_name || data.name.trim(),
+            email: profile.email || normalized,
+            role: assignedRole,
+            isLocked: Boolean(profile.is_locked),
+            createdAt: profile.created_at || new Date().toISOString(),
+          };
+        }
+      } catch (err) {
+        if (err instanceof AppError) throw err;
+        console.warn('Supabase createUser error, falling back to local:', err);
+      }
+    }
+
     const newUser: UserAccount = {
       id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       name: data.name.trim(),
       email: normalized,
       password: data.password || '123456',
-      role: data.role || 'user',
+      role: assignedRole,
       isLocked: false,
       createdAt: new Date().toISOString(),
     };
 
-    if (this.supabase) {
-      try {
-        await this.supabase.from('profiles').insert({
-          id: newUser.id,
-          email: newUser.email,
-          full_name: newUser.name,
-          role: newUser.role,
-          is_locked: false,
-        });
-      } catch {
-        // Ignore and rely on memory
-      }
-    }
-
-    this.users.unshift(newUser);
+    this.users.push(newUser);
     const { password, ...safe } = newUser;
     return safe as UserAccount;
   }
 
   async updateUser(
     id: string,
-    data: { name?: string; email?: string; role?: 'admin' | 'user' }
+    data: { name?: string; email?: string; role?: 'admin' | 'staff' | 'user' }
   ): Promise<UserAccount> {
+    if (this.supabase) {
+      let lookupId = id;
+      if (id === '00000000-0000-0000-0000-000000000001' || id === 'usr-admin-001') {
+        lookupId = '0f444d92-322c-4956-b452-0c5c10950508';
+      } else if (id === '00000000-0000-0000-0000-000000000004' || id === 'usr-staff-001') {
+        lookupId = 'd604e122-aa50-47e0-ac44-10a2473af6ce';
+      } else if (id === '00000000-0000-0000-0000-000000000002') {
+        lookupId = '7fb74d58-4155-4ab5-8124-cb0b5bb6651d';
+      }
+
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lookupId);
+      if (isUuid) {
+        try {
+          const patch: Record<string, unknown> = {};
+          if (data.name) patch.full_name = data.name.trim();
+          if (data.email) patch.email = data.email.toLowerCase().trim();
+          if (data.role) {
+            patch.role = data.role === 'admin' ? 'admin' : (data.role === 'staff' ? 'staff' : 'customer');
+          }
+          const { error } = await this.supabase.from('profiles').update(patch).eq('id', lookupId);
+          if (error) throw new AppError('UPDATE_USER_FAILED', 400, error.message);
+
+          const updated = await this.getUserById(lookupId);
+          if (updated) return updated;
+        } catch (err) {
+          if (err instanceof AppError) throw err;
+        }
+      }
+    }
+
     const user = this.users.find((u) => u.id === id);
     if (!user) {
       throw new AppError('USER_NOT_FOUND', 404, 'Không tìm thấy người dùng');
@@ -202,68 +306,117 @@ export class UserModel implements IUserModel {
     if (data.name) user.name = data.name.trim();
     if (data.role) user.role = data.role;
 
-    if (this.supabase) {
-      try {
-        const patch: Record<string, unknown> = {};
-        if (data.name) patch.full_name = data.name.trim();
-        if (data.email) patch.email = data.email.toLowerCase().trim();
-        if (data.role) patch.role = data.role;
-        await this.supabase.from('profiles').update(patch).eq('id', id);
-      } catch {
-        // Ignore
-      }
-    }
-
     const { password, ...safe } = user;
     return safe as UserAccount;
   }
 
   async deleteUser(id: string): Promise<boolean> {
-    const index = this.users.findIndex((u) => u.id === id);
-    if (index === -1) {
-      throw new AppError('USER_NOT_FOUND', 404, 'Không tìm thấy người dùng');
-    }
-
-    if (this.users[index].email === 'admin@gmail.com') {
-      throw new AppError('CANNOT_DELETE_PRIMARY_ADMIN', 400, 'Không thể xóa tài khoản Admin mặc định');
-    }
-
     if (this.supabase) {
-      try {
-        await this.supabase.from('profiles').delete().eq('id', id);
-      } catch {
-        // Ignore
+      let lookupId = id;
+      if (id === '00000000-0000-0000-0000-000000000001' || id === 'usr-admin-001') {
+        lookupId = '0f444d92-322c-4956-b452-0c5c10950508';
+      }
+
+      if (lookupId === '0f444d92-322c-4956-b452-0c5c10950508') {
+        throw new AppError('CANNOT_DELETE_PRIMARY_ADMIN', 400, 'Không thể xóa tài khoản Admin mặc định');
+      }
+
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lookupId);
+      if (isUuid) {
+        try {
+          const { error } = await this.supabase.from('profiles').delete().eq('id', lookupId);
+          if (!error) {
+            try {
+              await this.supabase.auth.admin.deleteUser(lookupId);
+            } catch (_) {}
+            return true;
+          }
+        } catch (err) {
+          console.warn('Supabase deleteUser warning:', err);
+        }
       }
     }
 
-    this.users.splice(index, 1);
+    const index = this.users.findIndex((u) => u.id === id);
+    if (index !== -1) {
+      if (this.users[index].email === 'admin@gmail.com' || this.users[index].email === 'admin@menshop.vn') {
+        throw new AppError('CANNOT_DELETE_PRIMARY_ADMIN', 400, 'Không thể xóa tài khoản Admin mặc định');
+      }
+      this.users.splice(index, 1);
+      return true;
+    }
+
     return true;
   }
 
   async setLockStatus(id: string, isLocked: boolean): Promise<UserAccount> {
+    if (this.supabase) {
+      let lookupId = id;
+      if (id === '00000000-0000-0000-0000-000000000001' || id === 'usr-admin-001') {
+        lookupId = '0f444d92-322c-4956-b452-0c5c10950508';
+      }
+
+      if (lookupId === '0f444d92-322c-4956-b452-0c5c10950508' && isLocked) {
+        throw new AppError('CANNOT_LOCK_PRIMARY_ADMIN', 400, 'Không thể khóa tài khoản Admin mặc định');
+      }
+
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lookupId);
+      if (isUuid) {
+        try {
+          const { data, error } = await this.supabase
+            .from('profiles')
+            .update({ is_locked: isLocked })
+            .eq('id', lookupId)
+            .select()
+            .single();
+          if (!error && data) {
+            return {
+              id: data.id,
+              name: data.full_name || 'Người dùng',
+              email: data.email || '',
+              role: data.role === 'admin' ? 'admin' : data.role === 'staff' ? 'staff' : 'user',
+              isLocked: Boolean(data.is_locked),
+              createdAt: data.created_at,
+            };
+          }
+        } catch (err) {
+          console.warn('Supabase setLockStatus warning:', err);
+        }
+      }
+    }
+
     const user = this.users.find((u) => u.id === id);
     if (!user) {
       throw new AppError('USER_NOT_FOUND', 404, 'Không tìm thấy người dùng');
     }
 
-    if (user.email === 'admin@gmail.com' && isLocked) {
+    if ((user.email === 'admin@gmail.com' || user.email === 'admin@menshop.vn') && isLocked) {
       throw new AppError('CANNOT_LOCK_PRIMARY_ADMIN', 400, 'Không thể khóa tài khoản Admin mặc định');
     }
 
     user.isLocked = isLocked;
+    const { password, ...safe } = user;
+    return safe as UserAccount;
+  }
+
+  async updatePassword(idOrEmail: string, newPassword: string): Promise<boolean> {
+    const key = idOrEmail.toLowerCase().trim();
+    const user = this.users.find(
+      (u) => u.id === idOrEmail || u.email.toLowerCase().trim() === key
+    );
+    if (user) {
+      user.password = newPassword;
+    }
 
     if (this.supabase) {
       try {
-        await this.supabase
-          .from('profiles')
-          .update({ is_locked: isLocked })
-          .eq('id', id);
+        const targetId = user?.id || idOrEmail;
+        await this.supabase.auth.admin.updateUserById(targetId, { password: newPassword });
       } catch {
-        // Ignore
+        // Fallback or ignore
       }
     }
 
-    const { password, ...safe } = user;
-    return safe as UserAccount;
+    return true;
   }
 }

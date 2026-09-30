@@ -16,6 +16,8 @@ export const createOrderSchema = z.object({
     )
     .optional(),
   note: z.string().optional(),
+  voucherCode: z.string().optional(),
+  discountAmount: z.number().int().min(0).optional(),
 });
 
 export const trackOrderSchema = z.object({

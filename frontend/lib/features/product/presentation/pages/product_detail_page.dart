@@ -23,6 +23,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   bool _loading = true;
   String? _errorMessage;
   ProductVariant? _selectedVariant;
+  String? _selectedSize;
+  String? _selectedColor;
   int _qty = 1;
   bool _addedToCart = false;
 
@@ -52,6 +54,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           _product = Product.fromJson(json);
           if (_product!.variants.isNotEmpty) {
             _selectedVariant = _product!.variants.first;
+            _selectedSize = _selectedVariant?.size;
+            _selectedColor = _selectedVariant?.color;
           }
           _loading = false;
         });
@@ -408,61 +412,192 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
                 // Variants
                 if (p.variants.isNotEmpty) ...[
-                  const Text(
-                    'Chọn phân loại',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: p.variants.map((v) {
-                      final sel = v.id == _selectedVariant?.id;
-                      return GestureDetector(
-                        onTap: () => setState(() => _selectedVariant = v),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: sel ? AppTheme.primaryGradient : null,
-                            color: sel ? null : AppTheme.surface2,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: sel ? Colors.transparent : AppTheme.border,
-                              width: 1.5,
+                  Builder(
+                    builder: (context) {
+                      final uniqueSizes = <String>[];
+                      for (final v in p.variants) {
+                        final s = v.size.trim();
+                        if (s.isNotEmpty && !uniqueSizes.contains(s)) {
+                          uniqueSizes.add(s);
+                        }
+                      }
+
+                      final uniqueColors = <String>[];
+                      for (final v in p.variants) {
+                        final c = v.color.trim();
+                        if (c.isNotEmpty && !uniqueColors.contains(c)) {
+                          uniqueColors.add(c);
+                        }
+                      }
+
+                      if (uniqueSizes.isEmpty && uniqueColors.isEmpty) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Chọn phân loại',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                            boxShadow: sel
-                                ? [
-                                    BoxShadow(
-                                      color: AppTheme.primary.withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Text(
-                            '${v.size} / ${v.color}',
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: p.variants.map((v) {
+                                final sel = v.id == _selectedVariant?.id;
+                                return GestureDetector(
+                                  onTap: () => setState(() => _selectedVariant = v),
+                                  child: _buildVariantPill(
+                                    label: v.sku.isNotEmpty ? v.sku : 'Mặc định',
+                                    selected: sel,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                        );
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Chọn phân loại',
                             style: TextStyle(
-                              color: sel
-                                  ? Colors.black
-                                  : AppTheme.textSecondary,
-                              fontSize: 13,
+                              color: Colors.white,
+                              fontSize: 16,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ),
+                          const SizedBox(height: 14),
+
+                          // Size section (Bên trên là Size)
+                          if (uniqueSizes.isNotEmpty) ...[
+                            Row(
+                              children: [
+                                const Text(
+                                  'Kích thước',
+                                  style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (_selectedSize != null) ...[
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '($_selectedSize)',
+                                    style: const TextStyle(
+                                      color: AppTheme.primary,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: uniqueSizes.map((size) {
+                                final sel = size == _selectedSize;
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSize = size;
+                                      final match = p.variants.cast<ProductVariant?>().firstWhere(
+                                        (v) => v?.size == size && v?.color == _selectedColor,
+                                        orElse: () => p.variants.cast<ProductVariant?>().firstWhere(
+                                          (v) => v?.size == size,
+                                          orElse: () => p.variants.first,
+                                        ),
+                                      );
+                                      if (match != null) {
+                                        _selectedVariant = match;
+                                        _selectedColor = match.color;
+                                      }
+                                    });
+                                  },
+                                  child: _buildVariantPill(
+                                    label: size,
+                                    selected: sel,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // Color section (Bên dưới là Màu)
+                          if (uniqueColors.isNotEmpty) ...[
+                            Row(
+                              children: [
+                                const Text(
+                                  'Màu sắc',
+                                  style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (_selectedColor != null) ...[
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '($_selectedColor)',
+                                    style: const TextStyle(
+                                      color: AppTheme.primary,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: uniqueColors.map((color) {
+                                final sel = color == _selectedColor;
+                                final isAvailableForSize = p.variants.any(
+                                  (v) => v.size == _selectedSize && v.color == color,
+                                );
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedColor = color;
+                                      final match = p.variants.cast<ProductVariant?>().firstWhere(
+                                        (v) => v?.color == color && v?.size == _selectedSize,
+                                        orElse: () => p.variants.cast<ProductVariant?>().firstWhere(
+                                          (v) => v?.color == color,
+                                          orElse: () => p.variants.first,
+                                        ),
+                                      );
+                                      if (match != null) {
+                                        _selectedVariant = match;
+                                        _selectedSize = match.size;
+                                      }
+                                    });
+                                  },
+                                  child: _buildVariantPill(
+                                    label: color,
+                                    selected: sel,
+                                    dimmed: !isAvailableForSize,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                        ],
                       );
-                    }).toList(),
+                    },
                   ),
-                  const SizedBox(height: 20),
                 ],
 
                 // Quantity
@@ -514,6 +649,50 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildVariantPill({
+    required String label,
+    required bool selected,
+    bool dimmed = false,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 9,
+      ),
+      decoration: BoxDecoration(
+        gradient: selected ? AppTheme.primaryGradient : null,
+        color: selected ? null : AppTheme.surface2,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: selected
+              ? Colors.transparent
+              : (dimmed ? AppTheme.border.withOpacity(0.3) : AppTheme.border),
+          width: 1.5,
+        ),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: AppTheme.primary.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: selected
+              ? Colors.black
+              : (dimmed ? AppTheme.textMuted : AppTheme.textSecondary),
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

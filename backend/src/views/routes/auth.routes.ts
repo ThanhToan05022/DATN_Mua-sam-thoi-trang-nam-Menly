@@ -2,11 +2,13 @@ import { Router, RequestHandler } from 'express';
 import { AuthViewModel } from '../../viewmodels/auth.viewmodel.js';
 import { loginSchema, registerSchema, unlockSchema } from '../../presentation/http/schemas/auth.schema.js';
 import { AppError } from '../../models/types.js';
+import { IUserModel } from '../../models/user.model.js';
 
 export const authRoutes = (
   authVm: AuthViewModel,
   requireAuth?: RequestHandler,
-  requireAdmin?: RequestHandler
+  requireAdmin?: RequestHandler,
+  userModel?: IUserModel
 ): Router => {
   const router = Router();
 
@@ -73,6 +75,39 @@ export const authRoutes = (
       next(err);
     }
   });
+
+  // 5. Change password (both POST and PUT supported)
+  const authMiddleware = requireAuth ? [requireAuth] : [];
+  const changePasswordHandler: RequestHandler = async (req, res, next) => {
+    try {
+      const { currentPassword, newPassword } = req.body || {};
+      if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+        throw new AppError('VALIDATION_ERROR', 400, 'Mật khẩu mới phải có tối thiểu 6 ký tự');
+      }
+
+      const userEmail = req.user?.email || (req.headers['x-user-email'] as string) || '';
+      const userId = req.user?.id || (req.headers['x-user-id'] as string) || '';
+
+      if (userModel) {
+        if (currentPassword) {
+          const existing = (userEmail ? await userModel.getUserByEmail(userEmail) : null) ||
+                           (userId ? await userModel.getUserById(userId) : null);
+          if (existing?.password && existing.password !== currentPassword) {
+            throw new AppError('INVALID_CREDENTIALS', 400, 'Mật khẩu hiện tại không chính xác');
+          }
+        }
+        if (userId) await userModel.updatePassword(userId, newPassword);
+        if (userEmail) await userModel.updatePassword(userEmail, newPassword);
+      }
+
+      res.json({ message: 'Đổi mật khẩu thành công' });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  router.post('/change-password', ...authMiddleware, changePasswordHandler);
+  router.put('/change-password', ...authMiddleware, changePasswordHandler);
 
   return router;
 };

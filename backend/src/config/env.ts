@@ -13,7 +13,7 @@ const envSchema = z.object({
   VNPAY_HASH_SECRET: z.string().default('SECRETKEYFORSANDBOXTESTING1234567890'),
   VNPAY_PAY_URL: z.string().url().default('https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'),
   VNPAY_RETURN_URL: z.string().url().default('http://localhost:5000/api/v1/payments/vnpay/return'),
-  USE_MOCK_DB: z.string().transform((val) => val === 'true').default('true'),
+  USE_MOCK_DB: z.string().transform((val) => val === 'true').default('false'),
 });
 
 export const env = envSchema.parse(process.env);

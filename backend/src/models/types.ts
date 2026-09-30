@@ -145,6 +145,8 @@ export interface Order {
   note?: string;
   idempotencyKey?: string | null;
   expiresAt?: string | null;
+  voucherCode?: string | null;
+  discountAmount?: number;
   createdAt: string;
   items?: OrderItem[];
 }
@@ -192,4 +194,22 @@ export interface AdminAuditLog {
   before?: unknown;
   after?: unknown;
   createdAt: string;
+}
+
+export type DiscountType = 'percentage' | 'fixed_amount';
+
+export interface Voucher {
+  id: string;
+  code: string;
+  title: string;
+  discountType: DiscountType;
+  discountValue: number;
+  minOrderValue: number;
+  maxDiscount?: number | null;
+  usageLimit: number;
+  usedCount: number;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  createdAt?: string;
 }

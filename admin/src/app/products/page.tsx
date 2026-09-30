@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Header } from '../../components/Header';
 import { ProductDetailModal } from '../../components/ProductDetailModal';
+import { CompactVariantDisplay } from '../../components/CompactVariantDisplay';
 import { fetchAdminProducts, fetchCategories, fetchProductDetail, updateProduct } from '../../lib/api';
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../../lib/mock-admin-data';
 import { Product, Category } from '../../lib/types';
@@ -43,7 +44,7 @@ export default function ProductsPage() {
     try {
       const [cats, prods] = await Promise.all([
         fetchCategories(),
-        fetchAdminProducts({ limit: 125 }),
+        fetchAdminProducts({ limit: 400 }),
       ]);
       if (cats && cats.length > 0) {
         setCategories(cats);
@@ -207,7 +208,7 @@ export default function ProductsPage() {
     <div className="flex-1 flex flex-col">
       <Header
         title="Quản lý Sản phẩm & Danh mục Phân loại"
-        subtitle="Hiển thị và sắp xếp toàn diện 125 sản phẩm vào từng danh mục thời trang nam chuẩn mực"
+        subtitle="Hiển thị và sắp xếp 125 sản phẩm vào từng danh mục (25 sản phẩm / danh mục) chuẩn mực"
         onRefresh={loadData}
       />
 
@@ -446,14 +447,10 @@ export default function ProductsPage() {
                             <td className="py-2.5 px-4 font-bold text-amber-400 font-mono text-xs">
                               {p.price.toLocaleString('vi-VN')} đ
                             </td>
-                            <td className="py-2.5 px-4">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[11px] font-medium text-slate-300">
-                                  {p.variants?.length
-                                    ? `${p.variants.length} size (${p.variants.map((v) => v.size).join(', ')})`
-                                    : '5 size (S, M, L, XL, XXL)'}
-                                </span>
-                                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold border border-emerald-500/20">
+                            <td className="py-2.5 px-4 min-w-[200px]">
+                              <div className="flex items-start justify-between gap-2">
+                                <CompactVariantDisplay variants={p.variants} />
+                                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold border border-emerald-500/20 shrink-0 mt-0.5">
                                   {totalStock} pcs
                                 </span>
                               </div>
@@ -533,14 +530,10 @@ export default function ProductsPage() {
                         <td className="py-3 px-4 font-bold text-amber-400 font-mono text-xs">
                           {p.price.toLocaleString('vi-VN')} đ
                         </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-semibold text-slate-200">
-                              {p.variants?.length
-                                ? `${p.variants.length} size (${p.variants.map((v) => v.size).join(', ')})`
-                                : '5 size (S, M, L, XL, XXL)'}
-                            </span>
-                            <span className="text-[11px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold border border-emerald-500/20">
+                        <td className="py-3 px-4 min-w-[200px]">
+                          <div className="flex items-start justify-between gap-2">
+                            <CompactVariantDisplay variants={p.variants} />
+                            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold border border-emerald-500/20 shrink-0 mt-0.5">
                               {totalStock} pcs
                             </span>
                           </div>

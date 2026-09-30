@@ -6,6 +6,8 @@ import type {
   InventoryMovement,
   AuditLog,
   UserAccount,
+  Voucher,
+  CreateVoucherInput,
 } from './types';
 
 import { INITIAL_CATEGORIES, INITIAL_PRODUCTS, INITIAL_ORDERS } from './mock-admin-data';
@@ -78,7 +80,8 @@ export async function fetchAdminProducts(params?: {
   search?: string;
 }): Promise<{ items: Product[]; total: number }> {
   const query = new URLSearchParams();
-  if (params?.limit) query.set('limit', String(params.limit));
+  const effectiveLimit = params?.limit || 400;
+  query.set('limit', String(effectiveLimit));
   if (params?.page) query.set('page', String(params.page));
   if (params?.categoryId) query.set('categoryId', params.categoryId);
   if (params?.search) {
@@ -387,3 +390,97 @@ export async function getLockoutStatus(email: string): Promise<unknown> {
   const res = await fetch(`${BASE}/api/v1/auth/status?email=${encodeURIComponent(email)}`);
   return res.json();
 }
+
+// ========== VOUCHERS ==========
+export async function fetchAdminVouchers(): Promise<Voucher[]> {
+  try {
+    const data = await apiFetch<any>('/api/v1/admin/vouchers');
+    if (Array.isArray(data)) return data;
+    return data?.data || [];
+  } catch {
+    // Return mock fallback vouchers if offline or not yet seeded
+    return [
+      {
+        id: 'vch-1',
+        code: 'MENLY10',
+        title: 'Giảm 10% tối đa 50k cho đơn từ 200k',
+        discountType: 'percentage',
+        discountValue: 10,
+        minOrderValue: 200000,
+        maxDiscount: 50000,
+        usageLimit: 100,
+        usedCount: 0,
+        startDate: '2026-01-01T00:00:00Z',
+        endDate: '2026-12-31T23:59:59Z',
+        isActive: true,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'vch-2',
+        code: 'MENLY50K',
+        title: 'Giảm ngay 50.000đ cho đơn từ 300k',
+        discountType: 'fixed_amount',
+        discountValue: 50000,
+        minOrderValue: 300000,
+        maxDiscount: 50000,
+        usageLimit: 50,
+        usedCount: 0,
+        startDate: '2026-01-01T00:00:00Z',
+        endDate: '2026-12-31T23:59:59Z',
+        isActive: true,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'vch-3',
+        code: 'FREESHIP',
+        title: 'Miễn phí vận chuyển (giảm 30.000đ)',
+        discountType: 'fixed_amount',
+        discountValue: 30000,
+        minOrderValue: 250000,
+        maxDiscount: 30000,
+        usageLimit: 200,
+        usedCount: 0,
+        startDate: '2026-01-01T00:00:00Z',
+        endDate: '2026-12-31T23:59:59Z',
+        isActive: true,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'vch-4',
+        code: 'VIP100K',
+        title: 'Giảm 100k cho khách VIP đơn từ 800k',
+        discountType: 'fixed_amount',
+        discountValue: 100000,
+        minOrderValue: 800000,
+        maxDiscount: 100000,
+        usageLimit: 30,
+        usedCount: 0,
+        startDate: '2026-01-01T00:00:00Z',
+        endDate: '2026-12-31T23:59:59Z',
+        isActive: true,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+  }
+}
+
+export async function createVoucher(data: CreateVoucherInput): Promise<Voucher> {
+  return apiFetch<Voucher>('/api/v1/admin/vouchers', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateVoucher(id: string, data: Partial<CreateVoucherInput>): Promise<Voucher> {
+  return apiFetch<Voucher>(`/api/v1/admin/vouchers/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteVoucher(id: string): Promise<boolean> {
+  return apiFetch<{ success: boolean }>(`/api/v1/admin/vouchers/${id}`, {
+    method: 'DELETE',
+  }).then((r) => r.success);
+}
+

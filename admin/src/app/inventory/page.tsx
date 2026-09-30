@@ -24,7 +24,7 @@ export default function InventoryPage() {
     try {
       const [movs, prods, cats] = await Promise.all([
         fetchInventoryMovements(),
-        fetchAdminProducts({ limit: 125 }),
+        fetchAdminProducts({ limit: 400 }),
         fetchCategories(),
       ]);
       setMovements(movs);
@@ -50,7 +50,7 @@ export default function InventoryPage() {
   const reloadMovementsAndProducts = async () => {
     const [updatedMovs, updatedProds] = await Promise.all([
       fetchInventoryMovements(),
-      fetchAdminProducts({ limit: 125 }),
+      fetchAdminProducts({ limit: 400 }),
     ]);
     setMovements(updatedMovs);
     setProducts(updatedProds.items || []);
@@ -60,7 +60,7 @@ export default function InventoryPage() {
     <div className="flex-1 flex flex-col">
       <Header
         title="Quản lý Kho Hàng & Tồn Kho Toàn Bộ Sản Phẩm"
-        subtitle="Theo dõi toàn bộ 125 sản phẩm, số lượng tồn kho theo từng kích cỡ và hiệu chỉnh xuất nhập tồn"
+        subtitle="Theo dõi toàn bộ 125 sản phẩm (25 sản phẩm / danh mục), số lượng tồn kho theo từng kích cỡ và hiệu chỉnh xuất nhập tồn"
         onRefresh={loadData}
       />
 

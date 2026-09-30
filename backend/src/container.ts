@@ -12,6 +12,7 @@ import { AdminModel } from './models/admin.model.js';
 import { AuthModel } from './models/auth.model.js';
 import { UserModel } from './models/user.model.js';
 import { WishlistModel } from './models/wishlist.model.js';
+import { VoucherModel } from './models/voucher.model.js';
 
 import { CategoryViewModel } from './viewmodels/category.viewmodel.js';
 import { ProductViewModel } from './viewmodels/product.viewmodel.js';
@@ -22,6 +23,7 @@ import { AdminViewModel } from './viewmodels/admin.viewmodel.js';
 import { AuthViewModel } from './viewmodels/auth.viewmodel.js';
 import { UserViewModel } from './viewmodels/user.viewmodel.js';
 import { WishlistViewModel } from './viewmodels/wishlist.viewmodel.js';
+import { VoucherViewModel } from './viewmodels/voucher.viewmodel.js';
 
 import { ProductSummary, Category, Page } from './models/types.js';
 
@@ -34,6 +36,12 @@ const useSupabase =
 export const supabase = useSupabase
   ? createSupabaseClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
   : undefined;
+
+if (supabase) {
+  console.log(`[Database] Supabase connected successfully: ${env.SUPABASE_URL}`);
+} else {
+  console.warn('[Database] Running with mock in-memory database (USE_MOCK_DB=true or no service key)');
+}
 
 // 2. Gateways & In-memory Caches
 export const vnpayGateway = new VnpayGateway({
@@ -56,18 +64,20 @@ export const adminModel = new AdminModel(supabase);
 export const userModel = new UserModel(supabase);
 export const authModel = new AuthModel(supabase, userModel);
 export const wishlistModel = new WishlistModel(supabase, productModel);
+export const voucherModel = new VoucherModel(supabase);
 
 // 4. ViewModels (Business Logic & State - VM in MVVM)
 export const viewModels = {
   category: new CategoryViewModel(categoryModel, categoryCache),
   product: new ProductViewModel(productModel, productCache),
   cart: new CartViewModel(cartModel),
-  order: new OrderViewModel(orderModel, cartModel),
+  order: new OrderViewModel(orderModel, cartModel, voucherModel),
   payment: new PaymentViewModel(orderModel, paymentModel, vnpayGateway),
   admin: new AdminViewModel(adminModel, orderModel),
   auth: new AuthViewModel(authModel),
   user: new UserViewModel(userModel),
   wishlist: new WishlistViewModel(wishlistModel),
+  voucher: new VoucherViewModel(voucherModel),
 };
 
 // Compatibility adapter for useCases

@@ -170,6 +170,61 @@ export class ProductModel implements IProductModel {
   }
 
   async create(data: Omit<ProductDetail, 'id' | 'createdAt'>): Promise<ProductDetail> {
+    if (this.supabase) {
+      const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const { data: prod, error } = await this.supabase
+        .from('products')
+        .insert({
+          category_id: data.categoryId,
+          name: data.name,
+          slug,
+          description: data.description || '',
+          price: data.price,
+          thumbnail_url: data.thumbnailUrl,
+          is_active: data.isActive ?? true,
+        })
+        .select()
+        .single();
+
+      if (error || !prod) {
+        throw new AppError('DB_PRODUCT_CREATE_FAILED', 400, error?.message || 'Không thể tạo sản phẩm');
+      }
+
+      let variants: any[] = [];
+      if (data.variants && data.variants.length > 0) {
+        const varRows = data.variants.map((v) => ({
+          product_id: prod.id,
+          size: v.size,
+          color: v.color,
+          sku: v.sku || `${slug}-${v.size}-${v.color}`,
+          stock: v.stock ?? 50,
+        }));
+        const { data: createdVars } = await this.supabase.from('product_variants').insert(varRows).select();
+        variants = createdVars || [];
+      }
+
+      return {
+        id: prod.id,
+        categoryId: prod.category_id,
+        name: prod.name,
+        slug: prod.slug,
+        description: prod.description,
+        price: prod.price,
+        thumbnailUrl: prod.thumbnail_url,
+        isActive: prod.is_active,
+        createdAt: prod.created_at,
+        variants: variants.map((v: any) => ({
+          id: v.id,
+          productId: v.product_id,
+          size: v.size,
+          color: v.color,
+          sku: v.sku,
+          stock: v.stock,
+        })),
+        images: [],
+      };
+    }
+
     const item: ProductDetail = {
       ...data,
       id: `p-${Date.now()}`,
@@ -192,10 +247,14 @@ export class ProductModel implements IProductModel {
         if (data.isActive !== undefined) patch.is_active = data.isActive;
 
         if (Object.keys(patch).length > 0) {
-          await this.supabase.from('products').update(patch).eq('id', id);
+          const { error } = await this.supabase.from('products').update(patch).eq('id', id);
+          if (error) throw new AppError('DB_PRODUCT_UPDATE_FAILED', 400, error.message);
         }
-      } catch {
-        // Fallback to in-memory
+
+        const updated = await this.findById(id);
+        if (updated) return updated;
+      } catch (err) {
+        if (err instanceof AppError) throw err;
       }
     }
 

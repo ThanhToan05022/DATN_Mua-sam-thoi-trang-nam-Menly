@@ -46,6 +46,8 @@ export const orderRoutes = (
         items: body.items,
         idempotencyKey,
         note: (body as any).note,
+        voucherCode: (body as any).voucherCode,
+        discountAmount: (body as any).discountAmount,
       });
 
       res.status(201).json(order);

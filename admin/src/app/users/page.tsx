@@ -18,7 +18,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'staff' | 'user'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'locked'>('all');
 
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -30,6 +30,8 @@ export default function UsersPage() {
     try {
       const data = await fetchAdminUsers();
       setUsers(data);
+    } catch (e: unknown) {
+      setMsg({ text: (e as Error).message || 'Lỗi khi tải danh sách người dùng', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -69,10 +71,19 @@ export default function UsersPage() {
   };
 
   const filteredUsers = users.filter((u) => {
-    const matchesSearch =
-      (u.name || u.fullName || '').toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase());
-    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+    const nameMatch = (u.name || u.fullName || '').toLowerCase();
+    const emailMatch = (u.email || '').toLowerCase();
+    const query = search.toLowerCase().trim();
+    const matchesSearch = !query || nameMatch.includes(query) || emailMatch.includes(query);
+
+    const userRole = (u.role || '').toLowerCase();
+    const matchesRole =
+      roleFilter === 'all' ||
+      userRole === roleFilter ||
+      (roleFilter === 'user' && (userRole === 'user' || userRole === 'customer')) ||
+      (roleFilter === 'staff' && userRole === 'staff') ||
+      (roleFilter === 'admin' && userRole === 'admin');
+
     const matchesStatus =
       statusFilter === 'all' ||
       (statusFilter === 'active' && !u.isLocked) ||
@@ -117,12 +128,13 @@ export default function UsersPage() {
             </div>
             <select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value as 'all' | 'admin' | 'user')}
+              onChange={(e) => setRoleFilter(e.target.value as 'all' | 'admin' | 'staff' | 'user')}
               className="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300"
             >
               <option value="all">Tất cả vai trò</option>
-              <option value="admin">Chỉ Admin</option>
-              <option value="user">Chỉ User</option>
+              <option value="admin">Quản trị viên (Admin)</option>
+              <option value="staff">Nhân viên (Staff)</option>
+              <option value="user">Khách hàng (User)</option>
             </select>
             <select
               value={statusFilter}

@@ -40,7 +40,7 @@ export default function DashboardPage() {
         fetchCategories(),
         fetchAdminOrders(),
         fetchInventoryMovements(),
-        fetchAdminProducts({ limit: 125 }),
+        fetchAdminProducts({ limit: 400 }),
       ]);
       setCategories(cats);
       setOrders(ords);

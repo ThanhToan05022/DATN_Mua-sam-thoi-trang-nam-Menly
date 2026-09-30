@@ -68,9 +68,9 @@ export function DashboardCircularSection({
       <div>
         <DonutChart
           title="Phân bổ Cơ cấu Danh mục (Donut Chart)"
-          subtitle="Tỷ trọng 125 sản phẩm phân bổ đều qua 5 danh mục thời trang nam cao cấp"
+          subtitle="Tỷ trọng 400 sản phẩm phân bổ đều qua 5 danh mục thời trang nam cao cấp"
           segments={finalDonutSegments}
-          totalLabel="125 SP"
+          totalLabel="400 SP"
           size={190}
           thickness={24}
         />
