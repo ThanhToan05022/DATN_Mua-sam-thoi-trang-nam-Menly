@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../wishlist/presentation/providers/wishlist_provider.dart';
 
 class ProductListHeader extends StatelessWidget {
   final bool isGridView;
@@ -17,8 +15,6 @@ class ProductListHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final favCount = context.watch<WishlistProvider>().favoriteCount;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
@@ -45,43 +41,6 @@ class ProductListHeader extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          // Nút Wishlist có badge số lượng
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              ProductIconButton(
-                icon: Icons.favorite_rounded,
-                iconColor:
-                    favCount > 0 ? Colors.redAccent : AppTheme.textSecondary,
-                onTap: () => context.push('/wishlist'),
-              ),
-              if (favCount > 0)
-                Positioned(
-                  top: -4,
-                  right: -4,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.redAccent,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints:
-                        const BoxConstraints(minWidth: 18, minHeight: 18),
-                    child: Center(
-                      child: Text(
-                        '$favCount',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 8),
           ProductIconButton(
             icon: isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
             onTap: onToggleView,

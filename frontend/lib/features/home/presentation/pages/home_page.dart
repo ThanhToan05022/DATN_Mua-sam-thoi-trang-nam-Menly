@@ -104,54 +104,14 @@ class _HomePageState extends State<HomePage> {
       actions: [
         IconButton(
           icon: const Icon(Icons.search_rounded, color: AppTheme.textSecondary),
+          tooltip: 'Tìm kiếm',
           onPressed: () => context.go('/products'),
-        ),
-        Consumer<WishlistProvider>(
-          builder: (context, wishlist, _) {
-            final count = wishlist.favoriteCount;
-            return Stack(
-              alignment: Alignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.favorite_rounded,
-                    color: count > 0 ? Colors.redAccent : AppTheme.textSecondary,
-                  ),
-                  tooltip: 'Danh sách yêu thích',
-                  onPressed: () => context.push('/wishlist'),
-                ),
-                if (count > 0)
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        color: Colors.redAccent,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints:
-                          const BoxConstraints(minWidth: 16, minHeight: 16),
-                      child: Center(
-                        child: Text(
-                          '$count',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          },
         ),
         IconButton(
           icon: const Icon(Icons.notifications_outlined,
               color: AppTheme.textSecondary),
-          onPressed: () {},
+          tooltip: 'Thông báo',
+          onPressed: () => context.push('/notifications'),
         ),
       ],
     );

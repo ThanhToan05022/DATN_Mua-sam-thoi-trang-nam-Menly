@@ -128,7 +128,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       });
 
       if (res.statusCode == 201 || res.statusCode == 200) {
-        cart.clear();
+        await cart.clear();
         final orderData = res.data is Map ? (res.data as Map<String, dynamic>) : null;
         if (orderData != null && mounted) {
           final createdOrder = Order.fromJson(orderData);

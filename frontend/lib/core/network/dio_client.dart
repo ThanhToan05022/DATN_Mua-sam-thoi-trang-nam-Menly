@@ -45,11 +45,16 @@ class DioClient {
                 final uid = prefs.getString('user_id') ?? '00000000-0000-0000-0000-000000000002';
                 token = 'mock-user-token-$uid';
               }
-            } catch (_) {}
+              if (token == null || token.isEmpty) {
+                token = 'guest-token';
+              }
+            } catch (_) {
+              token = 'guest-token';
+            }
           }
 
           // 3. Gắn Authorization Header nếu có token
-          if (token != null && token.isNotEmpty) {
+          if (token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
 

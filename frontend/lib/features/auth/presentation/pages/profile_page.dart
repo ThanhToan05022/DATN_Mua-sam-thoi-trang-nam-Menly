@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../cart/data/cart_model.dart';
 import '../../../wishlist/presentation/providers/wishlist_provider.dart';
 import '../providers/auth_provider.dart';
 
@@ -20,7 +21,10 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _doLogout() async {
     setState(() => _showLogoutDialog = false);
     await context.read<AuthProvider>().logout();
-    if (mounted) context.go('/login');
+    if (mounted) {
+      context.read<CartProvider>().resetLocal();
+      context.go('/login');
+    }
   }
 
   @override

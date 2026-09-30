@@ -49,6 +49,16 @@ export class OrderViewModel {
     if (!order) {
       throw new AppError('INTERNAL', 500, 'Không tìm thấy đơn hàng sau khi tạo');
     }
+
+    // Dọn dẹp các món đã đặt khỏi giỏ hàng trên server
+    try {
+      for (const item of items) {
+        await this.cartModel.removeItem(req.userId, item.variantId);
+      }
+    } catch (err) {
+      console.warn('Could not clear ordered items from cartModel:', err);
+    }
+
     return order;
   }
 
@@ -67,13 +77,15 @@ export class OrderViewModel {
     userId: string,
     limit: number,
     cursor?: string,
-    userEmail?: string
+    userEmail?: string,
+    headerUserId?: string
   ): Promise<Page<Order>> {
     const orders = await this.orderModel.listByUser(
       userId,
       limit + 1,
       cursor ? decodeCursor(cursor) : undefined,
-      userEmail
+      userEmail,
+      headerUserId
     );
 
     const hasNext = orders.length > limit;
@@ -91,6 +103,40 @@ export class OrderViewModel {
             : null,
       },
     };
+  }
+
+  async cancelOrder(
+    orderId: string,
+    userId: string,
+    note?: string,
+    userEmail?: string,
+    headerUserId?: string
+  ): Promise<Order> {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) {
+      throw new AppError('ORDER_NOT_FOUND', 404, 'Đơn hàng không tồn tại');
+    }
+
+    const isOwner =
+      order.userId === userId ||
+      (headerUserId && order.userId === headerUserId) ||
+      (userEmail && order.userEmail && order.userEmail.toLowerCase().trim() === userEmail.toLowerCase().trim());
+
+    if (!isOwner) {
+      throw new AppError('FORBIDDEN', 403, 'Bạn không có quyền huỷ đơn hàng này');
+    }
+
+    if (order.status === 'cancelled') {
+      throw new AppError('ORDER_ALREADY_CANCELLED', 400, 'Đơn hàng đã ở trạng thái ĐÃ HUỶ');
+    }
+
+    if (order.status === 'shipping' || order.status === 'completed') {
+      throw new AppError('CANNOT_CANCEL', 400, 'Đơn hàng đang giao hoặc đã hoàn thành, không thể huỷ');
+    }
+
+    await this.orderModel.updateStatus(order.id, 'cancelled', note || 'Khách hàng huỷ đơn');
+    const updated = await this.orderModel.findById(order.id);
+    return updated || order;
   }
 
   async trackOrder(code: string, phone: string): Promise<TrackOrderResult> {

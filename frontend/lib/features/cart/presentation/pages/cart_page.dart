@@ -50,23 +50,37 @@ class CartPage extends StatelessWidget {
             ),
         ],
       ),
-      body: cart.items.isEmpty
-          ? _buildEmpty(context)
-          : Column(children: [
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  itemCount: cart.items.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 10),
-                  itemBuilder: (_, i) => _CartItem(
-                    item: cart.items[i],
-                    onRemove: () => cart.removeItem(cart.items[i].variant.id),
-                    onQtyChange: (q) => cart.updateQty(cart.items[i].variant.id, q),
+      body: RefreshIndicator(
+        onRefresh: () => cart.fetchCart(showLoading: true),
+        color: AppTheme.primary,
+        backgroundColor: AppTheme.surface,
+        child: cart.items.isEmpty
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.7,
+                    child: _buildEmpty(context),
+                  ),
+                ],
+              )
+            : Column(children: [
+                Expanded(
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    itemCount: cart.items.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (_, i) => _CartItem(
+                      item: cart.items[i],
+                      onRemove: () => cart.removeItem(cart.items[i].variant.id),
+                      onQtyChange: (q) => cart.updateQty(cart.items[i].variant.id, q),
+                    ),
                   ),
                 ),
-              ),
-              _buildSummary(context, cart),
-            ]),
+                _buildSummary(context, cart),
+              ]),
+      ),
     );
   }
 

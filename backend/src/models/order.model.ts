@@ -76,7 +76,7 @@ export interface TrackOrderResult {
 export interface IOrderModel {
   create(input: CreateOrderInput): Promise<string>;
   findById(id: string): Promise<Order | null>;
-  listByUser(userId: string, limit: number, cursor?: Cursor, userEmail?: string): Promise<Order[]>;
+  listByUser(userId: string, limit: number, cursor?: Cursor, userEmail?: string, headerUserId?: string): Promise<Order[]>;
   listAll(
     limit: number,
     status?: OrderStatus,
@@ -84,7 +84,7 @@ export interface IOrderModel {
     dateFilter?: { fromDate?: string; toDate?: string; day?: string }
   ): Promise<Order[]>;
   trackByCodeAndPhone(code: string, phone: string): Promise<TrackOrderResult | null>;
-  updateStatus?(orderId: string, status: OrderStatus, note?: string): Promise<boolean>;
+  updateStatus(orderId: string, status: OrderStatus, note?: string): Promise<boolean>;
 }
 
 export const DEFAULT_MOCK_ORDERS: Order[] = [];
@@ -260,13 +260,31 @@ export class OrderModel implements IOrderModel {
     return this.inMemoryOrders.find((o) => o.id === id || o.code === id) || null;
   }
 
-  async listByUser(userId: string, limit: number, cursor?: Cursor, userEmail?: string): Promise<Order[]> {
+  async listByUser(
+    userId: string,
+    limit: number,
+    cursor?: Cursor,
+    userEmail?: string,
+    headerUserId?: string
+  ): Promise<Order[]> {
     this.syncDiskOrders();
+
+    const userIdsWithSameEmail = new Set<string>();
+    if (userEmail) {
+      const normalizedEmail = userEmail.toLowerCase().trim();
+      for (const o of this.inMemoryOrders) {
+        if (o.userEmail && o.userEmail.toLowerCase().trim() === normalizedEmail) {
+          if (o.userId) userIdsWithSameEmail.add(o.userId);
+        }
+      }
+    }
 
     const matchesUser = (o: Order) => {
       if (o.userId === userId) return true;
+      if (headerUserId && o.userId === headerUserId) return true;
       if (userEmail && o.userEmail && o.userEmail.toLowerCase().trim() === userEmail.toLowerCase().trim()) return true;
       if (userEmail && o.userId.toLowerCase().trim() === userEmail.toLowerCase().trim()) return true;
+      if (userEmail && userIdsWithSameEmail.has(o.userId)) return true;
       if (userId === '00000000-0000-0000-0000-000000000002') return true;
       return false;
     };
@@ -587,16 +605,28 @@ export class OrderModel implements IOrderModel {
 
   async updateStatus(orderId: string, status: OrderStatus, note?: string): Promise<boolean> {
     this.syncDiskOrders();
+    let updated = false;
     const order = this.inMemoryOrders.find((o) => o.id === orderId || o.code === orderId);
     if (order) {
-      if (order.status === 'cancelled') {
+      if (order.status === 'cancelled' && status !== 'cancelled') {
         throw new AppError('ORDER_ALREADY_CANCELLED', 400, 'Đơn hàng đã ở trạng thái ĐÃ HUỶ, không thể chuyển sang trạng thái khác');
       }
       order.status = status;
       if (note) order.note = note;
       this.saveDiskOrders();
-      return true;
+      updated = true;
     }
-    return false;
+    if (this.supabase) {
+      try {
+        await this.supabase
+          .from('orders')
+          .update({ status, ...(note ? { note } : {}) })
+          .or(`id.eq.${orderId},code.eq.${orderId}`);
+        updated = true;
+      } catch (err: any) {
+        console.warn('Supabase updateStatus warning:', err.message);
+      }
+    }
+    return updated;
   }
 }

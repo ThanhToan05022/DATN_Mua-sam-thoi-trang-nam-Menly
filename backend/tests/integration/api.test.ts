@@ -35,7 +35,7 @@ describe('MenShop API Integration Tests (MVVM Architecture)', () => {
     expect(res.body.variants).toBeDefined();
   });
 
-  it('Cart flow: PUT /api/v1/cart/items and GET /api/v1/cart via CartViewModel', async () => {
+  it('Cart flow: PUT /api/v1/cart/items, GET /api/v1/cart, DELETE items, and DELETE / (clear)', async () => {
     const putRes = await request(app)
       .put('/api/v1/cart/items')
       .set('Authorization', userToken)
@@ -54,6 +54,25 @@ describe('MenShop API Integration Tests (MVVM Architecture)', () => {
     expect(getRes.status).toBe(200);
     expect(getRes.body.items.length).toBe(1);
     expect(getRes.body.items[0].variantId).toBe('v1111111-1111-1111-1111-111111111111');
+  });
+
+  it('Cart clear flow: DELETE /api/v1/cart', async () => {
+    const testToken = 'Bearer mock-user-token-00000000-0000-0000-0000-000000000099';
+    await request(app)
+      .put('/api/v1/cart/items')
+      .set('Authorization', testToken)
+      .send({
+        variantId: 'v1111111-1111-1111-1111-111111111111',
+        quantity: 3,
+      });
+
+    const clearRes = await request(app)
+      .delete('/api/v1/cart')
+      .set('Authorization', testToken);
+
+    expect(clearRes.status).toBe(200);
+    expect(clearRes.body.items.length).toBe(0);
+    expect(clearRes.body.totalItems).toBe(0);
   });
 
   it('Order flow: POST /api/v1/orders and GET /api/v1/orders/track via OrderViewModel', async () => {

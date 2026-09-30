@@ -35,10 +35,12 @@ export const orderRoutes = (
     try {
       const body = createOrderSchema.parse(req.body);
       const idempotencyKey = req.headers['idempotency-key'] as string | undefined;
+      const headerUserId = (req.headers['x-user-id'] as string) || undefined;
+      const headerEmail = (req.headers['x-user-email'] as string) || undefined;
 
       const order = await vm.createOrder({
-        userId: req.user!.id,
-        userEmail: req.user?.email,
+        userId: headerUserId || req.user!.id,
+        userEmail: req.user?.email || headerEmail,
         ship: body.ship,
         paymentMethod: body.paymentMethod,
         items: body.items,
@@ -55,13 +57,34 @@ export const orderRoutes = (
   router.get('/', requireAuth, async (req, res, next) => {
     try {
       const query = listOrdersQuerySchema.parse(req.query);
+      const headerUserId = (req.headers['x-user-id'] as string) || undefined;
+      const headerEmail = (req.headers['x-user-email'] as string) || undefined;
       const orders = await vm.listMyOrders(
         req.user!.id,
         query.limit,
         query.cursor,
-        req.user?.email
+        req.user?.email || headerEmail,
+        headerUserId
       );
       res.json(orders);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.put('/:id/cancel', requireAuth, async (req, res, next) => {
+    try {
+      const headerUserId = (req.headers['x-user-id'] as string) || undefined;
+      const headerEmail = (req.headers['x-user-email'] as string) || undefined;
+      const { note } = req.body || {};
+      const order = await vm.cancelOrder(
+        req.params.id,
+        req.user!.id,
+        note,
+        req.user?.email || headerEmail,
+        headerUserId
+      );
+      res.json(order);
     } catch (err) {
       next(err);
     }
