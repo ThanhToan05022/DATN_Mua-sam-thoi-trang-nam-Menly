@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../cart/data/cart_model.dart';
 import '../../../order/presentation/providers/order_provider.dart';
 import '../../../wishlist/presentation/providers/wishlist_provider.dart';
 import '../providers/auth_provider.dart';
@@ -67,8 +68,9 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.remove('savedEmail');
       }
 
-      // Tải lại danh sách yêu thích và đơn hàng cho người dùng vừa đăng nhập
+      // Tải lại danh sách yêu thích, đơn hàng và giỏ hàng cho người dùng vừa đăng nhập
       if (mounted) {
+        context.read<CartProvider>().fetchCart();
         context.read<WishlistProvider>().fetchWishlist(forceRefresh: true);
         context.read<OrderProvider>().fetchMyOrders(forceRefresh: true);
         ScaffoldMessenger.of(context).showSnackBar(

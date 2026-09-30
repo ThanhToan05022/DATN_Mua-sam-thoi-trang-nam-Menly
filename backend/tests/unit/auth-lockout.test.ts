@@ -135,15 +135,15 @@ describe('loginSchema - Password Validation Rules', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should reject password under 8 characters', async () => {
+  it('should reject password under 6 characters', async () => {
     const { loginSchema } = await import('../../src/presentation/http/schemas/auth.schema.js');
     const result = loginSchema.safeParse({
       email: 'user@example.com',
-      password: 'abcdefg', // 7 chars
+      password: 'abcde', // 5 chars
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toContain('tối thiểu 8 ký tự');
+      expect(result.error.issues[0].message).toContain('tối thiểu 6 ký tự');
     }
   });
 

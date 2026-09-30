@@ -33,9 +33,116 @@ class _OrderListPageState extends State<OrderListPage> {
     });
   }
 
-  List<Order> _filterOrders(List<Order> orders) {
-    if (_selectedFilter == 'all') return orders;
-    return orders.where((o) => o.status == _selectedFilter).toList();
+  List<Order> _filterOrders(List<Order> orders, String filter) {
+    if (filter == 'all') return orders;
+    if (filter == 'pending_payment') {
+      return orders.where((o) => o.status == 'pending_payment' || o.status == 'pending').toList();
+    }
+    if (filter == 'processing') {
+      return orders.where((o) => o.status == 'processing' || o.status == 'paid').toList();
+    }
+    if (filter == 'shipping') {
+      return orders.where((o) => o.status == 'shipping').toList();
+    }
+    if (filter == 'completed') {
+      return orders.where((o) => o.status == 'completed' || o.status == 'delivered').toList();
+    }
+    if (filter == 'cancelled') {
+      return orders.where((o) => o.status == 'cancelled').toList();
+    }
+    return orders.where((o) => o.status == filter).toList();
+  }
+
+  void _showCancelDialog(BuildContext context, Order order) {
+    final noteCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppTheme.error, size: 26),
+            SizedBox(width: 10),
+            Text(
+              'Huỷ đơn hàng',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Bạn có chắc chắn muốn huỷ đơn hàng #${order.code}?',
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: noteCtrl,
+              maxLines: 2,
+              decoration: InputDecoration(
+                hintText: 'Nhập lý do huỷ (tùy chọn)...',
+                hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                filled: true,
+                fillColor: AppTheme.surface2,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Đóng', style: TextStyle(color: AppTheme.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              final reason = noteCtrl.text.trim().isNotEmpty
+                  ? noteCtrl.text.trim()
+                  : 'Khách hàng huỷ đơn';
+              final success = await context.read<OrderProvider>().cancelOrder(
+                order.id,
+                reason: reason,
+              );
+              if (context.mounted) {
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Đã huỷ đơn hàng thành công'),
+                      backgroundColor: AppTheme.success,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Không thể huỷ đơn hàng. Vui lòng thử lại sau'),
+                      backgroundColor: AppTheme.error,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Xác nhận huỷ', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -43,7 +150,7 @@ class _OrderListPageState extends State<OrderListPage> {
     final orderProvider = context.watch<OrderProvider>();
     final state = orderProvider.myOrdersState;
     final allOrders = state.data ?? [];
-    final filtered = _filterOrders(allOrders);
+    final filtered = _filterOrders(allOrders, _selectedFilter);
 
     return Scaffold(
       backgroundColor: AppTheme.bg,
@@ -77,12 +184,15 @@ class _OrderListPageState extends State<OrderListPage> {
                 separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (_, i) {
                   final tab = _statusTabs[i];
-                  final isSelected = _selectedFilter == tab['id'];
+                  final tabId = tab['id']!;
+                  final isSelected = _selectedFilter == tabId;
+                  final count = _filterOrders(allOrders, tabId).length;
+
                   return GestureDetector(
-                    onTap: () => setState(() => _selectedFilter = tab['id']!),
+                    onTap: () => setState(() => _selectedFilter = tabId),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
                         gradient: isSelected ? AppTheme.primaryGradient : null,
                         color: isSelected ? null : AppTheme.surface2,
@@ -92,13 +202,38 @@ class _OrderListPageState extends State<OrderListPage> {
                         ),
                       ),
                       child: Center(
-                        child: Text(
-                          tab['label']!,
-                          style: TextStyle(
-                            color: isSelected ? Colors.black : AppTheme.textSecondary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              tab['label']!,
+                              style: TextStyle(
+                                color: isSelected ? Colors.black : AppTheme.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (count > 0) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? Colors.black.withOpacity(0.15)
+                                      : AppTheme.border2,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '$count',
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.black : Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ),
@@ -139,11 +274,19 @@ class _OrderListPageState extends State<OrderListPage> {
   }
 
   Widget _buildOrderCard(Order order) {
+    final canCancel = order.status == 'pending_payment' ||
+        order.status == 'pending' ||
+        order.status == 'processing';
+
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(
+          color: order.status == 'cancelled'
+              ? AppTheme.error.withOpacity(0.3)
+              : AppTheme.border,
+        ),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -214,7 +357,7 @@ class _OrderListPageState extends State<OrderListPage> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          '${item.productName} (${item.size}, ${item.color})',
+                          '${item.productName}${item.size.isNotEmpty ? ' (${item.size}, ${item.color})' : ''}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -234,6 +377,33 @@ class _OrderListPageState extends State<OrderListPage> {
                     ],
                   ),
                 )),
+          ],
+
+          // Ghi chú huỷ hoặc lý do
+          if (order.status == 'cancelled' && order.note != null && order.note!.isNotEmpty) ...[
+            Container(
+              margin: const EdgeInsets.only(top: 4, bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppTheme.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.error.withOpacity(0.25)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: AppTheme.error, size: 14),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Lý do: ${order.note}',
+                      style: const TextStyle(color: AppTheme.error, fontSize: 12),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
 
           const Padding(
@@ -287,6 +457,27 @@ class _OrderListPageState extends State<OrderListPage> {
               ),
             ],
           ),
+
+          // Action Button: Huỷ đơn hàng nếu đơn còn có thể huỷ
+          if (canCancel) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _showCancelDialog(context, order),
+                icon: const Icon(Icons.cancel_outlined, size: 16, color: AppTheme.error),
+                label: const Text(
+                  'Huỷ đơn hàng',
+                  style: TextStyle(color: AppTheme.error, fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppTheme.error.withOpacity(0.5)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -325,9 +516,11 @@ class _OrderListPageState extends State<OrderListPage> {
                 color: AppTheme.textMuted, size: 36),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Chưa có đơn hàng nào',
-            style: TextStyle(
+          Text(
+            _selectedFilter == 'all'
+                ? 'Chưa có đơn hàng nào'
+                : 'Không có đơn hàng ${_statusTabs.firstWhere((t) => t['id'] == _selectedFilter)['label']!.toLowerCase()}',
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 17,
               fontWeight: FontWeight.w700,

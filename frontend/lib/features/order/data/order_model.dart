@@ -174,6 +174,7 @@ class Order {
       case 'shipping':
         return 'Đang giao hàng';
       case 'completed':
+      case 'delivered':
         return 'Giao thành công';
       case 'cancelled':
         return 'Đã huỷ';
@@ -194,6 +195,7 @@ class Order {
       case 'shipping':
         return const Color(0xFF06B6D4);
       case 'completed':
+      case 'delivered':
         return const Color(0xFF10B981);
       case 'cancelled':
         return const Color(0xFFEF4444);

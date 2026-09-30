@@ -41,5 +41,14 @@ export const cartRoutes = (
     }
   });
 
+  router.delete('/', async (req, res, next) => {
+    try {
+      const cart = await vm.clearCart(req.user!.id);
+      res.json(cart);
+    } catch (err) {
+      next(err);
+    }
+  });
+
   return router;
 };

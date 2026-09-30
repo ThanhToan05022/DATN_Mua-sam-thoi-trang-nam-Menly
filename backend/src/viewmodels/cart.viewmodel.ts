@@ -26,4 +26,9 @@ export class CartViewModel {
     await this.model.removeItem(userId, variantId);
     return this.model.getByUserId(userId);
   }
+
+  async clearCart(userId: string): Promise<Cart> {
+    await this.model.clear(userId);
+    return this.model.getByUserId(userId);
+  }
 }

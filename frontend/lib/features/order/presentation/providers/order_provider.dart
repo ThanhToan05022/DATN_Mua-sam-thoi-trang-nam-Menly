@@ -105,10 +105,16 @@ class OrderProvider extends ChangeNotifier {
       final combined = [...apiOrders, ...existingLocal];
       final uniqueMap = <String, Order>{};
       for (final o in combined) {
-        if (o.id.isNotEmpty && !uniqueMap.containsKey(o.id)) {
-          uniqueMap[o.id] = o;
-        } else if (o.code.isNotEmpty && !uniqueMap.containsKey(o.code)) {
-          uniqueMap[o.code] = o;
+        final key = o.id.isNotEmpty ? o.id : o.code;
+        if (key.isEmpty) continue;
+
+        // Tránh trùng lặp giữa id và code
+        final codeDuplicate = o.code.isNotEmpty &&
+            uniqueMap.values.any((item) => item.code == o.code && item.id != o.id);
+        if (codeDuplicate) continue;
+
+        if (!uniqueMap.containsKey(key)) {
+          uniqueMap[key] = o;
         }
       }
       final merged = uniqueMap.values.toList();
@@ -121,6 +127,57 @@ class OrderProvider extends ChangeNotifier {
         _myOrdersState = ViewState.error(e.toString());
       }
     } finally {
+      notifyListeners();
+    }
+  }
+
+  /// Khách hàng huỷ đơn hàng
+  Future<bool> cancelOrder(String orderId, {String? reason}) async {
+    _isUpdating = true;
+    notifyListeners();
+
+    try {
+      await _dioClient.dio.put(
+        '/orders/$orderId/cancel',
+        data: {
+          if (reason != null && reason.trim().isNotEmpty) 'note': reason.trim(),
+        },
+      );
+
+      // Cập nhật myOrdersState
+      if (_myOrdersState.isSuccess && _myOrdersState.data != null) {
+        final list = List<Order>.from(_myOrdersState.data!);
+        final idx = list.indexWhere((o) => o.id == orderId || o.code == orderId);
+        if (idx != -1) {
+          final old = list[idx];
+          list[idx] = old.copyWith(
+            status: 'cancelled',
+            note: (reason != null && reason.trim().isNotEmpty) ? reason.trim() : (old.note ?? 'Huỷ bởi khách hàng'),
+          );
+          _myOrdersState = ViewState.success(list);
+          await _saveToLocal(list);
+        }
+      }
+
+      // Cập nhật cả adminOrdersState nếu đang mở
+      if (_adminOrdersState.isSuccess && _adminOrdersState.data != null) {
+        final list = List<Order>.from(_adminOrdersState.data!);
+        final idx = list.indexWhere((o) => o.id == orderId || o.code == orderId);
+        if (idx != -1) {
+          final old = list[idx];
+          list[idx] = old.copyWith(
+            status: 'cancelled',
+            note: (reason != null && reason.trim().isNotEmpty) ? reason.trim() : (old.note ?? 'Huỷ bởi khách hàng'),
+          );
+          _adminOrdersState = ViewState.success(list);
+        }
+      }
+
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      _isUpdating = false;
       notifyListeners();
     }
   }
