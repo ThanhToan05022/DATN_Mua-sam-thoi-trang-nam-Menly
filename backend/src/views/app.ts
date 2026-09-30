@@ -23,8 +23,9 @@ import { authRoutes } from './routes/auth.routes.js';
 import { userRoutes } from './routes/user.routes.js';
 import { profileRoutes } from './routes/profile.routes.js';
 import { wishlistRoutes } from './routes/wishlist.routes.js';
+import { voucherRoutes, adminVoucherRoutes } from './routes/voucher.routes.js';
 
-import { viewModels, supabase } from '../container.js';
+import { viewModels, supabase, userModel } from '../container.js';
 
 export function createApp(): Express {
   const app = express();
@@ -37,8 +38,19 @@ export function createApp(): Express {
 
   // Global Middlewares
   app.use(pinoHttp({ logger }));
-  app.use(helmet());
-  app.use(cors());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: false,
+    })
+  );
+  app.use(
+    cors({
+      origin: true,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-user-email', 'x-user-id'],
+    })
+  );
   app.use(generalRateLimit);
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: true }));
@@ -68,13 +80,18 @@ export function createApp(): Express {
     userRoutes(requireAuth, requireAdmin, viewModels.user)
   );
   app.use(
+    '/api/v1/admin/vouchers',
+    adminVoucherRoutes(requireAuth, requireStaffOrAdmin, viewModels.voucher)
+  );
+  app.use(
     '/api/v1/admin',
     adminRoutes(requireAuth, requireAdmin, viewModels.admin, viewModels.product, requireStaffOrAdmin)
   );
-  app.use('/api/v1/profile', profileRoutes(requireAuth, supabase));
+  app.use('/api/v1/profile', profileRoutes(requireAuth, supabase, userModel));
   app.use('/api/v1/wishlist', wishlistRoutes(requireAuth, viewModels.wishlist));
+  app.use('/api/v1/vouchers', voucherRoutes(viewModels.voucher));
 
-  app.use('/api/v1/auth', authRoutes(viewModels.auth, requireAuth, requireAdmin));
+  app.use('/api/v1/auth', authRoutes(viewModels.auth, requireAuth, requireAdmin, userModel));
 
   // 404 & Error Handlers
   app.use(notFound);

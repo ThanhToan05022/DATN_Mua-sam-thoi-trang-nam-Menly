@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class SplashPage extends StatefulWidget {
@@ -74,19 +73,8 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     await Future.delayed(const Duration(milliseconds: 2600));
     if (!mounted) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token') ??
-        prefs.getString('token') ??
-        prefs.getString('accessToken');
-
-    if (!mounted) return;
-
-    // Nếu đã đăng nhập -> vào thẳng Trang chủ, nếu chưa -> vào Màn hình đăng nhập
-    if (token != null && token.isNotEmpty) {
-      context.go('/');
-    } else {
-      context.go('/login');
-    }
+    // Yêu cầu: Kết thúc splash luôn chuyển đến màn hình Đăng nhập (login)
+    context.go('/login');
   }
 
   @override

@@ -1,6 +1,7 @@
 import { Order, Page, ShippingInfo, AppError } from '../models/types.js';
 import { IOrderModel, TrackOrderResult } from '../models/order.model.js';
 import { ICartModel } from '../models/cart.model.js';
+import { IVoucherModel } from '../models/voucher.model.js';
 import { decodeCursor, encodeCursor } from './base.viewmodel.js';
 
 export interface CreateOrderRequest {
@@ -11,12 +12,15 @@ export interface CreateOrderRequest {
   items?: Array<{ variantId: string; quantity: number }>;
   idempotencyKey?: string;
   note?: string;
+  voucherCode?: string;
+  discountAmount?: number;
 }
 
 export class OrderViewModel {
   constructor(
     private readonly orderModel: IOrderModel,
-    private readonly cartModel: ICartModel
+    private readonly cartModel: ICartModel,
+    private readonly voucherModel?: IVoucherModel
   ) {}
 
   async createOrder(req: CreateOrderRequest): Promise<Order> {
@@ -34,6 +38,25 @@ export class OrderViewModel {
       }));
     }
 
+    let discountAmount = req.discountAmount || 0;
+    if (req.voucherCode && this.voucherModel) {
+      try {
+        let estimatedSubtotal = 0;
+        for (const item of items) {
+          estimatedSubtotal += (item as any).unitPrice
+            ? (item as any).unitPrice * item.quantity
+            : 350000 * item.quantity;
+        }
+        const calc = await this.voucherModel.validateAndCalculate(req.voucherCode, estimatedSubtotal);
+        discountAmount = calc.discountAmount;
+        await this.voucherModel.incrementUsage(req.voucherCode);
+      } catch (err: any) {
+        if (!discountAmount) {
+          throw err;
+        }
+      }
+    }
+
     const orderId = await this.orderModel.create({
       userId: req.userId,
       userEmail: req.userEmail,
@@ -43,6 +66,8 @@ export class OrderViewModel {
       shippingFee: 0,
       idempotencyKey: req.idempotencyKey,
       note: req.note,
+      voucherCode: req.voucherCode,
+      discountAmount,
     });
 
     const order = await this.orderModel.findById(orderId);

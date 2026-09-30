@@ -327,7 +327,7 @@ export default function SettingsPage() {
             {[
               { icon: HardDrive, label: 'VNPay Sandbox', desc: 'HMAC-SHA512' },
               { icon: Shield, label: 'RLS Supabase', desc: 'Row Level Security' },
-              { icon: Activity, label: '125 Sản phẩm', desc: 'Dữ liệu thực tế' },
+              { icon: Activity, label: '400 Sản phẩm', desc: 'Dữ liệu thực tế' },
               { icon: Zap, label: 'Clean Arch', desc: 'MVVM Pattern' },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">

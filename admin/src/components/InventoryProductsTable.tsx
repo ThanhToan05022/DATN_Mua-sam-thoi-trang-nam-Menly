@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Product, Category, ProductVariant } from '../lib/types';
+import { CompactVariantDisplay } from './CompactVariantDisplay';
 import { Search, Boxes, Shirt, Edit3 } from 'lucide-react';
 
 interface InventoryProductsTableProps {
@@ -125,7 +126,7 @@ export function InventoryProductsTable({
                 <th className="py-3 px-4">Danh mục</th>
                 <th className="py-3 px-4">Giá bán</th>
                 <th className="py-3 px-4">Tổng số lượng có</th>
-                <th className="py-3 px-4">Số lượng theo từng Size</th>
+                <th className="py-3 px-4">Phân loại & Tồn kho (Size trên / Màu dưới)</th>
                 <th className="py-3 px-4 text-right">Hiệu chỉnh</th>
               </tr>
             </thead>
@@ -177,18 +178,8 @@ export function InventoryProductsTable({
                       </span>
                     </td>
 
-                    <td className="py-3 px-4">
-                      <div className="flex flex-wrap gap-1.5 max-w-md">
-                        {variants.map((v) => (
-                          <span
-                            key={v.id}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono"
-                          >
-                            <strong className="text-amber-400">{v.size}:</strong>
-                            <span className="text-white font-bold">{v.stock}</span>
-                          </span>
-                        ))}
-                      </div>
+                    <td className="py-3 px-4 min-w-[260px]">
+                      <CompactVariantDisplay variants={variants} showStockCount={true} />
                     </td>
 
                     <td className="py-3 px-4 text-right">

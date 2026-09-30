@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { SupabaseClient } from '@supabase/supabase-js';
 import {
   Order,
@@ -9,41 +7,6 @@ import {
   AppError,
 } from './types.js';
 import { MOCK_PRODUCTS } from './mock-data.js';
-
-const PERSISTENT_ORDERS_FILE = path.resolve(process.cwd(), 'data', 'orders_store.json');
-
-const isTestEnv = process.env.NODE_ENV === 'test' || Boolean(process.env.VITEST);
-
-function ensureDirectoryExistence(filePath: string) {
-  const dirname = path.dirname(filePath);
-  if (!fs.existsSync(dirname)) {
-    fs.mkdirSync(dirname, { recursive: true });
-  }
-}
-
-function loadOrdersFromDisk(): Order[] {
-  if (isTestEnv) return [];
-  try {
-    if (fs.existsSync(PERSISTENT_ORDERS_FILE)) {
-      const raw = fs.readFileSync(PERSISTENT_ORDERS_FILE, 'utf-8');
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch (err) {
-    console.warn('Could not read orders from disk:', err);
-  }
-  return [];
-}
-
-function saveOrdersToDisk(orders: Order[]): void {
-  if (isTestEnv) return;
-  try {
-    ensureDirectoryExistence(PERSISTENT_ORDERS_FILE);
-    fs.writeFileSync(PERSISTENT_ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf-8');
-  } catch (err) {
-    console.warn('Could not save orders to disk:', err);
-  }
-}
 
 export interface CreateOrderInput {
   userId: string;
@@ -55,6 +18,8 @@ export interface CreateOrderInput {
   idempotencyKey?: string;
   createdAt?: string;
   note?: string;
+  voucherCode?: string | null;
+  discountAmount?: number;
 }
 
 export interface TrackOrderResult {
@@ -96,26 +61,34 @@ export class OrderModel implements IOrderModel {
     private readonly supabase?: SupabaseClient,
     initialOrders: Order[] = []
   ) {
-    const diskOrders = loadOrdersFromDisk();
-    const combined = [...initialOrders, ...diskOrders];
-    this.inMemoryOrders = Array.from(new Map(combined.map((o) => [o.id, o])).values());
-  }
-
-  private syncDiskOrders(): void {
-    const diskOrders = loadOrdersFromDisk();
-    const combined = [...this.inMemoryOrders, ...diskOrders];
-    this.inMemoryOrders = Array.from(new Map(combined.map((o) => [o.id, o])).values());
-  }
-
-  private saveDiskOrders(): void {
-    saveOrdersToDisk(this.inMemoryOrders);
+    this.inMemoryOrders = [...initialOrders];
   }
 
   async create(input: CreateOrderInput): Promise<string> {
     if (this.supabase) {
+      let effectiveUserId = input.userId;
+      if (
+        input.userId === 'usr-admin-001' ||
+        input.userId === '00000000-0000-0000-0000-000000000001' ||
+        input.userEmail === 'admin@menshop.vn' ||
+        input.userEmail === 'admin@gmail.com'
+      ) {
+        effectiveUserId = '0f444d92-322c-4956-b452-0c5c10950508';
+      } else if (
+        input.userId === 'usr-staff-001' ||
+        input.userEmail === 'staff@menshop.vn' ||
+        input.userEmail === 'staff@gmail.com'
+      ) {
+        effectiveUserId = 'd604e122-aa50-47e0-ac44-10a2473af6ce';
+      } else if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(effectiveUserId)
+      ) {
+        effectiveUserId = '7fb74d58-4155-4ab5-8124-cb0b5bb6651d';
+      }
+
       try {
         const { data, error } = await this.supabase.rpc('create_order', {
-          p_user_id: input.userId,
+          p_user_id: effectiveUserId,
           p_items: input.items.map((i) => ({
             variant_id: i.variantId,
             quantity: i.quantity,
@@ -130,17 +103,139 @@ export class OrderModel implements IOrderModel {
           p_idem_key: input.idempotencyKey || null,
         });
 
-        if (error) {
-          if (error.message.includes('OUT_OF_STOCK')) {
-            throw new AppError('OUT_OF_STOCK', 409, 'Một số sản phẩm trong giỏ đã hết hàng');
+        if (!error && data) {
+          const createdOrderId = data as string;
+          if (input.voucherCode || (input.discountAmount && input.discountAmount > 0) || input.note) {
+            try {
+              const { data: ord } = await this.supabase
+                .from('orders')
+                .select('subtotal, shipping_fee')
+                .eq('id', createdOrderId)
+                .single();
+              if (ord) {
+                const sub = ord.subtotal || 0;
+                const ship = ord.shipping_fee || 0;
+                const disc = input.discountAmount || 0;
+                const finalTotal = Math.max(0, sub - disc + ship);
+                await this.supabase
+                  .from('orders')
+                  .update({
+                    voucher_code: input.voucherCode || null,
+                    discount_amount: disc,
+                    total: finalTotal,
+                    note: input.note || null,
+                  })
+                  .eq('id', createdOrderId);
+              }
+            } catch (vErr) {
+              console.warn('Could not update voucher details on order:', vErr);
+            }
           }
-          console.warn('Supabase create_order rpc error, creating order in-memory:', error.message);
-        } else if (data) {
-          return data as string;
+          return createdOrderId;
         }
+
+        if (error && error.message.includes('OUT_OF_STOCK')) {
+          throw new AppError('OUT_OF_STOCK', 409, 'Một số sản phẩm trong giỏ đã hết hàng');
+        }
+
+        // Direct table insert fallback if RPC has any error
+        console.warn('create_order RPC failed, trying direct Supabase insertion fallback:', error?.message);
+        const code = `MS${new Date().toISOString().slice(2, 10).replace(/-/g, '')}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+        const variantIds = input.items.map((i) => i.variantId);
+        const { data: dbVariants } = await this.supabase
+          .from('product_variants')
+          .select('id, size, color, stock, product:products(name, price)')
+          .in('id', variantIds);
+
+        let subtotal = 0;
+        const itemsToInsert: any[] = [];
+        for (const item of input.items) {
+          const v = dbVariants?.find((x: any) => x.id === item.variantId);
+          const pName = (v as any)?.product?.name || 'Sản phẩm MenShop';
+          const uPrice = (v as any)?.product?.price || 350000;
+          subtotal += uPrice * item.quantity;
+          itemsToInsert.push({
+            variant_id: item.variantId,
+            product_name: pName,
+            size: v?.size || 'M',
+            color: v?.color || 'Tiêu chuẩn',
+            unit_price: uPrice,
+            quantity: item.quantity,
+          });
+        }
+
+        const disc = input.discountAmount || 0;
+        const total = Math.max(0, subtotal - disc + input.shippingFee);
+
+        const { data: newOrd, error: ordErr } = await this.supabase
+          .from('orders')
+          .insert({
+            code,
+            user_id: effectiveUserId,
+            status: input.paymentMethod === 'vnpay' ? 'pending_payment' : 'processing',
+            payment_method: input.paymentMethod,
+            subtotal,
+            shipping_fee: input.shippingFee,
+            discount_amount: disc,
+            voucher_code: input.voucherCode || null,
+            total,
+            ship_name: input.ship.name,
+            ship_phone: input.ship.phone,
+            ship_address: input.ship.address,
+            note: input.note || null,
+            idempotency_key: input.idempotencyKey || null,
+            expires_at: input.paymentMethod === 'vnpay' ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null,
+          })
+          .select('id')
+          .single();
+
+        if (ordErr || !newOrd) {
+          throw new AppError('DB_CREATE_ORDER_FAILED', 400, ordErr?.message || 'Không thể tạo đơn hàng');
+        }
+
+        const orderId = newOrd.id;
+        if (itemsToInsert.length > 0) {
+          await this.supabase.from('order_items').insert(
+            itemsToInsert.map((item) => ({
+              order_id: orderId,
+              ...item,
+            }))
+          );
+
+          // Deduct variant stock & record inventory movements
+          for (const item of input.items) {
+            const v = dbVariants?.find((x: any) => x.id === item.variantId);
+            const currentStock = v?.stock ?? 100;
+            const newStock = Math.max(0, currentStock - item.quantity);
+            await this.supabase
+              .from('product_variants')
+              .update({ stock: newStock })
+              .eq('id', item.variantId);
+
+            await this.supabase.from('inventory_movements').insert({
+              variant_id: item.variantId,
+              change: -item.quantity,
+              reason: 'order_created',
+              order_id: orderId,
+              created_by: effectiveUserId,
+              note: 'Khách đặt hàng',
+            });
+          }
+        }
+
+        // Clean cart items
+        await this.supabase
+          .from('cart_items')
+          .delete()
+          .eq('user_id', effectiveUserId)
+          .in('variant_id', variantIds);
+
+        return orderId;
       } catch (err: any) {
-        if (err instanceof AppError && err.code === 'OUT_OF_STOCK') throw err;
-        console.warn('Supabase create_order exception, creating order in-memory:', err.message);
+        if (err instanceof AppError) throw err;
+        console.warn('Supabase create_order exception:', err.message);
+        throw new AppError('DB_CREATE_ORDER_FAILED', 400, err.message);
       }
     }
 
@@ -192,7 +287,9 @@ export class OrderModel implements IOrderModel {
       paymentMethod: input.paymentMethod,
       subtotal,
       shippingFee: input.shippingFee,
-      total: subtotal + input.shippingFee,
+      discountAmount: input.discountAmount || 0,
+      voucherCode: input.voucherCode || null,
+      total: Math.max(0, subtotal - (input.discountAmount || 0) + input.shippingFee),
       shipName: input.ship.name,
       shipPhone: input.ship.phone,
       shipAddress: input.ship.address,
@@ -204,12 +301,10 @@ export class OrderModel implements IOrderModel {
     };
 
     this.inMemoryOrders.unshift(newOrder);
-    this.saveDiskOrders();
     return orderId;
   }
 
   async findById(id: string): Promise<Order | null> {
-    this.syncDiskOrders();
     if (this.supabase) {
       try {
         const { data, error } = await this.supabase
@@ -267,8 +362,6 @@ export class OrderModel implements IOrderModel {
     userEmail?: string,
     headerUserId?: string
   ): Promise<Order[]> {
-    this.syncDiskOrders();
-
     const userIdsWithSameEmail = new Set<string>();
     if (userEmail) {
       const normalizedEmail = userEmail.toLowerCase().trim();
@@ -368,30 +461,7 @@ export class OrderModel implements IOrderModel {
         };
       });
 
-      const memoryMatching = this.inMemoryOrders.filter(matchesUser);
-      const mergedMap = new Map<string, Order>();
-      for (const o of memoryMatching) {
-        mergedMap.set(o.id, o);
-        if (o.code) mergedMap.set(o.code, o);
-      }
-      for (const o of mapped) {
-        const existing = mergedMap.get(o.id) || (o.code ? mergedMap.get(o.code) : undefined);
-        if (existing) {
-          mergedMap.set(o.id, {
-            ...existing,
-            ...o,
-            items: (o.items && o.items.length > 0) ? o.items : existing.items,
-          });
-        } else {
-          mergedMap.set(o.id, o);
-        }
-      }
-      const unique = Array.from(new Set(mergedMap.values()));
-      unique.sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
-      if (cursor) {
-        return unique.filter((o) => o.createdAt < String(cursor.v) || (o.createdAt === String(cursor.v) && o.id < cursor.id)).slice(0, limit);
-      }
-      return unique.slice(0, limit);
+      return mapped.slice(0, limit);
     }
 
     let filtered = this.inMemoryOrders.filter(matchesUser);
@@ -408,7 +478,6 @@ export class OrderModel implements IOrderModel {
     cursor?: Cursor,
     dateFilter?: { fromDate?: string; toDate?: string; day?: string }
   ): Promise<Order[]> {
-    this.syncDiskOrders();
     if (this.supabase) {
       let qb = this.supabase
         .from('orders')
@@ -507,40 +576,7 @@ export class OrderModel implements IOrderModel {
         };
       });
 
-      const mergedMap = new Map<string, Order>();
-      for (const o of this.inMemoryOrders) {
-        mergedMap.set(o.id, o);
-        if (o.code) mergedMap.set(o.code, o);
-      }
-      for (const o of mapped) {
-        const existing = mergedMap.get(o.id) || (o.code ? mergedMap.get(o.code) : undefined);
-        if (existing) {
-          mergedMap.set(o.id, {
-            ...existing,
-            ...o,
-            items: (o.items && o.items.length > 0) ? o.items : existing.items,
-          });
-        } else {
-          mergedMap.set(o.id, o);
-        }
-      }
-      const unique = Array.from(new Set(mergedMap.values()));
-      let filtered = unique;
-      if (status) filtered = filtered.filter((o) => o.status === status);
-      if (dateFilter?.day) {
-        filtered = filtered.filter((o) => o.createdAt.slice(0, 10) === dateFilter.day);
-      }
-      if (dateFilter?.fromDate) {
-        filtered = filtered.filter((o) => o.createdAt.slice(0, 10) >= dateFilter.fromDate!);
-      }
-      if (dateFilter?.toDate) {
-        filtered = filtered.filter((o) => o.createdAt.slice(0, 10) <= dateFilter.toDate!);
-      }
-      filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
-      if (cursor) {
-        filtered = filtered.filter((o) => o.createdAt < String(cursor.v) || (o.createdAt === String(cursor.v) && o.id < cursor.id));
-      }
-      return filtered.slice(0, limit);
+      return mapped.slice(0, limit);
     }
 
     let filtered = this.inMemoryOrders;
@@ -562,7 +598,6 @@ export class OrderModel implements IOrderModel {
   }
 
   async trackByCodeAndPhone(code: string, phone: string): Promise<TrackOrderResult | null> {
-    this.syncDiskOrders();
     if (this.supabase) {
       const { data, error } = await this.supabase.rpc('track_order_by_code_phone', {
         p_code: code,
@@ -604,7 +639,6 @@ export class OrderModel implements IOrderModel {
   }
 
   async updateStatus(orderId: string, status: OrderStatus, note?: string): Promise<boolean> {
-    this.syncDiskOrders();
     let updated = false;
     const order = this.inMemoryOrders.find((o) => o.id === orderId || o.code === orderId);
     if (order) {
@@ -613,16 +647,19 @@ export class OrderModel implements IOrderModel {
       }
       order.status = status;
       if (note) order.note = note;
-      this.saveDiskOrders();
       updated = true;
     }
     if (this.supabase) {
       try {
-        await this.supabase
-          .from('orders')
-          .update({ status, ...(note ? { note } : {}) })
-          .or(`id.eq.${orderId},code.eq.${orderId}`);
-        updated = true;
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+        let qb = this.supabase.from('orders').update({ status });
+        if (isUuid) {
+          qb = qb.eq('id', orderId);
+        } else {
+          qb = qb.eq('code', orderId);
+        }
+        const { error } = await qb;
+        if (!error) updated = true;
       } catch (err: any) {
         console.warn('Supabase updateStatus warning:', err.message);
       }

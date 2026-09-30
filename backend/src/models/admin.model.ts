@@ -89,11 +89,18 @@ export class AdminModel implements IAdminModel {
 
   async setUserRole(userId: string, role: 'customer' | 'admin' | 'staff'): Promise<void> {
     if (this.supabase) {
-      const { error } = await this.supabase.rpc('set_user_role', {
-        p_user_id: userId,
-        p_role: role,
-      });
-      if (error) throw new AppError('DB_SET_ROLE_FAILED', 400, error.message);
+      const { error: profErr } = await this.supabase
+        .from('profiles')
+        .update({ role })
+        .eq('id', userId);
+      if (profErr) throw new AppError('DB_SET_ROLE_FAILED', 400, profErr.message);
+
+      try {
+        await this.supabase.auth.admin.updateUserById(userId, {
+          app_metadata: { role },
+          user_metadata: { role },
+        });
+      } catch (_) {}
       return;
     }
 

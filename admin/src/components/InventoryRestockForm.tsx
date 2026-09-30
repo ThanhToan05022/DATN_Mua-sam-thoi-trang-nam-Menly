@@ -80,7 +80,7 @@ export function InventoryRestockForm({
             >
               {allVariants.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.productName} ({v.size}) - {v.sku} [Tồn: {v.stock}]
+                  {v.productName} — [Size: {v.size} | Màu: {v.color || 'Tiêu chuẩn'}] (Tồn: {v.stock})
                 </option>
               ))}
             </select>

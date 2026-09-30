@@ -25,7 +25,7 @@ export function DonutChart({
   segments,
   size = 190,
   thickness = 24,
-  totalLabel = '125 SP',
+  totalLabel = '400 SP',
 }: DonutChartProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 

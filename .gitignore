@@ -270,12 +270,7 @@ pip-selfcheck.json
 # http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
 
 ### VisualStudioCode ###
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/*.code-snippets
+.vscode/
 
 # Local History for Visual Studio Code
 .history/
@@ -327,3 +322,14 @@ dist/
 .env.*
 !.env.example
 .turbo/
+
+# Exclude requested by user
+.agents/
+.vscode/
+backend/scripts/
+backend/src/scripts/
+backend/tests/
+*.test.ts
+*.test.js
+test_*.mjs
+test_*.js

@@ -18,6 +18,15 @@ export const userRoutes = (
     }
   });
 
+  router.get('/:id', async (req, res, next) => {
+    try {
+      const user = await userVm.getUserById(req.params.id);
+      res.json(user);
+    } catch (err) {
+      next(err);
+    }
+  });
+
   router.post('/', async (req, res, next) => {
     try {
       const user = await userVm.createUser(req.body);

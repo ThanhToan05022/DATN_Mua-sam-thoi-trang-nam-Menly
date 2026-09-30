@@ -25,8 +25,8 @@ export function DashboardRecentOrders({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
           title="Tổng sản phẩm"
-          value={productsCount > 0 ? productsCount : '125'}
-          subtitle="Đều 25 sp x 5 danh mục"
+          value={productsCount > 0 ? productsCount : '400'}
+          subtitle="Đều 80 sp x 5 danh mục"
           icon={Shirt}
           trend="100% Active"
           color="amber"

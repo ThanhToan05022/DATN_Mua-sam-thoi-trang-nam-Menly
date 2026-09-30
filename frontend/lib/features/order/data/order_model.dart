@@ -55,6 +55,8 @@ class Order {
   final String paymentMethod;
   final int subtotal;
   final int shippingFee;
+  final String? voucherCode;
+  final int discountAmount;
   final int total;
   final String shipName;
   final String shipPhone;
@@ -71,6 +73,8 @@ class Order {
     required this.paymentMethod,
     required this.subtotal,
     required this.shippingFee,
+    this.voucherCode,
+    this.discountAmount = 0,
     required this.total,
     required this.shipName,
     required this.shipPhone,
@@ -92,6 +96,8 @@ class Order {
       paymentMethod: j['paymentMethod']?.toString() ?? j['payment_method']?.toString() ?? 'cod',
       subtotal: _toInt(j['subtotal']),
       shippingFee: _toInt(j['shippingFee'] ?? j['shipping_fee']),
+      voucherCode: j['voucherCode']?.toString() ?? j['voucher_code']?.toString(),
+      discountAmount: _toInt(j['discountAmount'] ?? j['discount_amount']),
       total: _toInt(j['total']),
       shipName: j['shipName']?.toString() ??
           j['ship_name']?.toString() ??
@@ -119,6 +125,8 @@ class Order {
         'paymentMethod': paymentMethod,
         'subtotal': subtotal,
         'shippingFee': shippingFee,
+        'voucherCode': voucherCode,
+        'discountAmount': discountAmount,
         'total': total,
         'shipName': shipName,
         'shipPhone': shipPhone,
@@ -136,6 +144,8 @@ class Order {
     String? paymentMethod,
     int? subtotal,
     int? shippingFee,
+    String? voucherCode,
+    int? discountAmount,
     int? total,
     String? shipName,
     String? shipPhone,
@@ -152,6 +162,8 @@ class Order {
       paymentMethod: paymentMethod ?? this.paymentMethod,
       subtotal: subtotal ?? this.subtotal,
       shippingFee: shippingFee ?? this.shippingFee,
+      voucherCode: voucherCode ?? this.voucherCode,
+      discountAmount: discountAmount ?? this.discountAmount,
       total: total ?? this.total,
       shipName: shipName ?? this.shipName,
       shipPhone: shipPhone ?? this.shipPhone,

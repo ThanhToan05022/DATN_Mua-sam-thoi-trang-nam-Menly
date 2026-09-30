@@ -1,9 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/config/api_config.dart';
+import 'package:dio/dio.dart';
+import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class ChangePasswordPage extends StatefulWidget {
@@ -58,15 +56,12 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
     setState(() => _loading = true);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('accessToken') ?? '';
-      final res = await http.put(
-        Uri.parse('${ApiConfig.apiBase}/auth/change-password'),
-        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
-        body: jsonEncode({
+      final res = await DioClient.instance.dio.post(
+        '/profile/change-password',
+        data: {
           'currentPassword': _currentCtrl.text,
           'newPassword': _newCtrl.text,
-        }),
+        },
       );
       if (res.statusCode == 200) {
         setState(() => _showSuccess = true);
@@ -74,15 +69,24 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         _newCtrl.clear();
         _confirmCtrl.clear();
       } else {
-        final body = jsonDecode(res.body);
-        _snack(body['error']?['message'] ?? 'Đổi mật khẩu thất bại');
+        _snack('Đổi mật khẩu thất bại');
       }
     } catch (e) {
-      // Nếu API chưa có, hiển thị thành công giả lập cho demo
-      setState(() => _showSuccess = true);
-      _currentCtrl.clear();
-      _newCtrl.clear();
-      _confirmCtrl.clear();
+      String msg = 'Đổi mật khẩu thất bại';
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map && data['message'] != null) {
+          msg = data['message'].toString();
+        } else if (data is Map && data['error'] != null) {
+          final err = data['error'];
+          msg = (err is Map ? err['message'] : err).toString();
+        } else if (e.message != null && e.message!.isNotEmpty) {
+          msg = e.message!;
+        }
+      } else {
+        msg = e.toString();
+      }
+      _snack(msg);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

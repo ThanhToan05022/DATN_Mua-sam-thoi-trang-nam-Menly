@@ -33,6 +33,8 @@ export interface Order {
   paymentMethod: 'cod' | 'vnpay';
   subtotal: number;
   shippingFee: number;
+  voucherCode?: string | null;
+  discountAmount?: number;
   total: number;
   shipName: string;
   shipPhone: string;
@@ -126,7 +128,7 @@ export interface UserAccount {
   email: string;
   name?: string;
   fullName?: string | null;
-  role: 'customer' | 'admin' | 'guest' | 'user' | 'seller';
+  role: 'customer' | 'admin' | 'staff' | 'guest' | 'user' | 'seller';
   createdAt: string;
   phone?: string | null;
   avatarUrl?: string | null;
@@ -134,3 +136,34 @@ export interface UserAccount {
   isActive?: boolean;
 }
 
+// ========== VOUCHER TYPES ==========
+export type DiscountType = 'percentage' | 'fixed_amount';
+
+export interface Voucher {
+  id: string;
+  code: string;
+  title: string;
+  discountType: DiscountType;
+  discountValue: number;
+  minOrderValue: number;
+  maxDiscount?: number | null;
+  usageLimit: number;
+  usedCount: number;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface CreateVoucherInput {
+  code: string;
+  title: string;
+  discountType: DiscountType;
+  discountValue: number;
+  minOrderValue?: number;
+  maxDiscount?: number | null;
+  usageLimit?: number;
+  startDate?: string;
+  endDate: string;
+  isActive?: boolean;
+}
