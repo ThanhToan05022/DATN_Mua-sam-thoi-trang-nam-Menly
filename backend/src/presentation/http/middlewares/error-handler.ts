@@ -28,10 +28,11 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return;
   }
 
-  if (req.log) {
-    req.log.error({ err, path: req.path }, 'Unhandled error');
-  } else {
-    console.error('Unhandled error:', err);
+  if (process.env.NODE_ENV !== 'test') {
+    console.error(`  \x1b[31m[API Error]\x1b[0m ${req.method} ${req.originalUrl || req.path}:`, err?.message || err);
+    if (process.env.NODE_ENV !== 'production' && err?.stack) {
+      console.error(err.stack);
+    }
   }
 
   res.status(500).json({
