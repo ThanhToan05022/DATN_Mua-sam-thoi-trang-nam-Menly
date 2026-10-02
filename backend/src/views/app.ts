@@ -1,9 +1,7 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { pinoHttp } from 'pino-http';
-import pino from 'pino';
-
+import { apiLogger } from '../presentation/http/middlewares/logger.middleware.js';
 import { createRequireAuth, requireAdmin, requireCustomer, requireStaffOrAdmin } from '../presentation/http/middlewares/auth.js';
 import { errorHandler, notFound } from '../presentation/http/middlewares/error-handler.js';
 import {
@@ -29,15 +27,10 @@ import { viewModels, supabase, userModel } from '../container.js';
 
 export function createApp(): Express {
   const app = express();
-  const logger = pino({
-    level: process.env.NODE_ENV === 'test' ? 'silent' : 'info',
-    redact: ['req.headers.authorization', 'req.query.vnp_SecureHash'],
-  });
-
   app.set('trust proxy', 1);
 
   // Global Middlewares
-  app.use(pinoHttp({ logger }));
+  app.use(apiLogger);
   app.use(
     helmet({
       crossOriginResourcePolicy: false,
