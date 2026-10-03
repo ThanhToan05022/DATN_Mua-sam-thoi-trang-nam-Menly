@@ -1,12 +1,12 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/auth_guard.dart';
+import '../../../address/data/address_model.dart';
+import '../../../address/presentation/providers/address_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../cart/data/cart_model.dart';
 import '../../data/order_model.dart';
@@ -28,9 +28,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String _paymentMethod = 'cod';
   bool _loading = false;
 
-  List<Map<String, dynamic>> _savedAddresses = [];
-  int _defaultAddressIndex = 0;
-  int? _selectedAddressIndex;
+  List<ShippingAddress> _savedAddresses = [];
+  String? _selectedAddressId;
   bool _useManualAddress = false;
   bool _saveAsDefault = false;
 
@@ -73,38 +72,53 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Future<void> _loadSavedAddresses() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString('shippingAddresses');
-      final defIdx = prefs.getInt('defaultAddressIndex') ?? 0;
-      if (raw != null && raw.isNotEmpty) {
-        final decoded = jsonDecode(raw);
-        if (decoded is List) {
-          _savedAddresses = List<Map<String, dynamic>>.from(decoded);
-        }
-      }
-      _defaultAddressIndex = defIdx;
-      if (_savedAddresses.isNotEmpty) {
-        final targetIdx =
-            (_defaultAddressIndex >= 0 && _defaultAddressIndex < _savedAddresses.length)
-                ? _defaultAddressIndex
-                : 0;
-        _selectAddress(targetIdx);
-      }
-    } catch (_) {}
+    final provider = context.read<AddressProvider>();
+    await provider.fetchAddresses();
+    if (!mounted) return;
+
+    setState(() {
+      _savedAddresses = provider.items;
+    });
+
+    if (_savedAddresses.isEmpty) return;
+
+    // Ưu tiên địa chỉ mặc định, nếu không thì lấy địa chỉ đầu tiên
+    final current = _selectedAddressId;
+    if (current != null && _savedAddresses.any((a) => a.id == current)) {
+      _selectAddressById(current);
+    } else {
+      final def = provider.defaultAddress;
+      _selectAddressById(def?.id ?? _savedAddresses.first.id);
+    }
   }
 
-  void _selectAddress(int index) {
-    if (index >= 0 && index < _savedAddresses.length) {
-      final addr = _savedAddresses[index];
-      setState(() {
-        _selectedAddressIndex = index;
-        _useManualAddress = false;
-        _nameCtrl.text = addr['name']?.toString() ?? '';
-        _phoneCtrl.text = addr['phone']?.toString() ?? '';
-        _addressCtrl.text = addr['address']?.toString() ?? '';
-      });
-    }
+  void _selectAddressById(String id) {
+    final matches = _savedAddresses.where((a) => a.id == id).toList();
+    if (matches.isEmpty) return;
+    final addr = matches.first;
+    setState(() {
+      _selectedAddressId = addr.id;
+      _useManualAddress = false;
+      _nameCtrl.text = addr.recipientName;
+      _phoneCtrl.text = addr.phone;
+      _addressCtrl.text = addr.fullAddress;
+    });
+  }
+
+  /// Địa chỉ đang được chọn (null nếu đang nhập tay)
+  ShippingAddress? get _selectedAddress {
+    if (_useManualAddress || _selectedAddressId == null) return null;
+    final matches = _savedAddresses.where((a) => a.id == _selectedAddressId).toList();
+    return matches.isEmpty ? null : matches.first;
+  }
+
+  bool get _isDefaultSelected => _selectedAddress?.isDefault ?? false;
+
+  void _useDefaultAddress() {
+    final def = context.read<AddressProvider>().defaultAddress;
+    if (def == null) return;
+    setState(() => _savedAddresses = context.read<AddressProvider>().items);
+    _selectAddressById(def.id);
   }
 
   void _showAddressPicker() {
@@ -148,6 +162,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       onPressed: () async {
                         Navigator.pop(ctx);
                         await context.push('/shipping-address');
+                        if (!mounted) return;
                         await _loadSavedAddresses();
                       },
                       icon: const Icon(Icons.settings_outlined, size: 16, color: AppTheme.primary),
@@ -163,11 +178,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (_, i) {
                       final addr = _savedAddresses[i];
-                      final isSelected = !_useManualAddress && _selectedAddressIndex == i;
-                      final isDefault = i == _defaultAddressIndex;
+                      final isSelected =
+                          !_useManualAddress && _selectedAddressId == addr.id;
                       return InkWell(
                         onTap: () {
-                          _selectAddress(i);
+                          _selectAddressById(addr.id);
                           Navigator.pop(ctx);
                         },
                         borderRadius: BorderRadius.circular(12),
@@ -195,22 +210,26 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     Row(
                                       children: [
                                         Text(
-                                          addr['name'] ?? '',
+                                          addr.recipientName.isEmpty
+                                              ? 'Chưa đặt tên'
+                                              : addr.recipientName,
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14,
                                           ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          '(${addr['phone'] ?? ''})',
-                                          style: const TextStyle(
-                                            color: AppTheme.textSecondary,
-                                            fontSize: 12,
+                                        if (addr.phone.isNotEmpty) ...[
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '(${addr.phone})',
+                                            style: const TextStyle(
+                                              color: AppTheme.textSecondary,
+                                              fontSize: 12,
+                                            ),
                                           ),
-                                        ),
-                                        if (isDefault) ...[
+                                        ],
+                                        if (addr.isDefault) ...[
                                           const SizedBox(width: 8),
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -232,7 +251,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      addr['address'] ?? '',
+                                      addr.fullAddress,
                                       style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
@@ -766,33 +785,55 @@ class _CheckoutPageState extends State<CheckoutPage> {
             })
         .toList();
 
-    // Lưu địa chỉ mặc định nếu người dùng chọn hoặc chưa có địa chỉ nào
-    if (_saveAsDefault || _savedAddresses.isEmpty) {
+    // Nếu người dùng nhập tay và chưa có địa chỉ nào thì lưu địa chỉ đó,
+    // đồng thời đặt làm mặc định để lần sau checkout không phải nhập lại.
+    final addressProvider = context.read<AddressProvider>();
+    var addressId = _useManualAddress ? null : _selectedAddressId;
+    if (_useManualAddress && (_savedAddresses.isEmpty || _saveAsDefault)) {
       try {
-        final prefs = await SharedPreferences.getInstance();
-        final newAddr = {'name': name, 'phone': phone, 'address': address};
-        final exists = _savedAddresses.any((a) => a['address'] == address && a['phone'] == phone);
-        if (!exists) {
-          _savedAddresses.insert(0, newAddr);
-          await prefs.setString('shippingAddresses', jsonEncode(_savedAddresses));
-          await prefs.setInt('defaultAddressIndex', 0);
+        final created = await addressProvider.addAddress(
+          ShippingAddress(
+            id: '',
+            recipientName: name,
+            phone: phone,
+            province: '',
+            district: '',
+            ward: '',
+            detailAddress: address,
+            isDefault: _saveAsDefault || _savedAddresses.isEmpty,
+          ),
+        );
+        // Phải dùng địa chỉ vừa tạo, không phải items.first (API có thể append).
+        addressId = created?.id;
+        if (created != null) {
+          _savedAddresses = addressProvider.items;
         }
-      } catch (_) {}
+      } catch (_) {
+        // Không lưu được vẫn đặt hàng được bằng khối ship bên dưới
+      }
     }
 
     try {
-      final res = await DioClient.instance.dio.post('/orders', data: {
+      final payload = <String, dynamic>{
         'items': items,
         'paymentMethod': _paymentMethod,
-        'ship': {
-          'name': name,
-          'phone': phone,
-          'address': address,
-        },
         'note': _noteCtrl.text.trim(),
         'voucherCode': _appliedVoucher?.code,
         'discountAmount': _discountAmount,
-      });
+      };
+
+      if (addressId != null) {
+        // Backend tự dựng lại thông tin giao hàng từ địa chỉ đã lưu
+        payload['addressId'] = addressId;
+      } else {
+        payload['ship'] = {
+          'name': name,
+          'phone': phone,
+          'address': address,
+        };
+      }
+
+      final res = await DioClient.instance.dio.post('/orders', data: payload);
 
       if (res.statusCode == 201 || res.statusCode == 200) {
         await cart.clear();
@@ -852,7 +893,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     color: AppTheme.surface2,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: (_selectedAddressIndex == _defaultAddressIndex)
+                      color: _isDefaultSelected
                           ? AppTheme.primary.withOpacity(0.6)
                           : AppTheme.border,
                     ),
@@ -864,7 +905,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         children: [
                           Icon(
                             Icons.location_on_rounded,
-                            color: (_selectedAddressIndex == _defaultAddressIndex)
+                            color: _isDefaultSelected
                                 ? AppTheme.primary
                                 : AppTheme.textSecondary,
                             size: 20,
@@ -889,7 +930,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     fontSize: 13,
                                   ),
                                 ),
-                                if (_selectedAddressIndex == _defaultAddressIndex) ...[
+                                if (_isDefaultSelected) ...[
                                   const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -937,10 +978,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         _addressCtrl.text,
                         style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.3),
                       ),
-                      if (_selectedAddressIndex != _defaultAddressIndex) ...[
+                      if (!_isDefaultSelected) ...[
                         const SizedBox(height: 10),
                         GestureDetector(
-                          onTap: () => _selectAddress(_defaultAddressIndex),
+                          onTap: _useDefaultAddress,
                           child: const Text(
                             '← Chọn lại địa chỉ mặc định',
                             style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.w600),
@@ -966,7 +1007,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
                         ),
                         GestureDetector(
-                          onTap: () => _selectAddress(_defaultAddressIndex),
+                          onTap: _useDefaultAddress,
                           child: const Text(
                             'Dùng địa chỉ mặc định',
                             style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 12),

@@ -40,13 +40,20 @@ export const orderRoutes = (
     try {
       const body = createOrderSchema.parse(req.body);
       const idempotencyKey = req.headers['idempotency-key'] as string | undefined;
+      const headerUserId = (req.headers['x-user-id'] as string) || undefined;
+      const headerEmail = (req.headers['x-user-email'] as string) || undefined;
 
       const order = await uc.create.execute({
-        userId: req.user!.id,
+        userId: headerUserId || req.user!.id,
+        userEmail: req.user?.email || headerEmail,
+        addressId: body.addressId,
         ship: body.ship,
         paymentMethod: body.paymentMethod,
         items: body.items,
         idempotencyKey,
+        note: body.note,
+        voucherCode: body.voucherCode,
+        discountAmount: body.discountAmount,
       });
 
       res.status(201).json(order);

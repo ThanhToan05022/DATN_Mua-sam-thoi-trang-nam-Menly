@@ -39,15 +39,18 @@ export const orderRoutes = (
       const headerEmail = (req.headers['x-user-email'] as string) || undefined;
 
       const order = await vm.createOrder({
-        userId: headerUserId || req.user!.id,
+        // Ưu tiên id đã xác thực từ token; header do client gửi chỉ là fallback
+        // để không vỡ luồng với app đang dùng id giả lập.
+        userId: req.user!.id || headerUserId || '',
         userEmail: req.user?.email || headerEmail,
+        addressId: body.addressId,
         ship: body.ship,
         paymentMethod: body.paymentMethod,
         items: body.items,
         idempotencyKey,
-        note: (body as any).note,
-        voucherCode: (body as any).voucherCode,
-        discountAmount: (body as any).discountAmount,
+        note: body.note,
+        voucherCode: body.voucherCode,
+        discountAmount: body.discountAmount,
       });
 
       res.status(201).json(order);
@@ -97,7 +100,8 @@ export const orderRoutes = (
       const order = await vm.getOrder(
         req.params.id,
         req.user!.id,
-        req.user!.role === 'admin'
+        req.user!.role === 'admin',
+        req.user?.email || (req.headers['x-user-email'] as string)
       );
       res.json(order);
     } catch (err) {

@@ -10,6 +10,7 @@ class AuthUser {
   final String fullName;
   final String role; // 'admin' | 'staff' | 'customer' | 'guest'
   final String? avatarUrl;
+  final String? phone;
 
   AuthUser({
     required this.id,
@@ -17,6 +18,7 @@ class AuthUser {
     required this.fullName,
     required this.role,
     this.avatarUrl,
+    this.phone,
   });
 
   bool get isAdmin => role == 'admin';
@@ -26,9 +28,14 @@ class AuthUser {
   factory AuthUser.fromJson(Map<String, dynamic> j) => AuthUser(
         id: j['id'] ?? '',
         email: j['email'] ?? '',
-        fullName: j['fullName'] ?? j['full_name'] ?? j['name'] ?? '',
+        fullName: j['fullName'] ??
+            j['full_name'] ??
+            j['name'] ??
+            j['user_metadata']?['full_name'] ??
+            '',
         role: j['role'] ?? 'customer',
         avatarUrl: j['avatarUrl'] ?? j['avatar_url'],
+        phone: j['phone']?.toString(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -37,7 +44,23 @@ class AuthUser {
         'fullName': fullName,
         'role': role,
         'avatarUrl': avatarUrl,
+        'phone': phone,
       };
+
+  AuthUser copyWith({
+    String? fullName,
+    String? phone,
+    String? avatarUrl,
+  }) {
+    return AuthUser(
+      id: id,
+      email: email,
+      fullName: fullName ?? this.fullName,
+      role: role,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      phone: phone ?? this.phone,
+    );
+  }
 }
 
 class AuthProvider extends ChangeNotifier {
@@ -107,6 +130,8 @@ class AuthProvider extends ChangeNotifier {
       final name = prefs.getString('user_name');
       final role = prefs.getString('user_role') ?? 'customer';
       final id = prefs.getString('user_id') ?? '';
+      final phone = prefs.getString('user_phone');
+      final avatarUrl = prefs.getString('user_avatar_url');
 
       if (token != null && token.isNotEmpty && email != null) {
         final authUser = AuthUser(
@@ -114,6 +139,8 @@ class AuthProvider extends ChangeNotifier {
           email: email,
           fullName: name ?? email.split('@').first,
           role: role,
+          phone: phone,
+          avatarUrl: avatarUrl,
         );
         _state = ViewState.success(authUser);
       } else {
@@ -217,6 +244,111 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Lấy hồ sơ đầy đủ (tên, SĐT, avatar) từ server
+  Future<void> fetchProfile() async {
+    try {
+      final res = await _dioClient.dio.get('/profile');
+      final body = res.data;
+      final raw = body is Map && body['data'] is Map
+          ? body['data'] as Map<String, dynamic>
+          : <String, dynamic>{};
+      if (raw.isEmpty) return;
+
+      final current = user;
+      if (current == null) return;
+
+      final updated = current.copyWith(
+        fullName: (raw['full_name'] ?? raw['fullName'] ?? current.fullName)
+            .toString(),
+        phone: (raw['phone'] ?? current.phone)?.toString(),
+        avatarUrl: (raw['avatar_url'] ?? raw['avatarUrl'])?.toString(),
+      );
+
+      _state = ViewState.success(updated);
+      await _persistProfile(updated);
+      notifyListeners();
+    } catch (_) {
+      // Giữ nguyên thông tin đang có nếu API lỗi
+    }
+  }
+
+  /// Cập nhật tên và số điện thoại
+  Future<bool> updateProfile({String? fullName, String? phone}) async {
+    final current = user;
+    if (current == null) return false;
+
+    final payload = <String, dynamic>{
+      if (fullName != null) 'fullName': fullName.trim(),
+      if (phone != null) 'phone': phone.trim(),
+    };
+    if (payload.isEmpty) return true;
+
+    try {
+      await _dioClient.dio.put('/profile', data: payload);
+
+      final updated = current.copyWith(
+        fullName: fullName?.trim(),
+        phone: phone?.trim(),
+      );
+      _state = ViewState.success(updated);
+      await _persistProfile(updated);
+      notifyListeners();
+      return true;
+    } catch (_) {
+      // Vẫn lưu cục bộ để không mất thay đổi của người dùng
+      final updated = current.copyWith(
+        fullName: fullName?.trim(),
+        phone: phone?.trim(),
+      );
+      _state = ViewState.success(updated);
+      await _persistProfile(updated);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Upload ảnh đại diện (base64) và cập nhật vào hồ sơ
+  Future<bool> uploadAvatar(String base64Image) async {
+    final current = user;
+    if (current == null) return false;
+
+    try {
+      final res = await _dioClient.dio.post('/profile/upload-avatar', data: {
+        'imageBase64': base64Image,
+        'contentType': 'image/jpeg',
+      });
+      final body = res.data;
+      final url = body is Map
+          ? (body['avatarUrl'] ?? body['avatar_url'])?.toString()
+          : null;
+      if (url == null || url.isEmpty) return false;
+
+      final updated = current.copyWith(avatarUrl: url);
+      _state = ViewState.success(updated);
+      await _persistProfile(updated);
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _persistProfile(AuthUser updated) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_name', updated.fullName);
+    // Xoá key cũ khi server trả null để không bị đọc lại giá trị cũ.
+    if (updated.phone != null && updated.phone!.isNotEmpty) {
+      await prefs.setString('user_phone', updated.phone!);
+    } else {
+      await prefs.remove('user_phone');
+    }
+    if (updated.avatarUrl != null && updated.avatarUrl!.isNotEmpty) {
+      await prefs.setString('user_avatar_url', updated.avatarUrl!);
+    } else {
+      await prefs.remove('user_avatar_url');
+    }
+  }
+
   /// Đăng xuất an toàn
   Future<void> logout() async {
     try {
@@ -231,6 +363,8 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('user_email');
     await prefs.remove('user_name');
     await prefs.remove('user_role');
+    await prefs.remove('user_phone');
+    await prefs.remove('user_avatar_url');
 
     _state = ViewState.initial();
     notifyListeners();

@@ -5,10 +5,16 @@ import { ShippingInfo, Order } from '../../../domain/entities/order.js';
 
 export interface CreateOrderRequest {
   userId: string;
-  ship: ShippingInfo;
+  userEmail?: string;
+  ship?: ShippingInfo;
+  /** Chọn địa chỉ đã lưu — ưu tiên hơn `ship` khi được cung cấp */
+  addressId?: string;
   paymentMethod: 'cod' | 'vnpay';
   items?: Array<{ variantId: string; quantity: number }>;
   idempotencyKey?: string;
+  note?: string;
+  voucherCode?: string;
+  discountAmount?: number;
 }
 
 export class CreateOrder {
@@ -30,6 +36,14 @@ export class CreateOrder {
         variantId: i.variantId,
         quantity: i.quantity,
       }));
+    }
+
+    if (!req.ship) {
+      throw new AppError(
+        'SHIPPING_INFO_REQUIRED',
+        400,
+        'Vui lòng chọn địa chỉ giao hàng hoặc nhập thông tin nhận hàng'
+      );
     }
 
     try {

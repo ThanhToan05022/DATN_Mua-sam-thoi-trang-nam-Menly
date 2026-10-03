@@ -78,6 +78,46 @@ class OrderProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Lấy chi tiết một đơn hàng (kèm timeline trạng thái).
+  ///
+  /// Ưu tiên gọi API; nếu lỗi thì lấy bản đã có trong danh sách/cache để
+  /// người dùng vẫn xem được đơn cũ khi mất mạng.
+  Future<Order?> getOrderDetail(String orderId) async {
+    if (orderId.isEmpty) return null;
+
+    try {
+      final res = await _dioClient.dio.get('/orders/$orderId');
+      final data = res.data;
+      final map = data is Map && data['data'] is Map
+          ? data['data'] as Map<String, dynamic>
+          : (data as Map<String, dynamic>);
+      final order = Order.fromJson(map);
+
+      // Đồng bộ vào danh sách để các màn khác không bị cũ
+      if (order.id.isNotEmpty) {
+        final list = _myOrdersState.data != null
+            ? List<Order>.from(_myOrdersState.data!)
+            : await _loadFromLocal();
+        final idx = list.indexWhere((o) => o.id == order.id || o.code == order.code);
+        if (idx != -1) {
+          list[idx] = order;
+        } else {
+          list.insert(0, order);
+        }
+        _myOrdersState = ViewState.success(list);
+        await _saveToLocal(list);
+        notifyListeners();
+      }
+      return order;
+    } catch (_) {
+      final list = _myOrdersState.data ?? await _loadFromLocal();
+      for (final o in list) {
+        if (o.id == orderId || o.code == orderId) return o;
+      }
+      return null;
+    }
+  }
+
   /// Lấy danh sách đơn hàng của người dùng hiện tại
   Future<void> fetchMyOrders({bool forceRefresh = false}) async {
     // 1. Tải trước từ cache cục bộ để hiển thị ngay lập tức (không bị trống khi vừa đăng nhập lại)
@@ -239,22 +279,7 @@ class OrderProvider extends ChangeNotifier {
         final idx = list.indexWhere((o) => o.id == orderId);
         if (idx != -1) {
           final old = list[idx];
-          list[idx] = Order(
-            id: old.id,
-            code: old.code,
-            userId: old.userId,
-            status: newStatus,
-            paymentMethod: old.paymentMethod,
-            subtotal: old.subtotal,
-            shippingFee: old.shippingFee,
-            total: old.total,
-            shipName: old.shipName,
-            shipPhone: old.shipPhone,
-            shipAddress: old.shipAddress,
-            note: note ?? old.note,
-            createdAt: old.createdAt,
-            items: old.items,
-          );
+          list[idx] = old.copyWith(status: newStatus, note: note ?? old.note);
           _adminOrdersState = ViewState.success(list);
         }
       }
@@ -265,22 +290,7 @@ class OrderProvider extends ChangeNotifier {
         final idx = list.indexWhere((o) => o.id == orderId);
         if (idx != -1) {
           final old = list[idx];
-          list[idx] = Order(
-            id: old.id,
-            code: old.code,
-            userId: old.userId,
-            status: newStatus,
-            paymentMethod: old.paymentMethod,
-            subtotal: old.subtotal,
-            shippingFee: old.shippingFee,
-            total: old.total,
-            shipName: old.shipName,
-            shipPhone: old.shipPhone,
-            shipAddress: old.shipAddress,
-            note: note ?? old.note,
-            createdAt: old.createdAt,
-            items: old.items,
-          );
+          list[idx] = old.copyWith(status: newStatus, note: note ?? old.note);
           _myOrdersState = ViewState.success(list);
           await _saveToLocal(list);
         }

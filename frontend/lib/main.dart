@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/config/supabase_config.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
+import 'features/address/presentation/providers/address_provider.dart';
 import 'features/product/presentation/providers/product_provider.dart';
 import 'features/wishlist/presentation/providers/wishlist_provider.dart';
 import 'features/wishlist/presentation/pages/wishlist_page.dart';
@@ -16,6 +17,7 @@ import 'features/product/presentation/pages/product_detail_page.dart';
 import 'features/cart/presentation/pages/cart_page.dart';
 import 'features/order/presentation/pages/checkout_page.dart';
 import 'features/order/presentation/pages/order_list_page.dart';
+import 'features/order/presentation/pages/order_detail_page.dart';
 import 'features/order/presentation/pages/admin_order_management_page.dart';
 import 'features/order/presentation/pages/order_success_page.dart';
 import 'features/order/presentation/providers/order_provider.dart';
@@ -102,6 +104,10 @@ final _router = GoRouter(
         GoRoute(path: '/profile', builder: (ctx, s) => const ProfilePage()),
         GoRoute(path: '/my-orders', builder: (ctx, s) => const MyOrdersPage()),
         GoRoute(path: '/shipping-address', builder: (ctx, s) => const ShippingAddressPage()),
+        GoRoute(
+          path: '/order-detail/:id',
+          builder: (ctx, s) => OrderDetailPage(orderId: s.pathParameters['id'] ?? ''),
+        ),
         GoRoute(path: '/change-password', builder: (ctx, s) => const ChangePasswordPage()),
         GoRoute(path: '/notifications', builder: (ctx, s) => const NotificationsPage()),
         GoRoute(path: '/help-support', builder: (ctx, s) => const HelpSupportPage()),
@@ -122,6 +128,7 @@ class MenlyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => WishlistProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
+        ChangeNotifierProvider(create: (_) => AddressProvider()),
       ],
       child: MaterialApp.router(
         title: 'Menly - Thời trang nam',

@@ -22,6 +22,7 @@ import { userRoutes } from './routes/user.routes.js';
 import { profileRoutes } from './routes/profile.routes.js';
 import { wishlistRoutes } from './routes/wishlist.routes.js';
 import { voucherRoutes, adminVoucherRoutes } from './routes/voucher.routes.js';
+import { addressRoutes } from './routes/address.routes.js';
 
 import { viewModels, supabase, userModel } from '../container.js';
 
@@ -45,6 +46,11 @@ export function createApp(): Express {
     })
   );
   app.use(generalRateLimit);
+
+  // Ảnh đại diện gửi dạng base64 nên cần body lớn hơn mặc định.
+  // Mount trước express.json() chung để parser này chạy trước (body-parser
+  // bỏ qua nếu req._body đã được set).
+  app.use('/api/v1/profile/upload-avatar', express.json({ limit: '8mb' }));
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: true }));
 
@@ -81,6 +87,9 @@ export function createApp(): Express {
     adminRoutes(requireAuth, requireAdmin, viewModels.admin, viewModels.product, requireStaffOrAdmin)
   );
   app.use('/api/v1/profile', profileRoutes(requireAuth, supabase, userModel));
+  app.use('/api/v1/addresses', addressRoutes(requireAuth, viewModels.address));
+  // Alias khớp với tài liệu kỹ thuật
+  app.use('/api/v1/users/addresses', addressRoutes(requireAuth, viewModels.address));
   app.use('/api/v1/wishlist', wishlistRoutes(requireAuth, viewModels.wishlist));
   app.use('/api/v1/vouchers', voucherRoutes(viewModels.voucher));
 

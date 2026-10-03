@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import {
   Order,
   OrderStatus,
+  OrderStatusHistoryEntry,
   ShippingInfo,
   Cursor,
   AppError,
@@ -50,6 +51,7 @@ export interface IOrderModel {
   ): Promise<Order[]>;
   trackByCodeAndPhone(code: string, phone: string): Promise<TrackOrderResult | null>;
   updateStatus(orderId: string, status: OrderStatus, note?: string): Promise<boolean>;
+  getStatusHistory(orderId: string): Promise<OrderStatusHistoryEntry[]>;
 }
 
 export const DEFAULT_MOCK_ORDERS: Order[] = [];
@@ -312,13 +314,16 @@ export class OrderModel implements IOrderModel {
           .select(`
             id, code, user_id, status, payment_method, subtotal, shipping_fee, total,
             ship_name, ship_phone, ship_address, idempotency_key, expires_at, created_at,
-            items:order_items(id, order_id, variant_id, product_name, size, color, unit_price, quantity)
+            note, voucher_code, discount_amount,
+            items:order_items(id, order_id, variant_id, product_name, size, color, unit_price, quantity),
+            history:order_status_history(id, order_id, from_status, to_status, note, created_at)
           `)
           .or(`id.eq.${id},code.eq.${id}`)
           .maybeSingle();
 
         if (!error && data) {
           type RawItem = { id: string; order_id: string; variant_id: string; product_name: string; size: string; color: string; unit_price: number; quantity: number };
+          type RawHistory = { id: string; order_id: string; from_status: string | null; to_status: string; note: string | null; created_at: string };
 
           return {
             id: data.id,
@@ -332,6 +337,9 @@ export class OrderModel implements IOrderModel {
             shipName: data.ship_name,
             shipPhone: data.ship_phone,
             shipAddress: data.ship_address,
+            note: data.note ?? undefined,
+            voucherCode: data.voucher_code ?? null,
+            discountAmount: data.discount_amount ?? 0,
             idempotencyKey: data.idempotency_key,
             expiresAt: data.expires_at,
             createdAt: data.created_at,
@@ -345,6 +353,13 @@ export class OrderModel implements IOrderModel {
               unitPrice: i.unit_price,
               quantity: i.quantity,
             })),
+            statusHistory: ((data.history as unknown as RawHistory[]) || []).map(
+              (h) => ({
+                status: h.to_status as OrderStatus,
+                note: h.note ?? null,
+                createdAt: h.created_at,
+              })
+            ),
           };
         }
       } catch (err: any) {
@@ -353,6 +368,45 @@ export class OrderModel implements IOrderModel {
     }
 
     return this.inMemoryOrders.find((o) => o.id === id || o.code === id) || null;
+  }
+
+  async getStatusHistory(orderId: string): Promise<OrderStatusHistoryEntry[]> {
+    if (this.supabase) {
+      const isOrderUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+
+      let resolvedId = orderId;
+      if (!isOrderUuid) {
+        const { data: byCode } = await this.supabase
+          .from('orders')
+          .select('id')
+          .eq('code', orderId)
+          .maybeSingle();
+        if (!byCode?.id) return [];
+        resolvedId = byCode.id;
+      }
+
+      const { data, error } = await this.supabase
+        .from('order_status_history')
+        .select('to_status, note, created_at')
+        .eq('order_id', resolvedId)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true });
+
+      if (error || !data) return [];
+
+      return (data as any[])
+        .filter((h) => h?.to_status)
+        .map((h) => ({
+          status: h.to_status as OrderStatus,
+          note: h.note ?? null,
+          createdAt: h.created_at,
+        }));
+    }
+
+    // Fallback in-memory: dựng lịch sử tối thiểu từ đơn đang lưu
+    const order = this.inMemoryOrders.find((o) => o.id === orderId || o.code === orderId);
+    if (!order) return [];
+    return [{ status: order.status, note: null, createdAt: order.createdAt }];
   }
 
   async listByUser(
@@ -647,11 +701,20 @@ export class OrderModel implements IOrderModel {
       }
       order.status = status;
       if (note) order.note = note;
+      order.statusHistory = [
+        ...(order.statusHistory ?? []),
+        { status, note: note ?? null, createdAt: new Date().toISOString() },
+      ];
       updated = true;
     }
     if (this.supabase) {
       try {
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+
+        // Phải đọc trạng thái cũ TRƯỚC khi update, nếu không from_status
+        // sẽ bị ghi nhầm bằng trạng thái mới.
+        const previousStatus = await this.readStatus(orderId, isUuid);
+
         let qb = this.supabase.from('orders').update({ status });
         if (isUuid) {
           qb = qb.eq('id', orderId);
@@ -659,11 +722,77 @@ export class OrderModel implements IOrderModel {
           qb = qb.eq('code', orderId);
         }
         const { error } = await qb;
-        if (!error) updated = true;
+        if (!error) {
+          updated = true;
+          await this.recordStatusHistory(
+            orderId,
+            status,
+            note,
+            isUuid,
+            previousStatus
+          );
+        }
       } catch (err: any) {
         console.warn('Supabase updateStatus warning:', err.message);
       }
     }
     return updated;
+  }
+
+  /** Đọc trạng thái hiện tại của đơn (theo id hoặc mã đơn) */
+  private async readStatus(
+    orderId: string,
+    isUuid?: boolean
+  ): Promise<OrderStatus | null> {
+    if (!this.supabase) return null;
+    try {
+      const uuid = isUuid ?? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+      let qb = this.supabase.from('orders').select('status');
+      qb = uuid ? qb.eq('id', orderId) : qb.eq('code', orderId);
+      const { data, error } = await qb.maybeSingle();
+      if (error || !data) return null;
+      return data.status as OrderStatus;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Ghi một mốc vào order_status_history (bỏ qua nếu bảng chưa tồn tại) */
+  private async recordStatusHistory(
+    orderId: string,
+    toStatus: OrderStatus,
+    note?: string,
+    isOrderUuid?: boolean,
+    fromStatus?: OrderStatus | null
+  ): Promise<void> {
+    if (!this.supabase) return;
+
+    try {
+      const uuid = isOrderUuid ?? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+
+      let resolvedId = orderId;
+      if (!uuid) {
+        const { data: byCode } = await this.supabase
+          .from('orders')
+          .select('id')
+          .eq('code', orderId)
+          .maybeSingle();
+        if (!byCode?.id) return;
+        resolvedId = byCode.id;
+      }
+
+      // Nếu không lấy được trạng thái cũ (đơn mới tạo) thì from_status = null
+      const { error } = await this.supabase.from('order_status_history').insert({
+        order_id: resolvedId,
+        from_status: fromStatus ?? null,
+        to_status: toStatus,
+        note: note ?? null,
+      });
+      if (error) {
+        console.warn('Could not record order status history:', error.message);
+      }
+    } catch (err: any) {
+      console.warn('Could not record order status history:', err.message);
+    }
   }
 }

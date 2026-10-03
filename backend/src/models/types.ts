@@ -129,6 +129,51 @@ export interface ShippingInfo {
   address: string;
 }
 
+export interface UserAddress {
+  id: string;
+  userId: string;
+  recipientName: string;
+  phone: string;
+  province: string;
+  district: string;
+  ward: string;
+  detailAddress: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export interface CreateAddressInput {
+  recipientName: string;
+  phone: string;
+  province: string;
+  district: string;
+  ward: string;
+  detailAddress: string;
+  isDefault?: boolean;
+}
+
+export type UpdateAddressInput = Partial<CreateAddressInput>;
+
+/** Một mốc trong dòng thời gian trạng thái đơn hàng */
+export interface OrderStatusHistoryEntry {
+  status: OrderStatus;
+  note?: string | null;
+  changedBy?: string | null;
+  createdAt: string;
+}
+
+/** Một bước trên timeline hiển thị cho người dùng */
+export interface OrderTimelineStep {
+  status: OrderStatus;
+  label: string;
+  description: string;
+  createdAt: string | null;
+  /** Ghi chú kèm theo mốc (ví dụ lý do huỷ, ghi chú admin) */
+  note?: string | null;
+  completed: boolean;
+  current: boolean;
+}
+
 export interface Order {
   id: string;
   code: string;
@@ -149,6 +194,8 @@ export interface Order {
   discountAmount?: number;
   createdAt: string;
   items?: OrderItem[];
+  statusHistory?: OrderStatusHistoryEntry[];
+  timeline?: OrderTimelineStep[];
 }
 
 export type PaymentStatus = 'pending' | 'success' | 'failed';

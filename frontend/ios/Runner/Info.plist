@@ -8,6 +8,12 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Frontend</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Dùng camera để chụp ảnh đại diện cho tài khoản của bạn.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Dùng thư viện ảnh để chọn ảnh đại diện cho tài khoản của bạn.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Dùng thư viện ảnh để lưu ảnh đại diện của bạn.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
