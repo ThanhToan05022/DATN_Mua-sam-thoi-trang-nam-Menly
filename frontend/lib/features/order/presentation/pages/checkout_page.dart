@@ -5,7 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/dio_client.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_buttons.dart';
 import '../../../../core/utils/auth_guard.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../cart/data/cart_model.dart';
@@ -108,9 +109,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   void _showAddressPicker() {
+    final c = AppColors.of(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.surface,
+      backgroundColor: c.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -127,7 +129,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppTheme.surface2,
+                      color: c.surfaceVariant,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -136,10 +138,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Chọn địa chỉ nhận hàng',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: c.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -150,8 +152,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         await context.push('/shipping-address');
                         await _loadSavedAddresses();
                       },
-                      icon: const Icon(Icons.settings_outlined, size: 16, color: AppTheme.primary),
-                      label: const Text('Quản lý', style: TextStyle(color: AppTheme.primary, fontSize: 13)),
+                      icon: Icon(Icons.settings_outlined, size: 16, color: c.secondary),
+                      label: Text('Quản lý', style: TextStyle(color: c.secondary, fontSize: 13)),
                     ),
                   ],
                 ),
@@ -174,17 +176,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isSelected ? AppTheme.primary.withOpacity(0.1) : AppTheme.surface2,
+                            color: isSelected ? c.primarySoft : c.surfaceVariant,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isSelected ? AppTheme.primary : AppTheme.border,
+                              color: isSelected ? c.secondary : c.border,
                             ),
                           ),
                           child: Row(
                             children: [
                               Icon(
                                 isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-                                color: isSelected ? AppTheme.primary : AppTheme.textMuted,
+                                color: isSelected ? c.secondary : c.textMuted,
                                 size: 20,
                               ),
                               const SizedBox(width: 12),
@@ -196,8 +198,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                       children: [
                                         Text(
                                           addr['name'] ?? '',
-                                          style: const TextStyle(
-                                            color: Colors.white,
+                                          style: TextStyle(
+                                            color: c.textPrimary,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14,
                                           ),
@@ -205,8 +207,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                         const SizedBox(width: 8),
                                         Text(
                                           '(${addr['phone'] ?? ''})',
-                                          style: const TextStyle(
-                                            color: AppTheme.textSecondary,
+                                          style: TextStyle(
+                                            color: c.textSecondary,
                                             fontSize: 12,
                                           ),
                                         ),
@@ -215,13 +217,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
-                                              color: AppTheme.primary.withOpacity(0.2),
+                                              color: c.primarySoft,
                                               borderRadius: BorderRadius.circular(4),
                                             ),
-                                            child: const Text(
+                                            child: Text(
                                               'Mặc định',
                                               style: TextStyle(
-                                                color: AppTheme.primary,
+                                                color: c.secondary,
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -233,7 +235,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     const SizedBox(height: 4),
                                     Text(
                                       addr['address'] ?? '',
-                                      style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                                      style: TextStyle(color: c.textMuted, fontSize: 12),
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -265,8 +267,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   icon: const Icon(Icons.edit_location_alt_outlined, size: 18),
                   label: const Text('Nhập địa chỉ nhận hàng khác'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: AppTheme.border),
+                    foregroundColor: c.textPrimary,
+                    side: BorderSide(color: c.border),
                     minimumSize: const Size.fromHeight(46),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -484,9 +486,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   void _showVoucherPicker(CartProvider cart) {
+    final c = AppColors.of(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.surface,
+      backgroundColor: c.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -509,7 +512,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: AppTheme.surface2,
+                          color: c.surfaceVariant,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -518,33 +521,33 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Mã giảm giá MenShop',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: c.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         IconButton(
                           onPressed: () => Navigator.pop(ctx),
-                          icon: const Icon(Icons.close, color: AppTheme.textMuted, size: 20),
+                          icon: Icon(Icons.close, color: c.textMuted, size: 20),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
                     if (_loadingVouchers)
-                      const Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Center(child: CircularProgressIndicator(color: c.secondary)),
                       )
                     else if (_availableVouchers.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(24),
+                      Padding(
+                        padding: const EdgeInsets.all(24),
                         child: Center(
                           child: Text(
                             'Hiện chưa có mã giảm giá nào',
-                            style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                            style: TextStyle(color: c.textMuted, fontSize: 13),
                           ),
                         ),
                       )
@@ -556,21 +559,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           separatorBuilder: (_, __) => const SizedBox(height: 10),
                           itemBuilder: (_, i) {
                             final v = _availableVouchers[i];
-                            final isEligible = cart.totalPrice >= v.minOrderValue;
+                            final isEligible = cart.selectedTotalPrice >= v.minOrderValue;
                             final isSelected = _appliedVoucher?.code == v.code;
                             return Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? AppTheme.primary.withOpacity(0.12)
-                                    : AppTheme.surface2,
+                                    ? c.primarySoft
+                                    : c.surfaceVariant,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: isSelected
-                                      ? AppTheme.primary
+                                      ? c.secondary
                                       : isEligible
-                                          ? AppTheme.border
-                                          : AppTheme.border.withOpacity(0.4),
+                                          ? c.border
+                                          : c.border.withValues(alpha: 0.4),
                                 ),
                               ),
                               child: Row(
@@ -580,13 +583,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     height: 44,
                                     decoration: BoxDecoration(
                                       color: isEligible
-                                          ? AppTheme.primary.withOpacity(0.2)
-                                          : AppTheme.surface,
+                                          ? c.primarySoft
+                                          : c.surface,
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Icon(
                                       Icons.local_offer_rounded,
-                                      color: isEligible ? AppTheme.primary : AppTheme.textMuted,
+                                      color: isEligible ? c.secondary : c.textMuted,
                                       size: 22,
                                     ),
                                   ),
@@ -600,27 +603,31 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                             Text(
                                               v.code,
                                               style: TextStyle(
-                                                color: isEligible ? Colors.white : AppTheme.textMuted,
+                                                color: isEligible ? c.textPrimary : c.textMuted,
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 14,
                                                 letterSpacing: 0.5,
                                               ),
                                             ),
                                             const SizedBox(width: 8),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: isEligible
-                                                    ? AppTheme.primary.withOpacity(0.2)
-                                                    : AppTheme.surface,
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                v.discountDescription,
-                                                style: TextStyle(
-                                                  color: isEligible ? AppTheme.primary : AppTheme.textMuted,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 10,
+                                            Flexible(
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: isEligible
+                                                      ? c.primarySoft
+                                                      : c.surface,
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  v.discountDescription,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    color: isEligible ? c.secondary : c.textMuted,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 10,
+                                                  ),
                                                 ),
                                               ),
                                             ),
@@ -629,8 +636,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                         const SizedBox(height: 4),
                                         Text(
                                           v.title,
-                                          style: const TextStyle(
-                                            color: AppTheme.textSecondary,
+                                          style: TextStyle(
+                                            color: c.textSecondary,
                                             fontSize: 12,
                                           ),
                                           maxLines: 2,
@@ -642,7 +649,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                               ? 'Đơn tối thiểu ${_fmt(v.minOrderValue)}đ'
                                               : 'Áp dụng cho mọi đơn hàng',
                                           style: TextStyle(
-                                            color: isEligible ? AppTheme.textMuted : Colors.red.shade400,
+                                            color: isEligible ? c.textMuted : Colors.red.shade400,
                                             fontSize: 11,
                                           ),
                                         ),
@@ -662,11 +669,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     ElevatedButton(
                                       onPressed: () {
                                         Navigator.pop(ctx);
-                                        _applyVoucher(v.code, cart.totalPrice);
+                                        _applyVoucher(v.code, cart.selectedTotalPrice);
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.primary,
-                                        foregroundColor: Colors.black,
+                                        backgroundColor: c.primary,
+                                        foregroundColor: c.onPrimary,
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                         minimumSize: Size.zero,
                                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -678,12 +685,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: AppTheme.surface,
+                                        color: c.surface,
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
-                                        'Thiếu ${_fmt(v.minOrderValue - cart.totalPrice)}đ',
-                                        style: const TextStyle(color: AppTheme.textMuted, fontSize: 10),
+                                        'Thiếu ${_fmt(v.minOrderValue - cart.selectedTotalPrice)}đ',
+                                        style: TextStyle(color: c.textMuted, fontSize: 10),
                                       ),
                                     ),
                                 ],
@@ -747,15 +754,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
 
     final cart = context.read<CartProvider>();
-    if (cart.items.isEmpty) {
+    if (cart.selectedItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Giỏ hàng đang trống, không thể thanh toán')),
+        const SnackBar(content: Text('Vui lòng chọn ít nhất 1 sản phẩm để thanh toán')),
       );
       return;
     }
 
     setState(() => _loading = true);
-    final items = cart.items
+    // Giữ lại id các món đã đặt để chỉ xoá đúng chúng khỏi giỏ sau khi thành công.
+    final orderedVariantIds =
+        cart.selectedItems.map((i) => i.variant.id).toList();
+    final items = cart.selectedItems
         .map((i) => {
               'variantId': i.variant.id,
               'quantity': i.quantity,
@@ -795,7 +805,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       });
 
       if (res.statusCode == 201 || res.statusCode == 200) {
-        await cart.clear();
+        await cart.removeMany(orderedVariantIds);
         final orderData = res.data is Map ? (res.data as Map<String, dynamic>) : null;
         if (orderData != null && mounted) {
           final createdOrder = Order.fromJson(orderData);
@@ -823,7 +833,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           }
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: AppTheme.error, duration: const Duration(seconds: 4)),
+          SnackBar(content: Text(msg), backgroundColor: AppColors.of(context).danger, duration: const Duration(seconds: 4)),
         );
       }
     } finally {
@@ -833,6 +843,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     final cart = context.watch<CartProvider>();
     return Scaffold(
       appBar: AppBar(
@@ -849,12 +860,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppTheme.surface2,
+                    color: c.surfaceVariant,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: (_selectedAddressIndex == _defaultAddressIndex)
-                          ? AppTheme.primary.withOpacity(0.6)
-                          : AppTheme.border,
+                          ? c.secondary.withValues(alpha: 0.6)
+                          : c.border,
                     ),
                   ),
                   child: Column(
@@ -865,8 +876,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           Icon(
                             Icons.location_on_rounded,
                             color: (_selectedAddressIndex == _defaultAddressIndex)
-                                ? AppTheme.primary
-                                : AppTheme.textSecondary,
+                                ? c.secondary
+                                : c.textSecondary,
                             size: 20,
                           ),
                           const SizedBox(width: 8),
@@ -875,8 +886,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                               children: [
                                 Text(
                                   _nameCtrl.text,
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: c.textPrimary,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
                                   ),
@@ -884,8 +895,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 const SizedBox(width: 8),
                                 Text(
                                   '(${_phoneCtrl.text})',
-                                  style: const TextStyle(
-                                    color: AppTheme.textSecondary,
+                                  style: TextStyle(
+                                    color: c.textSecondary,
                                     fontSize: 13,
                                   ),
                                 ),
@@ -894,13 +905,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: AppTheme.primary.withOpacity(0.2),
+                                      color: c.primarySoft,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: const Text(
+                                    child: Text(
                                       'Mặc định',
                                       style: TextStyle(
-                                        color: AppTheme.primary,
+                                        color: c.secondary,
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -913,19 +924,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           InkWell(
                             onTap: _showAddressPicker,
                             borderRadius: BorderRadius.circular(8),
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                               child: Row(
                                 children: [
                                   Text(
                                     'Đổi',
                                     style: TextStyle(
-                                      color: AppTheme.primary,
+                                      color: c.secondary,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13,
                                     ),
                                   ),
-                                  Icon(Icons.chevron_right, size: 16, color: AppTheme.primary),
+                                  Icon(Icons.chevron_right, size: 16, color: c.secondary),
                                 ],
                               ),
                             ),
@@ -935,15 +946,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       const SizedBox(height: 8),
                       Text(
                         _addressCtrl.text,
-                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.3),
+                        style: TextStyle(color: c.textSecondary, fontSize: 13, height: 1.3),
                       ),
                       if (_selectedAddressIndex != _defaultAddressIndex) ...[
                         const SizedBox(height: 10),
                         GestureDetector(
                           onTap: () => _selectAddress(_defaultAddressIndex),
-                          child: const Text(
+                          child: Text(
                             '← Chọn lại địa chỉ mặc định',
-                            style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.w600),
+                            style: TextStyle(color: c.secondary, fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ],
@@ -961,15 +972,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Nhập địa chỉ mới',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                          style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
                         ),
                         GestureDetector(
                           onTap: () => _selectAddress(_defaultAddressIndex),
-                          child: const Text(
+                          child: Text(
                             'Dùng địa chỉ mặc định',
-                            style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                            style: TextStyle(color: c.secondary, fontWeight: FontWeight.bold, fontSize: 12),
                           ),
                         ),
                       ],
@@ -987,14 +998,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       child: Checkbox(
                         value: _saveAsDefault,
                         onChanged: (v) => setState(() => _saveAsDefault = v ?? false),
-                        activeColor: AppTheme.primary,
+                        activeColor: c.primary,
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Đặt địa chỉ này làm mặc định cho lần mua sau',
-                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                        style: TextStyle(color: c.textSecondary, fontSize: 12),
                       ),
                     ),
                   ],
@@ -1023,19 +1034,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.12),
+                    color: c.primarySoft,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.primary.withOpacity(0.5)),
+                    border: Border.all(color: c.secondary.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.2),
+                          color: c.primarySoft,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.confirmation_number_rounded, color: AppTheme.primary, size: 20),
+                        child: Icon(Icons.confirmation_number_rounded, color: c.secondary, size: 20),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -1046,8 +1057,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                               children: [
                                 Text(
                                   _appliedVoucher!.code,
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: c.textPrimary,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
                                     letterSpacing: 0.5,
@@ -1057,13 +1068,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.primary,
+                                    color: c.secondary,
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     '-${_fmt(_discountAmount)} đ',
-                                    style: const TextStyle(
-                                      color: Colors.black,
+                                    style: TextStyle(
+                                      color: c.onPrimary,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 10,
                                     ),
@@ -1074,7 +1085,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             const SizedBox(height: 2),
                             Text(
                               _appliedVoucher!.title,
-                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                              style: TextStyle(color: c.textSecondary, fontSize: 11),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -1083,7 +1094,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       ),
                       IconButton(
                         onPressed: _removeVoucher,
-                        icon: const Icon(Icons.close_rounded, color: AppTheme.textMuted, size: 18),
+                        icon: Icon(Icons.close_rounded, color: c.textMuted, size: 18),
                         tooltip: 'Gỡ mã',
                       ),
                     ],
@@ -1096,26 +1107,26 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       child: TextField(
                         controller: _voucherCtrl,
                         textCapitalization: TextCapitalization.characters,
-                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: c.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
                         decoration: InputDecoration(
                           hintText: 'Nhập mã giảm giá (VD: MENLY10)',
-                          hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 12, fontWeight: FontWeight.normal),
-                          prefixIcon: const Icon(Icons.confirmation_number_outlined, size: 18, color: AppTheme.textMuted),
+                          hintStyle: TextStyle(color: c.textMuted, fontSize: 12, fontWeight: FontWeight.normal),
+                          prefixIcon: Icon(Icons.confirmation_number_outlined, size: 18, color: c.textMuted),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           filled: true,
-                          fillColor: AppTheme.surface2,
+                          fillColor: c.surfaceVariant,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: AppTheme.border),
+                            borderSide: BorderSide(color: c.border),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: AppTheme.border),
+                            borderSide: BorderSide(color: c.border),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: AppTheme.primary),
+                            borderSide: BorderSide(color: c.secondary),
                           ),
                         ),
                       ),
@@ -1124,15 +1135,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     ElevatedButton(
                       onPressed: _applyingVoucher
                           ? null
-                          : () => _applyVoucher(_voucherCtrl.text, cart.totalPrice),
+                          : () => _applyVoucher(_voucherCtrl.text, cart.selectedTotalPrice),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.black,
+                        backgroundColor: c.primary,
+                        foregroundColor: c.onPrimary,
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       child: _applyingVoucher
-                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                          ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: c.onPrimary))
                           : const Text('Áp dụng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
                   ],
@@ -1148,21 +1159,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.local_offer_outlined, size: 14, color: AppTheme.primary),
+                            Icon(Icons.local_offer_outlined, size: 14, color: c.secondary),
                             const SizedBox(width: 6),
                             Text(
                               _availableVouchers.isNotEmpty
                                   ? 'Xem danh sách (${_availableVouchers.length} mã khả dụng)'
                                   : 'Xem tất cả mã giảm giá',
-                              style: const TextStyle(
-                                color: AppTheme.primary,
+                              style: TextStyle(
+                                color: c.secondary,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
-                        const Icon(Icons.chevron_right, size: 16, color: AppTheme.primary),
+                        Icon(Icons.chevron_right, size: 16, color: c.secondary),
                       ],
                     ),
                   ),
@@ -1171,22 +1182,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ]),
             const SizedBox(height: 16),
             _section('Đơn hàng', [
-              ...cart.items.map((i) => Padding(
+              ...cart.selectedItems.map((i) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   children: [
                     Expanded(child: Text('${i.product.name} (${i.variant.size}) x${i.quantity}',
-                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))),
-                    Text('${_fmt(i.subtotal)} đ', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                        style: TextStyle(color: c.textSecondary, fontSize: 13))),
+                    Text('${_fmt(i.subtotal)} đ', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600, fontSize: 13)),
                   ],
                 ),
               )),
-              const Divider(color: AppTheme.border),
+              Divider(color: c.border),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Tạm tính', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                  Text('${_fmt(cart.totalPrice)} đ', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                  Text('Tạm tính', style: TextStyle(color: c.textSecondary, fontSize: 13)),
+                  Text('${_fmt(cart.selectedTotalPrice)} đ', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600, fontSize: 13)),
                 ],
               ),
               if (_discountAmount > 0) ...[
@@ -1196,43 +1207,42 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.confirmation_number_outlined, size: 14, color: AppTheme.primary),
+                        Icon(Icons.confirmation_number_outlined, size: 14, color: c.secondary),
                         const SizedBox(width: 4),
                         Text('Mã giảm giá (${_appliedVoucher?.code ?? ""})',
-                            style: const TextStyle(color: AppTheme.primary, fontSize: 13, fontWeight: FontWeight.w600)),
+                            style: TextStyle(color: c.secondary, fontSize: 13, fontWeight: FontWeight.w600)),
                       ],
                     ),
                     Text('-${_fmt(_discountAmount)} đ',
-                        style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                        style: TextStyle(color: c.secondary, fontWeight: FontWeight.bold, fontSize: 13)),
                   ],
                 ),
               ],
               const SizedBox(height: 6),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Phí vận chuyển', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-                  Text('Miễn phí', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                ],
-              ),
-              const Divider(color: AppTheme.border),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Tổng thanh toán', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text('Phí vận chuyển', style: TextStyle(color: c.textSecondary, fontSize: 13)),
+                  Text('Miễn phí', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600, fontSize: 13)),
+                ],
+              ),
+              Divider(color: c.border),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Tổng thanh toán', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
                   Text(
-                    '${_fmt((cart.totalPrice - _discountAmount) > 0 ? (cart.totalPrice - _discountAmount) : 0)} đ',
-                    style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 18),
+                    '${_fmt((cart.selectedTotalPrice - _discountAmount) > 0 ? (cart.selectedTotalPrice - _discountAmount) : 0)} đ',
+                    style: TextStyle(color: c.secondary, fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                 ],
               ),
             ]),
             const SizedBox(height: 24),
-            ElevatedButton(
+            PrimaryButton(
+              label: 'Đặt hàng ngay',
+              loading: _loading,
               onPressed: _loading ? null : _placeOrder,
-              child: _loading
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                  : const Text('Đặt hàng ngay'),
             ),
           ],
         ),
@@ -1240,37 +1250,43 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  Widget _section(String title, List<Widget> children) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: AppTheme.card,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppTheme.border),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-        const SizedBox(height: 12),
-        ...children,
-      ],
-    ),
-  );
-
-  Widget _field(TextEditingController ctrl, String hint, IconData icon, {TextInputType type = TextInputType.text, int lines = 1}) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: TextField(
-      controller: ctrl,
-      keyboardType: type,
-      maxLines: lines,
-      style: const TextStyle(color: Colors.white, fontSize: 13),
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, size: 18, color: AppTheme.textMuted),
-        isDense: true,
+  Widget _section(String title, List<Widget> children) {
+    final c = AppColors.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.border),
       ),
-    ),
-  );
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _field(TextEditingController ctrl, String hint, IconData icon, {TextInputType type = TextInputType.text, int lines = 1}) {
+    final c = AppColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        controller: ctrl,
+        keyboardType: type,
+        maxLines: lines,
+        style: TextStyle(color: c.textPrimary, fontSize: 13),
+        decoration: InputDecoration(
+          hintText: hint,
+          prefixIcon: Icon(icon, size: 18, color: c.textMuted),
+          isDense: true,
+        ),
+      ),
+    );
+  }
 }
 
 class _PayOption extends StatelessWidget {
@@ -1282,29 +1298,32 @@ class _PayOption extends StatelessWidget {
   const _PayOption({required this.label, required this.icon, required this.value, required this.groupValue, required this.onChanged});
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: () => onChanged(value),
-    child: Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: groupValue == value ? AppTheme.primary.withOpacity(0.1) : AppTheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: groupValue == value ? AppTheme.primary : AppTheme.border),
+  Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+    return GestureDetector(
+      onTap: () => onChanged(value),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: groupValue == value ? c.primarySoft : c.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: groupValue == value ? c.secondary : c.border),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: groupValue == value ? c.secondary : c.textMuted, size: 20),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: TextStyle(
+              color: groupValue == value ? c.textPrimary : c.textSecondary,
+              fontWeight: FontWeight.w600, fontSize: 13,
+            ))),
+            Radio<String>(value: value, groupValue: groupValue, onChanged: onChanged, activeColor: c.secondary),
+          ],
+        ),
       ),
-      child: Row(
-        children: [
-          Icon(icon, color: groupValue == value ? AppTheme.primary : AppTheme.textMuted, size: 20),
-          const SizedBox(width: 12),
-          Expanded(child: Text(label, style: TextStyle(
-            color: groupValue == value ? Colors.white : AppTheme.textSecondary,
-            fontWeight: FontWeight.w600, fontSize: 13,
-          ))),
-          Radio<String>(value: value, groupValue: groupValue, onChanged: onChanged, activeColor: AppTheme.primary),
-        ],
-      ),
-    ),
-  );
+    );
+  }
 }
 
 String _fmt(int price) {

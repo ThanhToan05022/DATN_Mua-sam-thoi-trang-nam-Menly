@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/network/dio_client.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_buttons.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
@@ -93,15 +94,17 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   }
 
   void _snack(String msg) {
+    final c = AppColors.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: AppTheme.error),
+      SnackBar(content: Text(msg), backgroundColor: c.danger),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: c.background,
       appBar: AppBar(
         title: const Text('Đổi mật khẩu'),
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios_rounded), onPressed: () => context.pop()),
@@ -116,21 +119,21 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.success.withOpacity(0.1),
+                  color: c.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppTheme.success.withOpacity(0.3)),
+                  border: Border.all(color: c.success.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 22),
+                    Icon(Icons.check_circle_rounded, color: c.success, size: 22),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text('Đổi mật khẩu thành công!',
-                          style: TextStyle(color: AppTheme.success, fontWeight: FontWeight.w600, fontSize: 14)),
+                          style: TextStyle(color: c.success, fontWeight: FontWeight.w600, fontSize: 14)),
                     ),
                     GestureDetector(
                       onTap: () => setState(() => _showSuccess = false),
-                      child: const Icon(Icons.close_rounded, color: AppTheme.success, size: 18),
+                      child: Icon(Icons.close_rounded, color: c.success, size: 18),
                     ),
                   ],
                 ),
@@ -143,21 +146,21 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               child: Container(
                 width: 70, height: 70,
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
+                  color: c.primarySoft,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.lock_outline_rounded, color: AppTheme.primary, size: 32),
+                child: Icon(Icons.lock_outline_rounded, color: c.secondary, size: 32),
               ),
             ),
             const SizedBox(height: 16),
-            const Center(
+            Center(
               child: Text('Bảo mật tài khoản',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: c.textPrimary)),
             ),
             const SizedBox(height: 6),
-            const Center(
+            Center(
               child: Text('Đổi mật khẩu để bảo vệ tài khoản của bạn',
-                  style: TextStyle(fontSize: 13, color: AppTheme.textMuted), textAlign: TextAlign.center),
+                  style: TextStyle(fontSize: 13, color: c.textMuted), textAlign: TextAlign.center),
             ),
             const SizedBox(height: 32),
 
@@ -185,25 +188,15 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 () => setState(() => _obscureConfirm = !_obscureConfirm)),
             if (_confirmCtrl.text.isNotEmpty && _confirmCtrl.text != _newCtrl.text) ...[
               const SizedBox(height: 6),
-              const Text('Mật khẩu không khớp', style: TextStyle(color: AppTheme.error, fontSize: 12)),
+              Text('Mật khẩu không khớp', style: TextStyle(color: c.danger, fontSize: 12)),
             ],
             const SizedBox(height: 32),
 
             // Button
-            SizedBox(
-              height: 54,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _changePassword,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
-                child: _loading
-                    ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                    : const Text('Đổi mật khẩu', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              ),
+            PrimaryButton(
+              label: 'Đổi mật khẩu',
+              loading: _loading,
+              onPressed: _loading ? null : _changePassword,
             ),
           ],
         ),
@@ -211,27 +204,31 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     );
   }
 
-  Widget _label(String text) => Text(text,
-      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary));
+  Widget _label(String text) {
+    final c = AppColors.of(context);
+    return Text(text,
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: c.textSecondary));
+  }
 
   Widget _passwordField(TextEditingController ctrl, String hint, bool obscure, VoidCallback toggleObscure) {
+    final c = AppColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: c.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.surface2),
+        border: Border.all(color: c.surfaceVariant),
       ),
       child: TextField(
         controller: ctrl,
         obscureText: obscure,
         onChanged: (_) => setState(() {}),
-        style: const TextStyle(color: Colors.white, fontSize: 15),
+        style: TextStyle(color: c.textPrimary, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
-          prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.textMuted, size: 20),
+          hintStyle: TextStyle(color: c.textMuted, fontSize: 14),
+          prefixIcon: Icon(Icons.lock_outline_rounded, color: c.textMuted, size: 20),
           suffixIcon: IconButton(
-            icon: Icon(obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: AppTheme.textMuted, size: 20),
+            icon: Icon(obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: c.textMuted, size: 20),
             onPressed: toggleObscure,
           ),
           border: InputBorder.none,
@@ -242,14 +239,15 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   }
 
   Widget _requirement(String text, bool met) {
+    final c = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(
         children: [
           Icon(met ? Icons.check_circle_rounded : Icons.circle_outlined,
-              color: met ? AppTheme.success : AppTheme.textMuted, size: 14),
+              color: met ? c.success : c.textMuted, size: 14),
           const SizedBox(width: 6),
-          Text(text, style: TextStyle(color: met ? AppTheme.success : AppTheme.textMuted, fontSize: 12)),
+          Text(text, style: TextStyle(color: met ? c.success : c.textMuted, fontSize: 12)),
         ],
       ),
     );

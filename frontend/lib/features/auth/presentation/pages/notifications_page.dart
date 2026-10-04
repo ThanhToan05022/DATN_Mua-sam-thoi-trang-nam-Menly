@@ -2,7 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/pressable.dart';
+import '../../../../core/widgets/state_views.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -85,22 +89,24 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   void _clearAll() {
+    final c = AppColors.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Xoá tất cả', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        content: const Text('Bạn có chắc muốn xoá tất cả thông báo?', style: TextStyle(color: AppTheme.textSecondary)),
+        backgroundColor: c.surface,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg)),
+        title: Text('Xoá tất cả', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w700)),
+        content: Text('Bạn có chắc muốn xoá tất cả thông báo?', style: TextStyle(color: c.textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Huỷ', style: TextStyle(color: AppTheme.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Huỷ', style: TextStyle(color: c.textMuted))),
           TextButton(
             onPressed: () {
               setState(() => _notifications.clear());
               _saveNotifications();
               Navigator.pop(ctx);
             },
-            child: const Text('Xoá tất cả', style: TextStyle(color: AppTheme.error, fontWeight: FontWeight.w700)),
+            child: Text('Xoá tất cả', style: TextStyle(color: c.danger, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -111,8 +117,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: c.background,
       appBar: AppBar(
         title: const Text('Thông báo'),
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios_rounded), onPressed: () => context.pop()),
@@ -120,12 +127,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
           if (_notifications.isNotEmpty) ...[
             if (_unreadCount > 0)
               IconButton(
-                icon: const Icon(Icons.done_all_rounded, color: AppTheme.primary, size: 22),
+                icon: Icon(Icons.done_all_rounded, color: c.secondary, size: 22),
                 onPressed: _markAllRead,
                 tooltip: 'Đánh dấu tất cả đã đọc',
               ),
             IconButton(
-              icon: const Icon(Icons.delete_sweep_rounded, color: AppTheme.textMuted, size: 22),
+              icon: Icon(Icons.delete_sweep_rounded, color: c.textMuted, size: 22),
               onPressed: _clearAll,
               tooltip: 'Xoá tất cả',
             ),
@@ -133,32 +140,25 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? const LoadingView()
           : _notifications.isEmpty
-              ? _buildEmpty()
+              ? const StatusView(
+                  icon: Icons.notifications_off_outlined,
+                  title: 'Không có thông báo nào',
+                  message: 'Các thông báo và ưu đãi mới sẽ xuất hiện ở đây.',
+                )
               : ListView.separated(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   itemCount: _notifications.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: AppSpacing.sm),
                   itemBuilder: (_, i) => _notifCard(i),
                 ),
     );
   }
 
-  Widget _buildEmpty() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.notifications_off_outlined, size: 64, color: AppTheme.textMuted.withOpacity(0.4)),
-          const SizedBox(height: 12),
-          const Text('Không có thông báo nào', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
-        ],
-      ),
-    );
-  }
-
   Widget _notifCard(int index) {
+    final c = AppColors.of(context);
     final n = _notifications[index];
     final isRead = n['read'] == true;
     final type = n['type'] ?? 'general';
@@ -168,19 +168,19 @@ class _NotificationsPageState extends State<NotificationsPage> {
     switch (type) {
       case 'promo':
         icon = Icons.local_offer_rounded;
-        iconColor = AppTheme.primary;
+        iconColor = c.secondary;
         break;
       case 'order':
         icon = Icons.shopping_bag_rounded;
-        iconColor = AppTheme.info;
+        iconColor = c.secondary;
         break;
       case 'news':
         icon = Icons.new_releases_rounded;
-        iconColor = AppTheme.success;
+        iconColor = c.success;
         break;
       default:
         icon = Icons.notifications_rounded;
-        iconColor = AppTheme.textSecondary;
+        iconColor = c.textSecondary;
     }
 
     return Dismissible(
@@ -189,21 +189,29 @@ class _NotificationsPageState extends State<NotificationsPage> {
       onDismissed: (_) => _deleteNotification(index),
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
+        padding: const EdgeInsets.only(right: AppSpacing.xl),
         decoration: BoxDecoration(
-          color: AppTheme.error.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(14),
+          color: c.danger.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         ),
-        child: const Icon(Icons.delete_rounded, color: AppTheme.error, size: 22),
+        child: Icon(Icons.delete_rounded, color: c.danger, size: 22),
       ),
-      child: GestureDetector(
+      child: Pressable(
         onTap: () => _markAsRead(index),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: isRead ? AppTheme.surface : AppTheme.surface2,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: isRead ? AppTheme.surface2 : AppTheme.primary.withOpacity(0.3)),
+            color: isRead ? c.surface : c.surfaceVariant,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+            border: Border.all(
+                color: isRead
+                    ? c.border.withValues(alpha: 0.6)
+                    : c.secondary.withValues(alpha: 0.3)),
+            boxShadow: [
+              BoxShadow(
+                  color: c.shadow, blurRadius: 16, offset: const Offset(0, 6)),
+            ],
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,12 +219,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
               Container(
                 width: 40, height: 40,
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  color: iconColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                 ),
                 child: Icon(icon, color: iconColor, size: 20),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,7 +234,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         Expanded(
                           child: Text(n['title'] ?? '',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: c.textPrimary,
                                 fontWeight: isRead ? FontWeight.w500 : FontWeight.w700,
                                 fontSize: 13,
                               )),
@@ -234,16 +242,16 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         if (!isRead)
                           Container(
                             width: 8, height: 8,
-                            decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
+                            decoration: BoxDecoration(color: c.secondary, shape: BoxShape.circle),
                           ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(n['body'] ?? '',
-                        style: const TextStyle(color: AppTheme.textMuted, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        style: TextStyle(color: c.textMuted, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 6),
                     Text(_timeAgo(n['createdAt'] ?? ''),
-                        style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
+                        style: TextStyle(color: c.textMuted, fontSize: 11)),
                   ],
                 ),
               ),

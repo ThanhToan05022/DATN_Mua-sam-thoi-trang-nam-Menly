@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/supabase_config.dart';
-import 'core/theme/app_theme.dart';
+import 'core/theme/theme_controller.dart';
+import 'core/widgets/app_pill_nav.dart';
+import 'features/onboarding/presentation/pages/onboarding_page.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/product/presentation/providers/product_provider.dart';
 import 'features/wishlist/presentation/providers/wishlist_provider.dart';
@@ -43,7 +45,10 @@ Future<void> main() async {
     );
   }
 
-  runApp(const MenlyApp());
+  final themeController = ThemeController();
+  await themeController.load();
+
+  runApp(MenlyApp(themeController: themeController));
 }
 
 final _router = GoRouter(
@@ -51,6 +56,9 @@ final _router = GoRouter(
   routes: [
     // Splash screen
     GoRoute(path: '/splash', builder: (ctx, s) => const SplashPage()),
+
+    // Onboarding — giới thiệu, ngoài shell
+    GoRoute(path: '/onboarding', builder: (ctx, s) => const OnboardingPage()),
 
     // Auth routes — ngoài shell (không có bottom nav)
     GoRoute(
@@ -64,6 +72,42 @@ final _router = GoRouter(
           RegisterPage(redirect: s.uri.queryParameters['redirect']),
     ),
 
+    // Product detail — full screen (no bottom nav), giống thiết kế tham chiếu
+    GoRoute(
+      path: '/products/:id',
+      builder: (ctx, s) =>
+          ProductDetailPage(productId: s.pathParameters['id']!),
+    ),
+
+    // Màn push toàn màn hình (không có bottom nav)
+    GoRoute(path: '/cart', builder: (ctx, s) => const CartPage()),
+    GoRoute(path: '/checkout', builder: (ctx, s) => const CheckoutPage()),
+    GoRoute(
+      path: '/order-success',
+      builder: (ctx, s) => OrderSuccessPage(
+        orderCode: s.uri.queryParameters['code'],
+        total: int.tryParse(s.uri.queryParameters['total'] ?? ''),
+      ),
+    ),
+    GoRoute(path: '/orders', builder: (ctx, s) => const OrderListPage()),
+    GoRoute(
+      path: '/admin/orders',
+      builder: (ctx, s) => const AdminOrderManagementPage(),
+    ),
+    GoRoute(path: '/my-orders', builder: (ctx, s) => const MyOrdersPage()),
+    GoRoute(
+        path: '/shipping-address',
+        builder: (ctx, s) => const ShippingAddressPage()),
+    GoRoute(
+        path: '/change-password',
+        builder: (ctx, s) => const ChangePasswordPage()),
+    GoRoute(
+        path: '/notifications',
+        builder: (ctx, s) => const NotificationsPage()),
+    GoRoute(
+        path: '/help-support', builder: (ctx, s) => const HelpSupportPage()),
+
+    // 5 tab chính (có bottom nav)
     ShellRoute(
       builder: (ctx, state, child) => MainShell(child: child),
       routes: [
@@ -79,55 +123,37 @@ final _router = GoRouter(
             );
           },
         ),
-        GoRoute(
-          path: '/products/:id',
-          builder: (ctx, s) =>
-              ProductDetailPage(productId: s.pathParameters['id']!),
-        ),
-        GoRoute(path: '/cart', builder: (ctx, s) => const CartPage()),
         GoRoute(path: '/wishlist', builder: (ctx, s) => const WishlistPage()),
-        GoRoute(path: '/checkout', builder: (ctx, s) => const CheckoutPage()),
-        GoRoute(
-          path: '/order-success',
-          builder: (ctx, s) => OrderSuccessPage(
-            orderCode: s.uri.queryParameters['code'],
-            total: int.tryParse(s.uri.queryParameters['total'] ?? ''),
-          ),
-        ),
-        GoRoute(path: '/orders', builder: (ctx, s) => const OrderListPage()),
-        GoRoute(
-          path: '/admin/orders',
-          builder: (ctx, s) => const AdminOrderManagementPage(),
-        ),
         GoRoute(path: '/profile', builder: (ctx, s) => const ProfilePage()),
-        GoRoute(path: '/my-orders', builder: (ctx, s) => const MyOrdersPage()),
-        GoRoute(path: '/shipping-address', builder: (ctx, s) => const ShippingAddressPage()),
-        GoRoute(path: '/change-password', builder: (ctx, s) => const ChangePasswordPage()),
-        GoRoute(path: '/notifications', builder: (ctx, s) => const NotificationsPage()),
-        GoRoute(path: '/help-support', builder: (ctx, s) => const HelpSupportPage()),
       ],
     ),
   ],
 );
 
 class MenlyApp extends StatelessWidget {
-  const MenlyApp({super.key});
+  final ThemeController themeController;
+  const MenlyApp({super.key, required this.themeController});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider.value(value: themeController),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => WishlistProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
       ],
-      child: MaterialApp.router(
-        title: 'Menly - Thời trang nam',
-        theme: AppTheme.dark,
-        routerConfig: _router,
-        debugShowCheckedModeBanner: false,
+      child: Consumer<ThemeController>(
+        builder: (context, theme, _) => MaterialApp.router(
+          title: 'Menly - Thời trang nam',
+          theme: theme.lightTheme,
+          darkTheme: theme.darkTheme,
+          themeMode: theme.mode,
+          routerConfig: _router,
+          debugShowCheckedModeBanner: false,
+        ),
       ),
     );
   }
@@ -145,9 +171,8 @@ class _MainShellState extends State<MainShell> {
   int _calculateSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
     if (location.startsWith('/products')) return 1;
-    if (location.startsWith('/wishlist')) return 2;
-    if (location.startsWith('/cart')) return 3;
-    if (location.startsWith('/profile')) return 4;
+    if (location.startsWith('/cart')) return 2;
+    if (location.startsWith('/profile')) return 3;
     return 0;
   }
 
@@ -160,12 +185,9 @@ class _MainShellState extends State<MainShell> {
         ctx.go('/products');
         break;
       case 2:
-        ctx.go('/wishlist');
+        ctx.push('/cart');
         break;
       case 3:
-        ctx.go('/cart');
-        break;
-      case 4:
         ctx.go('/profile');
         break;
     }
@@ -174,59 +196,20 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final cartCount = context.watch<CartProvider>().totalItems;
-    final favCount = context.watch<WishlistProvider>().favoriteCount;
     final currentIdx = _calculateSelectedIndex(context);
 
     return Scaffold(
+      extendBody: true,
       body: widget.child,
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            top: BorderSide(color: AppTheme.border, width: 0.8),
-          ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: currentIdx,
-          onTap: (i) => _onTap(i, context),
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: AppTheme.surface,
-          selectedItemColor: AppTheme.primary,
-          unselectedItemColor: AppTheme.textMuted,
-          items: [
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.home_rounded),
-              label: 'Trang chủ',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_rounded),
-              label: 'Sản phẩm',
-            ),
-            BottomNavigationBarItem(
-              icon: Badge(
-                isLabelVisible: favCount > 0,
-                label: Text('$favCount'),
-                backgroundColor: Colors.redAccent,
-                textColor: Colors.white,
-                child: const Icon(Icons.favorite_rounded),
-              ),
-              label: 'Yêu thích',
-            ),
-            BottomNavigationBarItem(
-              icon: Badge(
-                isLabelVisible: cartCount > 0,
-                label: Text('$cartCount'),
-                backgroundColor: AppTheme.primary,
-                textColor: Colors.black,
-                child: const Icon(Icons.shopping_bag_rounded),
-              ),
-              label: 'Giỏ hàng',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.person_rounded),
-              label: 'Cá nhân',
-            ),
-          ],
-        ),
+      bottomNavigationBar: AppPillNav(
+        currentIndex: currentIdx,
+        onTap: (i) => _onTap(i, context),
+        items: [
+          const PillNavItem(Icons.home_rounded),
+          const PillNavItem(Icons.grid_view_rounded),
+          PillNavItem(Icons.shopping_bag_rounded, badge: cartCount),
+          const PillNavItem(Icons.person_rounded),
+        ],
       ),
     );
   }

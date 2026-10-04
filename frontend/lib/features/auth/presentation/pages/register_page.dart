@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_buttons.dart';
 import '../../../wishlist/presentation/providers/wishlist_provider.dart';
 import '../providers/auth_provider.dart';
 
@@ -51,16 +53,12 @@ class _RegisterPageState extends State<RegisterPage> {
     }
 
     final auth = context.read<AuthProvider>();
-    final success = await auth.register(
-      name,
-      email,
-      pass,
-      role: _selectedRole,
-    );
+    final success = await auth.register(name, email, pass, role: _selectedRole);
 
     if (!mounted) return;
 
     if (success) {
+      final c = AppColors.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -68,13 +66,14 @@ class _RegisterPageState extends State<RegisterPage> {
                 ? '🎉 Đăng ký tài khoản Nhân viên thành công!'
                 : '🎉 Đăng ký tài khoản Khách hàng thành công!',
           ),
-          backgroundColor: AppTheme.success,
+          backgroundColor: c.success,
         ),
       );
       context.read<WishlistProvider>().fetchWishlist(forceRefresh: true);
       await Future.delayed(const Duration(milliseconds: 600));
       if (mounted) {
-        final target = widget.redirect ??
+        final target =
+            widget.redirect ??
             GoRouterState.of(context).uri.queryParameters['redirect'];
         if (target != null && target.isNotEmpty) {
           context.go(target);
@@ -88,10 +87,11 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _snack(String msg) {
+    final c = AppColors.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: AppTheme.error,
+        backgroundColor: c.danger,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -99,11 +99,12 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     final authState = context.watch<AuthProvider>().state;
     final isLoading = authState.isLoading;
 
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: c.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -114,7 +115,9 @@ class _RegisterPageState extends State<RegisterPage> {
               // Back
               Align(
                 alignment: Alignment.centerLeft,
-                child: GestureDetector(
+                child: CircleIconButton(
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  size: 40,
                   onTap: () {
                     if (context.canPop()) {
                       context.pop();
@@ -122,28 +125,22 @@ class _RegisterPageState extends State<RegisterPage> {
                       context.go('/login');
                     }
                   },
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppTheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.border),
-                    ),
-                    child: const Icon(Icons.arrow_back_ios_rounded,
-                        color: Colors.white, size: 18),
-                  ),
                 ),
               ),
               const SizedBox(height: 24),
-              const Text('Tạo tài khoản',
-                  style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white)),
+              Text(
+                'Tạo tài khoản',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: c.textPrimary,
+                ),
+              ),
               const SizedBox(height: 6),
-              const Text('Đăng ký để mua sắm hoặc quản lý vận hành Menly',
-                  style: TextStyle(fontSize: 14, color: AppTheme.textMuted)),
+              Text(
+                'Đăng ký để mua sắm hoặc quản lý vận hành Menly',
+                style: TextStyle(fontSize: 14, color: c.textMuted),
+              ),
               const SizedBox(height: 24),
 
               // Vai trò tài khoản (Khách hàng vs Nhân viên)
@@ -152,9 +149,9 @@ class _RegisterPageState extends State<RegisterPage> {
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppTheme.border),
+                  color: c.surface,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                  border: Border.all(color: c.border.withValues(alpha: 0.6)),
                 ),
                 child: Row(
                   children: [
@@ -166,9 +163,11 @@ class _RegisterPageState extends State<RegisterPage> {
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
                             color: _selectedRole == 'customer'
-                                ? AppTheme.primary
+                                ? c.primary
                                 : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radiusMd,
+                            ),
                           ),
                           child: Center(
                             child: Row(
@@ -178,8 +177,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                   Icons.person_rounded,
                                   size: 16,
                                   color: _selectedRole == 'customer'
-                                      ? Colors.black
-                                      : AppTheme.textSecondary,
+                                      ? c.onPrimary
+                                      : c.textSecondary,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
@@ -188,8 +187,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                     color: _selectedRole == 'customer'
-                                        ? Colors.black
-                                        : AppTheme.textSecondary,
+                                        ? c.onPrimary
+                                        : c.textSecondary,
                                   ),
                                 ),
                               ],
@@ -206,9 +205,11 @@ class _RegisterPageState extends State<RegisterPage> {
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
                             color: _selectedRole == 'staff'
-                                ? AppTheme.primary
+                                ? c.primary
                                 : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radiusMd,
+                            ),
                           ),
                           child: Center(
                             child: Row(
@@ -218,8 +219,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                   Icons.badge_rounded,
                                   size: 16,
                                   color: _selectedRole == 'staff'
-                                      ? Colors.black
-                                      : AppTheme.textSecondary,
+                                      ? c.onPrimary
+                                      : c.textSecondary,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
@@ -228,8 +229,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                     color: _selectedRole == 'staff'
-                                        ? Colors.black
-                                        : AppTheme.textSecondary,
+                                        ? c.onPrimary
+                                        : c.textSecondary,
                                   ),
                                 ),
                               ],
@@ -247,19 +248,21 @@ class _RegisterPageState extends State<RegisterPage> {
               _label('Họ và tên'),
               const SizedBox(height: 8),
               _inputField(
-                  controller: _nameCtrl,
-                  hint: 'Nguyễn Văn A',
-                  icon: Icons.person_outline_rounded),
+                controller: _nameCtrl,
+                hint: 'Nguyễn Văn A',
+                icon: Icons.person_outline_rounded,
+              ),
               const SizedBox(height: 16),
 
               // Email
               _label('Email'),
               const SizedBox(height: 8),
               _inputField(
-                  controller: _emailCtrl,
-                  hint: 'example@email.com',
-                  icon: Icons.email_outlined,
-                  type: TextInputType.emailAddress),
+                controller: _emailCtrl,
+                hint: 'example@email.com',
+                icon: Icons.email_outlined,
+                type: TextInputType.emailAddress,
+              ),
               const SizedBox(height: 16),
 
               // Password
@@ -272,11 +275,12 @@ class _RegisterPageState extends State<RegisterPage> {
                 obscure: _obscure,
                 suffix: IconButton(
                   icon: Icon(
-                      _obscure
-                          ? Icons.visibility_off_rounded
-                          : Icons.visibility_rounded,
-                      color: AppTheme.textMuted,
-                      size: 20),
+                    _obscure
+                        ? Icons.visibility_off_rounded
+                        : Icons.visibility_rounded,
+                    color: c.textMuted,
+                    size: 20,
+                  ),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
@@ -292,11 +296,12 @@ class _RegisterPageState extends State<RegisterPage> {
                 obscure: _obscureConfirm,
                 suffix: IconButton(
                   icon: Icon(
-                      _obscureConfirm
-                          ? Icons.visibility_off_rounded
-                          : Icons.visibility_rounded,
-                      color: AppTheme.textMuted,
-                      size: 20),
+                    _obscureConfirm
+                        ? Icons.visibility_off_rounded
+                        : Icons.visibility_rounded,
+                    color: c.textMuted,
+                    size: 20,
+                  ),
                   onPressed: () =>
                       setState(() => _obscureConfirm = !_obscureConfirm),
                 ),
@@ -304,32 +309,12 @@ class _RegisterPageState extends State<RegisterPage> {
               const SizedBox(height: 28),
 
               // Register button
-              SizedBox(
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: isLoading ? null : _register,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
-                  ),
-                  child: isLoading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2.5),
-                        )
-                      : Text(
-                          _selectedRole == 'staff'
-                              ? 'Đăng ký Nhân viên'
-                              : 'Đăng ký Khách hàng',
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w700),
-                        ),
-                ),
+              PrimaryButton(
+                label: _selectedRole == 'staff'
+                    ? 'Đăng ký Nhân viên'
+                    : 'Đăng ký Khách hàng',
+                loading: isLoading,
+                onPressed: isLoading ? null : _register,
               ),
               const SizedBox(height: 20),
 
@@ -337,16 +322,20 @@ class _RegisterPageState extends State<RegisterPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Đã có tài khoản? ',
-                      style: TextStyle(
-                          color: AppTheme.textMuted, fontSize: 14)),
+                  Text(
+                    'Đã có tài khoản? ',
+                    style: TextStyle(color: c.textMuted, fontSize: 14),
+                  ),
                   GestureDetector(
                     onTap: () => context.go('/login'),
-                    child: const Text('Đăng nhập',
-                        style: TextStyle(
-                            color: AppTheme.primary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700)),
+                    child: Text(
+                      'Đăng nhập',
+                      style: TextStyle(
+                        color: c.secondary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -358,11 +347,17 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _label(String text) => Text(text,
-      style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: AppTheme.textSecondary));
+  Widget _label(String text) {
+    final c = AppColors.of(context);
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: c.textSecondary,
+      ),
+    );
+  }
 
   Widget _inputField({
     required TextEditingController controller,
@@ -372,21 +367,22 @@ class _RegisterPageState extends State<RegisterPage> {
     bool obscure = false,
     Widget? suffix,
   }) {
+    final c = AppColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.surface2),
+        color: c.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: c.border.withValues(alpha: 0.6)),
       ),
       child: TextField(
         controller: controller,
         keyboardType: type,
         obscureText: obscure,
-        style: const TextStyle(color: Colors.white, fontSize: 15),
+        style: TextStyle(color: c.textPrimary, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
-          prefixIcon: Icon(icon, color: AppTheme.textMuted, size: 20),
+          hintStyle: TextStyle(color: c.textMuted, fontSize: 14),
+          prefixIcon: Icon(icon, color: c.textMuted, size: 20),
           suffixIcon: suffix,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 16),
