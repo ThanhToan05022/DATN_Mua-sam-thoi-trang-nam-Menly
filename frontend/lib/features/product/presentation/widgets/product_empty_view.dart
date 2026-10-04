@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
+
+import '../../../../core/widgets/state_views.dart';
 
 class ProductEmptyView extends StatelessWidget {
   final VoidCallback onClearFilters;
@@ -7,34 +8,12 @@ class ProductEmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.search_off_rounded,
-            size: 64,
-            color: AppTheme.textMuted,
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Không tìm thấy sản phẩm',
-            style: TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: onClearFilters,
-            child: const Text(
-              'Xoá bộ lọc',
-              style: TextStyle(color: AppTheme.primary),
-            ),
-          ),
-        ],
-      ),
+    return StatusView(
+      icon: Icons.search_off_rounded,
+      title: 'Không tìm thấy sản phẩm',
+      message: 'Thử bỏ bớt bộ lọc hoặc tìm với từ khoá khác.',
+      actionLabel: 'Xoá bộ lọc',
+      onAction: onClearFilters,
     );
   }
 }
@@ -51,36 +30,13 @@ class ProductErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              size: 56,
-              color: AppTheme.error,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              error,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Thử lại'),
-            ),
-          ],
-        ),
-      ),
+    return StatusView(
+      icon: Icons.error_outline_rounded,
+      title: 'Đã xảy ra lỗi',
+      message: error,
+      actionLabel: 'Thử lại',
+      onAction: onRetry,
+      danger: true,
     );
   }
 }

@@ -70,6 +70,48 @@ class CartProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  // --- Chọn sản phẩm để thanh toán ---
+  // Lưu các variantId bị BỎ chọn; mặc định mọi sản phẩm đều được chọn,
+  // sản phẩm mới thêm cũng được chọn sẵn.
+  final Set<String> _deselectedIds = {};
+
+  bool isSelected(String variantId) => !_deselectedIds.contains(variantId);
+
+  List<CartItem> get selectedItems =>
+      _items.where((i) => isSelected(i.variant.id)).toList();
+
+  int get selectedCount =>
+      selectedItems.fold(0, (s, i) => s + i.quantity);
+  int get selectedTotalPrice =>
+      selectedItems.fold(0, (s, i) => s + i.subtotal);
+
+  bool get allSelected =>
+      _items.isNotEmpty && _items.every((i) => isSelected(i.variant.id));
+
+  void toggleSelected(String variantId) {
+    if (_deselectedIds.contains(variantId)) {
+      _deselectedIds.remove(variantId);
+    } else {
+      _deselectedIds.add(variantId);
+    }
+    notifyListeners();
+  }
+
+  void setAllSelected(bool value) {
+    _deselectedIds.clear();
+    if (!value) {
+      _deselectedIds.addAll(_items.map((i) => i.variant.id));
+    }
+    notifyListeners();
+  }
+
+  /// Xoá nhiều sản phẩm khỏi giỏ (dùng sau khi đặt hàng với các món đã chọn).
+  Future<void> removeMany(List<String> variantIds) async {
+    for (final id in variantIds) {
+      await removeItem(id);
+    }
+  }
+
   /// Tải dữ liệu giỏ hàng từ API /api/v1/cart
   Future<void> fetchCart({bool showLoading = false}) async {
     if (showLoading) {

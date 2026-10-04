@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/auth_guard.dart';
+import '../../../../core/widgets/product_card.dart';
+import '../../../cart/data/cart_model.dart';
 import '../../../wishlist/presentation/providers/wishlist_provider.dart';
 import '../../data/models/product_model.dart';
 import '../providers/product_provider.dart';
 import '../widgets/category_filter_bar.dart';
 import '../widgets/product_empty_view.dart';
-import '../widgets/product_grid_card.dart';
 import '../widgets/product_list_card.dart';
 import '../widgets/product_list_header.dart';
 import '../widgets/product_search_bar.dart';
@@ -119,9 +122,10 @@ class _ProductListPageState extends State<ProductListPage> {
     final productsState = pProvider.productsState;
     final categories = pProvider.categories;
     final filtered = _filterProducts(productsState.data ?? [], categories);
+    final c = AppColors.of(context);
 
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: c.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -186,26 +190,28 @@ class _ProductListPageState extends State<ProductListPage> {
                                       .fetchWishlist(forceRefresh: true),
                                 ]);
                               },
-                              color: AppTheme.primary,
-                              backgroundColor: AppTheme.surface2,
+                              color: c.secondary,
+                              backgroundColor: c.surfaceVariant,
                               child: _gridView
                                   ? GridView.builder(
-                                      padding: const EdgeInsets.fromLTRB(
-                                          16, 12, 16, 24),
+                                      padding: EdgeInsets.fromLTRB(16, 12, 16,
+                                          MediaQuery.of(context).padding.bottom +
+                                              96),
                                       gridDelegate:
                                           const SliverGridDelegateWithFixedCrossAxisCount(
                                         crossAxisCount: 2,
-                                        crossAxisSpacing: 12,
-                                        mainAxisSpacing: 12,
-                                        childAspectRatio: 0.68,
+                                        crossAxisSpacing: 14,
+                                        mainAxisSpacing: 16,
+                                        childAspectRatio: 0.55,
                                       ),
                                       itemCount: filtered.length,
-                                      itemBuilder: (_, i) => ProductGridCard(
-                                          product: filtered[i]),
+                                      itemBuilder: (_, i) =>
+                                          _GridTile(product: filtered[i]),
                                     )
                                   : ListView.separated(
-                                      padding: const EdgeInsets.fromLTRB(
-                                          16, 12, 16, 24),
+                                      padding: EdgeInsets.fromLTRB(16, 12, 16,
+                                          MediaQuery.of(context).padding.bottom +
+                                              96),
                                       itemCount: filtered.length,
                                       separatorBuilder: (_, _) =>
                                           const SizedBox(height: 10),
@@ -217,6 +223,39 @@ class _ProductListPageState extends State<ProductListPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Grid tile wiring the shared [ProductCard] to wishlist, navigation and a
+/// quick add-to-cart so the catalog grid matches the rest of the app.
+class _GridTile extends StatelessWidget {
+  final Product product;
+  const _GridTile({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    final wishlist = context.watch<WishlistProvider>();
+    return ProductCard(
+      product: product,
+      isFavorite: wishlist.isFavorite(product.id),
+      onTap: () => context.push('/products/${product.id}'),
+      onToggleFavorite: () async {
+        try {
+          await context.read<WishlistProvider>().toggleWishlist(product);
+        } catch (_) {}
+      },
+      onAdd: () {
+        if (product.variants.isEmpty) {
+          context.push('/products/${product.id}');
+          return;
+        }
+        if (!AuthGuard.check(context, redirectPath: '/products')) return;
+        context.read<CartProvider>().addItem(product, product.variants.first, 1);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã thêm vào giỏ hàng')),
+        );
+      },
     );
   }
 }

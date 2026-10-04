@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_buttons.dart';
 import '../../../cart/data/cart_model.dart';
 import '../../../order/presentation/providers/order_provider.dart';
 import '../../../wishlist/presentation/providers/wishlist_provider.dart';
@@ -53,10 +55,7 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     final auth = context.read<AuthProvider>();
-    final success = await auth.login(
-      _emailCtrl.text.trim(),
-      _passCtrl.text,
-    );
+    final success = await auth.login(_emailCtrl.text.trim(), _passCtrl.text);
 
     if (!mounted) return;
 
@@ -70,17 +69,21 @@ class _LoginPageState extends State<LoginPage> {
 
       // Tải lại danh sách yêu thích, đơn hàng và giỏ hàng cho người dùng vừa đăng nhập
       if (mounted) {
+        final c = AppColors.of(context);
         context.read<CartProvider>().fetchCart();
         context.read<WishlistProvider>().fetchWishlist(forceRefresh: true);
         context.read<OrderProvider>().fetchMyOrders(forceRefresh: true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('🎉 Chào mừng trở lại, ${auth.user?.fullName ?? ''}!'),
-            backgroundColor: AppTheme.success,
+            content: Text(
+              '🎉 Chào mừng trở lại, ${auth.user?.fullName ?? ''}!',
+            ),
+            backgroundColor: c.success,
             duration: const Duration(seconds: 2),
           ),
         );
-        final target = widget.redirect ??
+        final target =
+            widget.redirect ??
             GoRouterState.of(context).uri.queryParameters['redirect'];
         if (target != null && target.isNotEmpty) {
           context.go(target);
@@ -89,15 +92,19 @@ class _LoginPageState extends State<LoginPage> {
         }
       }
     } else {
-      _snack(auth.state.message ?? 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+      _snack(
+        auth.state.message ??
+            'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.',
+      );
     }
   }
 
   void _snack(String msg) {
+    final c = AppColors.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: AppTheme.error,
+        backgroundColor: c.danger,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -105,11 +112,12 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     final authState = context.watch<AuthProvider>().state;
     final isLoading = authState.isLoading;
 
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: c.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -123,46 +131,55 @@ class _LoginPageState extends State<LoginPage> {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppTheme.primary, AppTheme.primaryLight],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(22),
+                    color: c.primary,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusXl),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primary.withOpacity(0.4),
+                        color: c.primary.withValues(alpha: 0.4),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
-                      )
+                      ),
                     ],
                   ),
-                  child: const Icon(Icons.shopping_bag_rounded,
-                      color: Colors.white, size: 40),
+                  child: Icon(
+                    Icons.shopping_bag_rounded,
+                    color: c.onPrimary,
+                    size: 40,
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
-              const Center(
-                child: Text('MENLY',
-                    style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: 3)),
+              Center(
+                child: Text(
+                  'MENLY',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: c.textPrimary,
+                    letterSpacing: 3,
+                  ),
+                ),
               ),
-              const Center(
-                child: Text('Thời trang nam cao cấp',
-                    style: TextStyle(fontSize: 13, color: AppTheme.textMuted)),
+              Center(
+                child: Text(
+                  'Thời trang nam cao cấp',
+                  style: TextStyle(fontSize: 13, color: c.textMuted),
+                ),
               ),
               const SizedBox(height: 48),
-              const Text('Đăng nhập',
-                  style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white)),
+              Text(
+                'Đăng nhập',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: c.textPrimary,
+                ),
+              ),
               const SizedBox(height: 6),
-              const Text('Chào mừng bạn trở lại!',
-                  style: TextStyle(fontSize: 14, color: AppTheme.textMuted)),
+              Text(
+                'Chào mừng bạn trở lại!',
+                style: TextStyle(fontSize: 14, color: c.textMuted),
+              ),
               const SizedBox(height: 28),
 
               // Email
@@ -186,11 +203,12 @@ class _LoginPageState extends State<LoginPage> {
                 obscure: _obscure,
                 suffix: IconButton(
                   icon: Icon(
-                      _obscure
-                          ? Icons.visibility_off_rounded
-                          : Icons.visibility_rounded,
-                      color: AppTheme.textMuted,
-                      size: 20),
+                    _obscure
+                        ? Icons.visibility_off_rounded
+                        : Icons.visibility_rounded,
+                    color: c.textMuted,
+                    size: 20,
+                  ),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
@@ -208,26 +226,31 @@ class _LoginPageState extends State<LoginPage> {
                           width: 22,
                           height: 22,
                           decoration: BoxDecoration(
-                            color: _rememberMe
-                                ? AppTheme.primary
-                                : Colors.transparent,
+                            color: _rememberMe ? c.primary : Colors.transparent,
                             border: Border.all(
-                              color: _rememberMe
-                                  ? AppTheme.primary
-                                  : AppTheme.textMuted,
+                              color: _rememberMe ? c.primary : c.textMuted,
                               width: 1.8,
                             ),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radiusSm,
+                            ),
                           ),
                           child: _rememberMe
-                              ? const Icon(Icons.check_rounded,
-                                  color: Colors.black, size: 14)
+                              ? Icon(
+                                  Icons.check_rounded,
+                                  color: c.onPrimary,
+                                  size: 14,
+                                )
                               : null,
                         ),
                         const SizedBox(width: 8),
-                        const Text('Ghi nhớ đăng nhập',
-                            style: TextStyle(
-                                fontSize: 13, color: AppTheme.textSecondary)),
+                        Text(
+                          'Ghi nhớ đăng nhập',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: c.textSecondary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -237,88 +260,73 @@ class _LoginPageState extends State<LoginPage> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                              'Vui lòng liên hệ quản trị viên để khôi phục mật khẩu'),
+                            'Vui lòng liên hệ quản trị viên để khôi phục mật khẩu',
+                          ),
                         ),
                       );
                     },
-                    child: const Text('Quên mật khẩu?',
-                        style: TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.w600)),
+                    child: Text(
+                      'Quên mật khẩu?',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: c.secondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 28),
 
               // Login button
-              SizedBox(
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: isLoading ? null : _login,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
-                  ),
-                  child: isLoading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2.5),
-                        )
-                      : const Text('Đăng nhập',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w700)),
-                ),
+              PrimaryButton(
+                label: 'Đăng nhập',
+                loading: isLoading,
+                onPressed: isLoading ? null : _login,
               ),
               const SizedBox(height: 20),
 
               // Divider
-              Row(children: [
-                Expanded(child: Divider(color: AppTheme.surface2)),
-                Padding(
+              Row(
+                children: [
+                  Expanded(child: Divider(color: c.surfaceVariant)),
+                  Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('hoặc',
-                        style: TextStyle(
-                            color: AppTheme.textMuted, fontSize: 13))),
-                Expanded(child: Divider(color: AppTheme.surface2)),
-              ]),
+                    child: Text(
+                      'hoặc',
+                      style: TextStyle(color: c.textMuted, fontSize: 13),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: c.surfaceVariant)),
+                ],
+              ),
               const SizedBox(height: 20),
 
               // Go to register
-              OutlinedButton(
+              SecondaryButton(
+                label: 'Tạo tài khoản mới',
                 onPressed: () {
-                  final target = widget.redirect ??
+                  final target =
+                      widget.redirect ??
                       GoRouterState.of(context).uri.queryParameters['redirect'];
                   if (target != null && target.isNotEmpty) {
                     context.push(
-                        '/register?redirect=${Uri.encodeComponent(target)}');
+                      '/register?redirect=${Uri.encodeComponent(target)}',
+                    );
                   } else {
                     context.push('/register');
                   }
                 },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.primary,
-                  side: const BorderSide(color: AppTheme.primary),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  minimumSize: const Size.fromHeight(54),
-                ),
-                child: const Text('Tạo tài khoản mới',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               ),
               const SizedBox(height: 24),
 
               // Continue as guest
               TextButton(
                 onPressed: () => context.go('/'),
-                child: const Text('Tiếp tục không đăng nhập →',
-                    style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+                child: Text(
+                  'Tiếp tục không đăng nhập →',
+                  style: TextStyle(color: c.textMuted, fontSize: 13),
+                ),
               ),
               const SizedBox(height: 24),
             ],
@@ -328,11 +336,17 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _label(String text) => Text(text,
-      style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: AppTheme.textSecondary));
+  Widget _label(String text) {
+    final c = AppColors.of(context);
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: c.textSecondary,
+      ),
+    );
+  }
 
   Widget _inputField({
     required TextEditingController controller,
@@ -342,21 +356,22 @@ class _LoginPageState extends State<LoginPage> {
     bool obscure = false,
     Widget? suffix,
   }) {
+    final c = AppColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.surface2),
+        color: c.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: c.border.withValues(alpha: 0.6)),
       ),
       child: TextField(
         controller: controller,
         keyboardType: type,
         obscureText: obscure,
-        style: const TextStyle(color: Colors.white, fontSize: 15),
+        style: TextStyle(color: c.textPrimary, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
-          prefixIcon: Icon(icon, color: AppTheme.textMuted, size: 20),
+          hintStyle: TextStyle(color: c.textMuted, fontSize: 14),
+          prefixIcon: Icon(icon, color: c.textMuted, size: 20),
           suffixIcon: suffix,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 16),

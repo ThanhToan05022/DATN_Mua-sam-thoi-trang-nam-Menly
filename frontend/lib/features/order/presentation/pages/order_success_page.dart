@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_buttons.dart';
 
 class OrderSuccessPage extends StatefulWidget {
   final String? orderCode;
@@ -41,8 +44,9 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: c.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -64,7 +68,7 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> with SingleTickerPr
                           colors: [Color(0xFF10B981), Color(0xFF059669)],
                           begin: Alignment.topLeft, end: Alignment.bottomRight,
                         ),
-                        boxShadow: [BoxShadow(color: AppTheme.success.withValues(alpha: 0.4), blurRadius: 28, spreadRadius: 4)],
+                        boxShadow: [BoxShadow(color: c.success.withValues(alpha: 0.4), blurRadius: 28, spreadRadius: 4)],
                       ),
                       child: const Icon(Icons.check_rounded, color: Colors.white, size: 52),
                     ),
@@ -75,38 +79,38 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> with SingleTickerPr
               FadeTransition(
                 opacity: _fadeAnim,
                 child: Column(children: [
-                  const Text('Đặt hàng thành công!',
+                  Text('Đặt hàng thành công!',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, height: 1.2)),
+                      style: TextStyle(color: c.textPrimary, fontSize: 24, fontWeight: FontWeight.w900, height: 1.2)),
                   const SizedBox(height: 8),
-                  const Text('Cảm ơn bạn đã mua sắm tại Menly.\nĐơn hàng đang được xử lý và sẽ\ngiao đến bạn sớm nhất có thể.',
+                  Text('Cảm ơn bạn đã mua sắm tại Menly.\nĐơn hàng đang được xử lý và sẽ\ngiao đến bạn sớm nhất có thể.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, height: 1.6)),
+                      style: TextStyle(color: c.textSecondary, fontSize: 14, height: 1.6)),
                   if (widget.orderCode != null && widget.orderCode!.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: AppTheme.surface2,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                        color: c.surfaceVariant,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                        border: Border.all(color: c.secondary.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.receipt_long_rounded, color: AppTheme.primary, size: 22),
+                          Icon(Icons.receipt_long_rounded, color: c.secondary, size: 22),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('MÃ ĐƠN HÀNG', style: TextStyle(color: AppTheme.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+                                Text('MÃ ĐƠN HÀNG', style: TextStyle(color: c.textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
                                 const SizedBox(height: 2),
-                                Text(widget.orderCode!, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1.0)),
+                                Text(widget.orderCode!, style: TextStyle(color: c.textPrimary, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1.0)),
                               ],
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.copy_rounded, color: AppTheme.primary, size: 20),
+                            icon: Icon(Icons.copy_rounded, color: c.secondary, size: 20),
                             tooltip: 'Sao chép mã đơn',
                             onPressed: () {
                               Clipboard.setData(ClipboardData(text: widget.orderCode!));
@@ -122,7 +126,7 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> with SingleTickerPr
                   if (widget.total != null && widget.total! > 0) ...[
                     const SizedBox(height: 8),
                     Text('Tổng thanh toán: ${_fmt(widget.total)}',
-                        style: const TextStyle(color: AppTheme.primary, fontSize: 14, fontWeight: FontWeight.w700)),
+                        style: TextStyle(color: c.secondary, fontSize: 14, fontWeight: FontWeight.w700)),
                   ],
                 ]),
               ),
@@ -138,24 +142,14 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> with SingleTickerPr
               ]),
               const SizedBox(height: 32),
 
-              ElevatedButton(
+              PrimaryButton(
+                label: 'Tiếp tục mua sắm',
                 onPressed: () => context.go('/'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: const Text('Tiếp tục mua sắm', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.black)),
               ),
               const SizedBox(height: 12),
-              OutlinedButton(
+              SecondaryButton(
+                label: 'Xem đơn hàng của tôi',
                 onPressed: () => context.go('/orders'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.textSecondary,
-                  side: BorderSide(color: AppTheme.border2),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: const Text('Xem đơn hàng của tôi', style: TextStyle(fontWeight: FontWeight.w700)),
               ),
             ],
           ),
@@ -172,20 +166,30 @@ class _InfoCard extends StatelessWidget {
   const _InfoCard({required this.icon, required this.title, required this.subtitle});
 
   @override
-  Widget build(BuildContext context) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
+  Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: c.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          border: Border.all(color: c.border.withValues(alpha: 0.6)),
+          boxShadow: [
+            BoxShadow(
+              color: c.shadow,
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(children: [
+          Icon(icon, color: c.secondary, size: 24),
+          const SizedBox(height: 6),
+          Text(title, style: TextStyle(color: c.textPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+          Text(subtitle, style: TextStyle(color: c.textMuted, fontSize: 11)),
+        ]),
       ),
-      child: Column(children: [
-        Icon(icon, color: AppTheme.primary, size: 24),
-        const SizedBox(height: 6),
-        Text(title, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-        Text(subtitle, style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
-      ]),
-    ),
-  );
+    );
+  }
 }

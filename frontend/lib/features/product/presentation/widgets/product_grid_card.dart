@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/auth_guard.dart';
 import '../../../cart/data/cart_model.dart';
 import '../../../wishlist/presentation/providers/wishlist_provider.dart';
@@ -23,13 +23,13 @@ class ProductGridCard extends StatelessWidget {
     return b.toString();
   }
 
-  Widget _placeholder(String n) => Container(
-        color: AppTheme.surface2,
+  Widget _placeholder(AppColors c, String n) => Container(
+        color: c.surfaceVariant,
         child: Center(
           child: Text(
             n.isNotEmpty ? n[0].toUpperCase() : '?',
-            style: const TextStyle(
-              color: AppTheme.primary,
+            style: TextStyle(
+              color: c.secondary,
               fontSize: 36,
               fontWeight: FontWeight.w900,
             ),
@@ -39,15 +39,16 @@ class ProductGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     final isFav = context.watch<WishlistProvider>().isFavorite(product.id);
 
     return GestureDetector(
       onTap: () => context.push('/products/${product.id}'),
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: c.surface,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: c.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,10 +64,11 @@ class ProductGridCard extends StatelessWidget {
                         ? CachedNetworkImage(
                             imageUrl: product.imageUrl,
                             fit: BoxFit.cover,
-                            placeholder: (_, _) => _placeholder(product.name),
-                            errorWidget: (_, _, _) => _placeholder(product.name),
+                            placeholder: (_, _) => _placeholder(c, product.name),
+                            errorWidget: (_, _, _) =>
+                                _placeholder(c, product.name),
                           )
-                        : _placeholder(product.name),
+                        : _placeholder(c, product.name),
                   ),
                   // Nút tim yêu thích
                   Positioned(
@@ -130,8 +132,8 @@ class ProductGridCard extends StatelessWidget {
                     product.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: c.textPrimary,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       height: 1.3,
@@ -143,8 +145,8 @@ class ProductGridCard extends StatelessWidget {
                     children: [
                       Text(
                         '${_fmt(product.price)}đ',
-                        style: const TextStyle(
-                          color: AppTheme.primary,
+                        style: TextStyle(
+                          color: c.secondary,
                           fontSize: 13,
                           fontWeight: FontWeight.w800,
                         ),
@@ -179,12 +181,12 @@ class ProductGridCard extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: AppTheme.primary.withValues(alpha: 0.15),
+                            color: c.primary,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.add_shopping_cart_rounded,
-                            color: AppTheme.primary,
+                            color: c.onPrimary,
                             size: 16,
                           ),
                         ),
