@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_buttons.dart';
+import '../../../../core/widgets/pressable.dart';
 import '../../../cart/data/cart_model.dart';
 import '../../../wishlist/presentation/providers/wishlist_provider.dart';
 import '../providers/auth_provider.dart';
@@ -29,6 +33,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     final authProvider = context.watch<AuthProvider>();
     final isLoggedIn = authProvider.isLoggedIn;
     final user = authProvider.user;
@@ -36,11 +41,11 @@ class _ProfilePageState extends State<ProfilePage> {
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: AppTheme.bg,
+          backgroundColor: c.background,
           appBar: AppBar(
             title: const Text('Tài khoản'),
-            backgroundColor: AppTheme.bg,
-            foregroundColor: Colors.white,
+            backgroundColor: c.background,
+            foregroundColor: c.textPrimary,
             elevation: 0,
           ),
           body: isLoggedIn && user != null
@@ -57,64 +62,51 @@ class _ProfilePageState extends State<ProfilePage> {
               child: GestureDetector(
                 onTap: () {}, // block tap-through
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 32),
-                  padding: const EdgeInsets.all(24),
+                  margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+                  padding: const EdgeInsets.all(AppSpacing.xxl),
                   decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.surface2),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black54, blurRadius: 30)
+                    color: c.surface,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+                    border: Border.all(color: c.border.withValues(alpha: 0.6)),
+                    boxShadow: [
+                      BoxShadow(color: c.shadow, blurRadius: 24, offset: const Offset(0, 10)),
                     ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
+                      Text(
                         'Đăng xuất',
                         style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
-                            color: Colors.white),
+                            color: c.textPrimary),
                       ),
-                      const SizedBox(height: 10),
-                      const Text(
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
                         'Bạn có chắc muốn đăng xuất khỏi tài khoản không?',
-                        style: TextStyle(
-                            fontSize: 14, color: AppTheme.textMuted),
+                        style: TextStyle(fontSize: 14, color: c.textMuted),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: AppSpacing.xxl),
                       Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton(
+                            child: SecondaryButton(
+                              label: 'Huỷ',
+                              height: 48,
                               onPressed: () =>
                                   setState(() => _showLogoutDialog = false),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppTheme.textMuted,
-                                side:
-                                    const BorderSide(color: AppTheme.surface2),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: const Text('Huỷ'),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppSpacing.md),
                           Expanded(
-                            child: ElevatedButton(
+                            child: PrimaryButton(
+                              label: 'Đăng xuất',
+                              height: 48,
+                              background: c.danger,
+                              foreground: Colors.white,
                               onPressed: _doLogout,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.error,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                elevation: 0,
-                              ),
-                              child: const Text('Đăng xuất',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.w700)),
                             ),
                           ),
                         ],
@@ -130,10 +122,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildLoggedIn(AuthUser user) {
+    final c = AppColors.of(context);
     final favCount = context.watch<WishlistProvider>().favoriteCount;
 
     String roleLabel = 'Khách hàng';
-    Color roleColor = AppTheme.primary;
+    Color roleColor = c.secondary;
     if (user.isAdmin) {
       roleLabel = 'Quản trị viên (Admin)';
       roleColor = const Color(0xFFEF4444);
@@ -143,7 +136,8 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xl, AppSpacing.xl,
+          MediaQuery.of(context).padding.bottom + 96),
       children: [
         // Avatar & info
         Center(
@@ -153,12 +147,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [AppTheme.primary, AppTheme.primaryLight]),
+                  color: c.primary,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                        color: AppTheme.primary.withOpacity(0.4),
+                        color: c.primary.withValues(alpha: 0.4),
                         blurRadius: 16,
                         offset: const Offset(0, 6))
                   ],
@@ -168,36 +161,35 @@ class _ProfilePageState extends State<ProfilePage> {
                     user.fullName.isNotEmpty
                         ? user.fullName[0].toUpperCase()
                         : 'U',
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: c.onPrimary,
                         fontSize: 32,
                         fontWeight: FontWeight.w900),
                   ),
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: AppSpacing.lg),
               Text(
                 user.fullName,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white),
+                    color: c.textPrimary),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 user.email,
-                style: const TextStyle(
-                    fontSize: 13, color: AppTheme.textMuted),
+                style: TextStyle(fontSize: 13, color: c.textMuted),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.md),
               // Role Badge
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md, vertical: AppSpacing.xs),
                 decoration: BoxDecoration(
-                  color: roleColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: roleColor.withOpacity(0.4)),
+                  color: roleColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusPill),
+                  border: Border.all(color: roleColor.withValues(alpha: 0.4)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -211,7 +203,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       size: 14,
                       color: roleColor,
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: AppSpacing.xs),
                     Text(
                       roleLabel,
                       style: TextStyle(
@@ -226,7 +218,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ],
           ),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: AppSpacing.xxl),
 
         _menuItem(
           icon: Icons.favorite_rounded,
@@ -240,15 +232,15 @@ class _ProfilePageState extends State<ProfilePage> {
           onTap: () => context.push('/my-orders'),
         ),
         if (user.isAdmin || user.isStaff) ...[
-          const SizedBox(height: 8),
-          const Divider(color: AppTheme.surface2),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
+          Divider(color: c.border.withValues(alpha: 0.6)),
+          const SizedBox(height: AppSpacing.sm),
           Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            padding: const EdgeInsets.only(left: 4, bottom: AppSpacing.sm),
             child: Text(
               user.isAdmin ? 'QUẢN TRỊ VIÊN' : 'VẬN HÀNH HỆ THỐNG',
-              style: const TextStyle(
-                color: AppTheme.primaryLight,
+              style: TextStyle(
+                color: c.secondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
@@ -278,9 +270,9 @@ class _ProfilePageState extends State<ProfilePage> {
             icon: Icons.help_outline_rounded,
             label: 'Trợ giúp & Hỗ trợ',
             onTap: () => context.push('/help-support')),
-        const SizedBox(height: 12),
-        const Divider(color: AppTheme.surface2),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
+        Divider(color: c.border.withValues(alpha: 0.6)),
+        const SizedBox(height: AppSpacing.md),
         _menuItem(
           icon: Icons.logout_rounded,
           label: 'Đăng xuất',
@@ -292,51 +284,46 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildGuest() {
+    final c = AppColors.of(context);
     return Padding(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.person_outline_rounded,
-              size: 80, color: AppTheme.textMuted),
-          const SizedBox(height: 20),
-          const Text('Bạn chưa đăng nhập',
+          Center(
+            child: Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: c.primarySoft,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.person_outline_rounded,
+                  size: 44, color: c.secondary),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          Text('Bạn chưa đăng nhập',
               textAlign: TextAlign.center,
               style: TextStyle(
                   fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white)),
-          const SizedBox(height: 8),
-          const Text(
+                  fontWeight: FontWeight.w800,
+                  color: c.textPrimary)),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
               'Đăng nhập để theo dõi đơn hàng, quản lý danh sách yêu thích và trải nghiệm mua sắm tốt hơn',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppTheme.textMuted)),
-          const SizedBox(height: 36),
-          ElevatedButton(
+              style: TextStyle(fontSize: 14, color: c.textMuted, height: 1.5)),
+          const SizedBox(height: AppSpacing.xxxl),
+          PrimaryButton(
+            label: 'Đăng nhập',
             onPressed: () => context.push('/login'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-            ),
-            child: const Text('Đăng nhập',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           ),
-          const SizedBox(height: 14),
-          OutlinedButton(
+          const SizedBox(height: AppSpacing.md),
+          SecondaryButton(
+            label: 'Tạo tài khoản',
             onPressed: () => context.push('/register'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.primary,
-              side: const BorderSide(color: AppTheme.primary),
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-            ),
-            child: const Text('Tạo tài khoản',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -350,38 +337,52 @@ class _ProfilePageState extends State<ProfilePage> {
     String? badgeText,
     bool isRed = false,
   }) {
-    return GestureDetector(
+    final c = AppColors.of(context);
+    final accent = isRed ? c.danger : c.secondary;
+    return Pressable(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusLg),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.surface2),
+          color: c.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          border: Border.all(color: c.border.withValues(alpha: 0.6)),
+          boxShadow: [
+            BoxShadow(color: c.shadow, blurRadius: 18, offset: const Offset(0, 8)),
+          ],
         ),
         child: Row(
           children: [
-            Icon(icon,
-                color: isRed ? AppTheme.error : AppTheme.primary, size: 20),
-            const SizedBox(width: 14),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isRed ? AppTheme.error : Colors.white,
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isRed ? c.danger.withValues(alpha: 0.12) : c.primarySoft,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              ),
+              child: Icon(icon, color: accent, size: 20),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isRed ? c.danger : c.textPrimary,
+                ),
               ),
             ),
-            const Spacer(),
             if (badgeText != null)
               Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                margin: const EdgeInsets.only(right: AppSpacing.sm),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.redAccent,
-                  borderRadius: BorderRadius.circular(10),
+                  color: c.danger,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: Text(
                   badgeText,
@@ -393,8 +394,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             if (!isRed)
-              const Icon(Icons.arrow_forward_ios_rounded,
-                  size: 14, color: AppTheme.textMuted),
+              Icon(Icons.arrow_forward_ios_rounded,
+                  size: 14, color: c.textMuted),
           ],
         ),
       ),

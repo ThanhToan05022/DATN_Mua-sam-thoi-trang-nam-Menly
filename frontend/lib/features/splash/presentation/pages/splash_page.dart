@@ -73,8 +73,8 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     await Future.delayed(const Duration(milliseconds: 2600));
     if (!mounted) return;
 
-    // Yêu cầu: Kết thúc splash luôn chuyển đến màn hình Đăng nhập (login)
-    context.go('/login');
+    // Kết thúc splash chuyển sang màn giới thiệu (onboarding)
+    context.go('/onboarding');
   }
 
   @override

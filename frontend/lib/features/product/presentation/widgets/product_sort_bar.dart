@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_colors.dart';
 
 enum ProductSortType {
   defaultSort('default', 'Mặc định', Icons.tune_rounded),
@@ -34,19 +34,21 @@ class ProductSortBar extends StatelessWidget {
   }
 
   void _showSortBottomSheet(BuildContext context) {
+    final c = AppColors.of(context);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) {
         return Container(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          decoration: const BoxDecoration(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          padding: EdgeInsets.fromLTRB(
+              20, 16, 20, MediaQuery.of(ctx).padding.bottom + 104),
+          decoration: BoxDecoration(
+            color: c.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black54,
+                color: c.shadow,
                 blurRadius: 20,
                 spreadRadius: 4,
               ),
@@ -63,32 +65,32 @@ class ProductSortBar extends StatelessWidget {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: AppTheme.border,
+                    color: c.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.sort_rounded,
-                    color: AppTheme.primary,
+                    color: c.secondary,
                     size: 22,
                   ),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     'Sắp xếp sản phẩm',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: c.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close_rounded,
-                      color: AppTheme.textMuted,
+                      color: c.textMuted,
                       size: 20,
                     ),
                     onPressed: () => Navigator.pop(ctx),
@@ -96,7 +98,7 @@ class ProductSortBar extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              const Divider(color: AppTheme.border, height: 1),
+              Divider(color: c.border, height: 1),
               const SizedBox(height: 8),
               ...ProductSortType.values.map((opt) {
                 final isSelected = opt.value == currentSort;
@@ -116,12 +118,12 @@ class ProductSortBar extends StatelessWidget {
                       margin: const EdgeInsets.symmetric(vertical: 4),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppTheme.primary.withOpacity(0.12)
+                            ? c.secondary.withValues(alpha: 0.12)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: isSelected
-                              ? AppTheme.primary.withOpacity(0.4)
+                              ? c.secondary.withValues(alpha: 0.4)
                               : Colors.transparent,
                         ),
                       ),
@@ -130,9 +132,7 @@ class ProductSortBar extends StatelessWidget {
                           Icon(
                             opt.icon,
                             size: 20,
-                            color: isSelected
-                                ? AppTheme.primary
-                                : AppTheme.textMuted,
+                            color: isSelected ? c.secondary : c.textMuted,
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -140,8 +140,8 @@ class ProductSortBar extends StatelessWidget {
                               opt.label,
                               style: TextStyle(
                                 color: isSelected
-                                    ? Colors.white
-                                    : AppTheme.textSecondary,
+                                    ? c.textPrimary
+                                    : c.textSecondary,
                                 fontSize: 14,
                                 fontWeight: isSelected
                                     ? FontWeight.w700
@@ -150,9 +150,9 @@ class ProductSortBar extends StatelessWidget {
                             ),
                           ),
                           if (isSelected)
-                            const Icon(
+                            Icon(
                               Icons.check_circle_rounded,
-                              color: AppTheme.primary,
+                              color: c.secondary,
                               size: 20,
                             ),
                         ],
@@ -170,6 +170,7 @@ class ProductSortBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     final isPriceAsc = currentSort == ProductSortType.priceAsc.value;
     final isPriceDesc = currentSort == ProductSortType.priceDesc.value;
 
@@ -180,8 +181,8 @@ class ProductSortBar extends StatelessWidget {
           // Số lượng sản phẩm
           Text(
             '$totalCount sản phẩm',
-            style: const TextStyle(
-              color: AppTheme.textMuted,
+            style: TextStyle(
+              color: c.textMuted,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
@@ -225,12 +226,12 @@ class ProductSortBar extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: AppTheme.surface2,
+                color: c.surfaceVariant,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: (currentSort != ProductSortType.defaultSort.value)
-                      ? AppTheme.primary.withOpacity(0.5)
-                      : AppTheme.border,
+                      ? c.secondary.withValues(alpha: 0.5)
+                      : c.border,
                 ),
               ),
               child: Row(
@@ -240,8 +241,8 @@ class ProductSortBar extends StatelessWidget {
                     Icons.tune_rounded,
                     size: 15,
                     color: (currentSort != ProductSortType.defaultSort.value)
-                        ? AppTheme.primary
-                        : AppTheme.textMuted,
+                        ? c.secondary
+                        : c.textMuted,
                   ),
                   const SizedBox(width: 4),
                   ConstrainedBox(
@@ -253,15 +254,15 @@ class ProductSortBar extends StatelessWidget {
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: (currentSort != ProductSortType.defaultSort.value)
-                            ? AppTheme.primary
-                            : AppTheme.textMuted,
+                            ? c.secondary
+                            : c.textMuted,
                       ),
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.arrow_drop_down_rounded,
                     size: 16,
-                    color: AppTheme.textMuted,
+                    color: c.textMuted,
                   ),
                 ],
               ),
@@ -288,6 +289,7 @@ class _QuickSortChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     return Tooltip(
       message: tooltip,
       child: InkWell(
@@ -298,11 +300,11 @@ class _QuickSortChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: isSelected
-                ? AppTheme.primary.withOpacity(0.18)
-                : AppTheme.surface2,
+                ? c.secondary.withValues(alpha: 0.18)
+                : c.surfaceVariant,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected ? AppTheme.primary : AppTheme.border,
+              color: isSelected ? c.secondary : c.border,
               width: isSelected ? 1.2 : 1.0,
             ),
           ),
@@ -311,7 +313,7 @@ class _QuickSortChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-              color: isSelected ? AppTheme.primary : AppTheme.textMuted,
+              color: isSelected ? c.secondary : c.textMuted,
             ),
           ),
         ),
