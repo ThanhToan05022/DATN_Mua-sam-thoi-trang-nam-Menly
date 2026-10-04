@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_buttons.dart';
@@ -65,6 +66,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         },
       );
       if (res.statusCode == 200) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          if (prefs.containsKey('savedPassword')) {
+            await prefs.setString('savedPassword', _newCtrl.text);
+          }
+        } catch (_) {}
+
+        if (!mounted) return;
         setState(() => _showSuccess = true);
         _currentCtrl.clear();
         _newCtrl.clear();

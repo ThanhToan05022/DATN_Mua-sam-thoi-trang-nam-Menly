@@ -64,7 +64,12 @@
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Ứng dụng Menly cần quyền truy cập thư viện ảnh để bạn có thể chọn và tải lên ảnh đại diện.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Ứng dụng Menly cần quyền sử dụng máy ảnh để bạn có thể chụp ảnh đại diện trực tiếp.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ứng dụng Menly cần quyền sử dụng micro khi quay video hoặc chụp ảnh.</string>
 </dict>
 </plist>

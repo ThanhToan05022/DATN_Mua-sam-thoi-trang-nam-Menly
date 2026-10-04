@@ -6,7 +6,7 @@ import { Order, Product, Category } from '../lib/types';
 interface BiTopMetricsProps {
   orders: Order[];
   products: Product[];
-  categories: Category[];
+  categories?: Category[];
 }
 
 function LineSparkline({ active }: { active: boolean }) {
@@ -48,7 +48,7 @@ function BarSparkline({ hasOrders }: { hasOrders: boolean }) {
   );
 }
 
-export function BiTopMetrics({ orders, products, categories }: BiTopMetricsProps) {
+export function BiTopMetrics({ orders, products }: BiTopMetricsProps) {
   const validOrders = orders.filter((o) => o.status !== 'cancelled');
   const totalRevenue = validOrders.reduce((acc, o) => acc + (o.total || 0), 0);
   const totalOrdersCount = validOrders.length;
@@ -69,76 +69,36 @@ export function BiTopMetrics({ orders, products, categories }: BiTopMetricsProps
       ? `${new Intl.NumberFormat('vi-VN').format(totalRevenue)} ₫`
       : '0 ₫';
 
-  // Calculate actual category breakdown
-  const catSales = new Map<string, number>();
-  let totalSoldUnits = 0;
-  validOrders.forEach((o) => {
-    (o.items || []).forEach((it) => {
-      const qty = it.quantity || 1;
-      totalSoldUnits += qty;
-      const matched = products.find((p) => p.name === it.productName || p.id === it.variantId);
-      const catId = matched?.categoryId || categories[0]?.id || 'cat-1';
-      catSales.set(catId, (catSales.get(catId) || 0) + qty);
-    });
-  });
-
-  const topShares = categories.slice(0, 5).map((cat) => {
-    const sold = catSales.get(cat.id) || 0;
-    const percent = totalSoldUnits > 0 ? `${Math.round((sold / totalSoldUnits) * 100)}%` : '0%';
-    return {
-      percent,
-      code: cat.slug ? cat.slug.slice(0, 8).toUpperCase() : 'DANHMUC',
-      name: cat.name,
-    };
-  });
-
   return (
-    <div className="w-full bg-[#1c0d36]/90 border border-[#371b63] rounded-2xl p-6 flex flex-col justify-between">
-      <div>
-        <h3 className="text-sm font-semibold text-slate-300 mb-6 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-          Số liệu thống kê nhanh
-        </h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-y-6 gap-x-8">
-          <div>
-            <div className="text-3xl font-extrabold text-white tracking-tight">{totalStockDisplay}</div>
-            <div className="text-xs text-slate-400 mt-1">Khối lượng sản xuất & Tồn kho</div>
-          </div>
-          <div className="flex items-center justify-between">
-            <LineSparkline active={products.length > 0} />
-            <div className="text-right">
-              <div className="text-3xl font-extrabold text-cyan-400">{products.length}</div>
-              <div className="text-xs text-slate-400 mt-1">Sản phẩm mở bán</div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-3xl font-extrabold text-white">{totalOrdersDisplay}</div>
-              <div className="text-xs text-slate-400 mt-1">Số lượng đặt hàng</div>
-            </div>
-            <BarSparkline hasOrders={totalOrdersCount > 0} />
-          </div>
-
-          <div className="text-right flex flex-col justify-end">
-            <div className="text-3xl font-extrabold text-cyan-400">{totalRevDisplay}</div>
-            <div className="text-xs text-slate-400 mt-1">Doanh thu bán hàng (VND)</div>
+    <div className="w-full bg-[#1c0d36]/90 border border-[#371b63] rounded-2xl p-6">
+      <h3 className="text-sm font-semibold text-slate-300 mb-6 flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+        Số liệu thống kê nhanh
+      </h3>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-y-6 gap-x-8">
+        <div>
+          <div className="text-3xl font-extrabold text-white tracking-tight">{totalStockDisplay}</div>
+          <div className="text-xs text-slate-400 mt-1">Khối lượng sản xuất & Tồn kho</div>
+        </div>
+        <div className="flex items-center justify-between">
+          <LineSparkline active={products.length > 0} />
+          <div className="text-right">
+            <div className="text-3xl font-extrabold text-cyan-400">{products.length}</div>
+            <div className="text-xs text-slate-400 mt-1">Sản phẩm mở bán</div>
           </div>
         </div>
-      </div>
 
-      <div className="mt-8 pt-6 border-t border-[#371b63]">
-        <h4 className="text-xs font-semibold text-slate-300 mb-4">Tỷ trọng sản xuất & bán hàng Top 5 danh mục</h4>
-        <div className="grid grid-cols-5 gap-4 text-center">
-          {topShares.map((item, idx) => (
-            <div key={idx}>
-              <div className={`text-2xl font-black ${idx < 2 ? 'text-pink-400' : 'text-purple-400'}`}>
-                {item.percent}
-              </div>
-              <div className="text-[11px] text-slate-400 font-mono mt-1">{item.code}</div>
-              <div className="text-xs text-slate-400 truncate mt-0.5">{item.name}</div>
-            </div>
-          ))}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-3xl font-extrabold text-white">{totalOrdersDisplay}</div>
+            <div className="text-xs text-slate-400 mt-1">Số lượng đặt hàng</div>
+          </div>
+          <BarSparkline hasOrders={totalOrdersCount > 0} />
+        </div>
+
+        <div className="text-right flex flex-col justify-end">
+          <div className="text-3xl font-extrabold text-cyan-400">{totalRevDisplay}</div>
+          <div className="text-xs text-slate-400 mt-1">Doanh thu bán hàng (VND)</div>
         </div>
       </div>
     </div>

@@ -22,21 +22,27 @@ class _LoginPageState extends State<LoginPage> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
-  bool _rememberMe = false;
+  bool _rememberMe = true;
 
   @override
   void initState() {
     super.initState();
-    _loadSavedEmail();
+    _loadSavedCredentials();
   }
 
-  Future<void> _loadSavedEmail() async {
+  Future<void> _loadSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('savedEmail') ?? '';
-    if (saved.isNotEmpty) {
+    final savedEmail = prefs.getString('savedEmail') ?? '';
+    final savedPass = prefs.getString('savedPassword') ?? '';
+    final remember = prefs.getBool('rememberMe') ?? true;
+
+    if (mounted) {
       setState(() {
-        _emailCtrl.text = saved;
-        _rememberMe = true;
+        _rememberMe = remember;
+        if (remember) {
+          if (savedEmail.isNotEmpty) _emailCtrl.text = savedEmail;
+          if (savedPass.isNotEmpty) _passCtrl.text = savedPass;
+        }
       });
     }
   }
@@ -61,10 +67,13 @@ class _LoginPageState extends State<LoginPage> {
 
     if (success) {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('rememberMe', _rememberMe);
       if (_rememberMe) {
         await prefs.setString('savedEmail', _emailCtrl.text.trim());
+        await prefs.setString('savedPassword', _passCtrl.text);
       } else {
         await prefs.remove('savedEmail');
+        await prefs.remove('savedPassword');
       }
 
       // Tải lại danh sách yêu thích, đơn hàng và giỏ hàng cho người dùng vừa đăng nhập
@@ -218,7 +227,16 @@ class _LoginPageState extends State<LoginPage> {
               Row(
                 children: [
                   GestureDetector(
-                    onTap: () => setState(() => _rememberMe = !_rememberMe),
+                    onTap: () {
+                      setState(() => _rememberMe = !_rememberMe);
+                      SharedPreferences.getInstance().then((prefs) {
+                        prefs.setBool('rememberMe', _rememberMe);
+                        if (!_rememberMe) {
+                          prefs.remove('savedEmail');
+                          prefs.remove('savedPassword');
+                        }
+                      });
+                    },
                     child: Row(
                       children: [
                         AnimatedContainer(
@@ -245,7 +263,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Ghi nhớ đăng nhập',
+                          'Tự động lưu mật khẩu',
                           style: TextStyle(
                             fontSize: 13,
                             color: c.textSecondary,

@@ -10,6 +10,7 @@ import '../../../../core/widgets/pressable.dart';
 import '../../../cart/data/cart_model.dart';
 import '../../../wishlist/presentation/providers/wishlist_provider.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/user_avatar_view.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -19,6 +20,14 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool _showLogoutDialog = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthProvider>().fetchProfile();
+    });
+  }
 
   void _confirmLogout() => setState(() => _showLogoutDialog = true);
 
@@ -143,29 +152,12 @@ class _ProfilePageState extends State<ProfilePage> {
         Center(
           child: Column(
             children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: c.primary,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                        color: c.primary.withValues(alpha: 0.4),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6))
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    user.fullName.isNotEmpty
-                        ? user.fullName[0].toUpperCase()
-                        : 'U',
-                    style: TextStyle(
-                        color: c.onPrimary,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900),
-                  ),
+              GestureDetector(
+                onTap: () => context.push('/edit-profile'),
+                child: UserAvatarView(
+                  avatarUrl: user.avatarUrl,
+                  fullName: user.fullName,
+                  size: 84,
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -181,7 +173,21 @@ class _ProfilePageState extends State<ProfilePage> {
                 user.email,
                 style: TextStyle(fontSize: 13, color: c.textMuted),
               ),
-              const SizedBox(height: AppSpacing.md),
+              if (user.phone != null && user.phone!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.phone_outlined, size: 13, color: c.textMuted),
+                    const SizedBox(width: 4),
+                    Text(
+                      user.phone!,
+                      style: TextStyle(fontSize: 12, color: c.textMuted),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: AppSpacing.sm),
               // Role Badge
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -215,11 +221,33 @@ class _ProfilePageState extends State<ProfilePage> {
                   ],
                 ),
               ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => context.push('/edit-profile'),
+                icon: const Icon(Icons.edit_outlined, size: 14),
+                label: const Text(
+                  'Chỉnh sửa hồ sơ',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primaryLight,
+                  side: BorderSide(color: AppTheme.primaryLight.withOpacity(0.4)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
         const SizedBox(height: AppSpacing.xxl),
 
+        _menuItem(
+          icon: Icons.person_outline_rounded,
+          label: 'Thông tin cá nhân',
+          onTap: () => context.push('/edit-profile'),
+        ),
         _menuItem(
           icon: Icons.favorite_rounded,
           label: 'Sản phẩm yêu thích',
@@ -258,10 +286,6 @@ class _ProfilePageState extends State<ProfilePage> {
             icon: Icons.location_on_outlined,
             label: 'Địa chỉ giao hàng',
             onTap: () => context.push('/shipping-address')),
-        _menuItem(
-            icon: Icons.lock_outline_rounded,
-            label: 'Đổi mật khẩu',
-            onTap: () => context.push('/change-password')),
         _menuItem(
             icon: Icons.notifications_outlined,
             label: 'Thông báo',

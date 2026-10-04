@@ -53,12 +53,12 @@ DATN_Mua-sam-thoi-trang-nam-Menly/
 
 ### Yêu cầu
 
-| Công cụ | Phiên bản |
-| ------- | --------- |
-| Flutter | 3.x       |
-| Node.js | 18+       |
-| MongoDB | 6+        |
-| npm     | 9+        |
+| Công cụ  | Phiên bản |
+| -------- | --------- |
+| Flutter  | 3.x       |
+| Node.js  | 18+       |
+| Supabase |           |
+| npm      | 9+        |
 
 ---
 

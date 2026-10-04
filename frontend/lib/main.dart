@@ -24,6 +24,7 @@ import 'features/order/presentation/providers/order_provider.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/register_page.dart';
 import 'features/auth/presentation/pages/profile_page.dart';
+import 'features/auth/presentation/pages/edit_profile_page.dart';
 import 'features/auth/presentation/pages/change_password_page.dart';
 import 'features/auth/presentation/pages/shipping_address_page.dart';
 import 'features/auth/presentation/pages/notifications_page.dart';
@@ -102,12 +103,15 @@ final _router = GoRouter(
         path: '/change-password',
         builder: (ctx, s) => const ChangePasswordPage()),
     GoRoute(
+        path: '/edit-profile',
+        builder: (ctx, s) => const EditProfilePage()),
+    GoRoute(
         path: '/notifications',
         builder: (ctx, s) => const NotificationsPage()),
     GoRoute(
         path: '/help-support', builder: (ctx, s) => const HelpSupportPage()),
 
-    // 5 tab chính (có bottom nav)
+    // 4 tab chính (có bottom nav)
     ShellRoute(
       builder: (ctx, state, child) => MainShell(child: child),
       routes: [

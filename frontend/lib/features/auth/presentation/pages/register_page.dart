@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -58,6 +59,12 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!mounted) return;
 
     if (success) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('savedEmail', email.trim());
+      await prefs.setString('savedPassword', pass);
+      await prefs.setBool('rememberMe', true);
+
+      if (!mounted) return;
       final c = AppColors.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
