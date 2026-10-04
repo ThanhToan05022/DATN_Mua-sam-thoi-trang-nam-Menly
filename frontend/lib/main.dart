@@ -135,14 +135,15 @@ final _router = GoRouter(
 );
 
 class MenlyApp extends StatelessWidget {
-  final ThemeController themeController;
-  const MenlyApp({super.key, required this.themeController});
+  final ThemeController? themeController;
+  const MenlyApp({super.key, this.themeController});
 
   @override
   Widget build(BuildContext context) {
+    final controller = themeController ?? ThemeController();
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: themeController),
+        ChangeNotifierProvider.value(value: controller),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => WishlistProvider()),

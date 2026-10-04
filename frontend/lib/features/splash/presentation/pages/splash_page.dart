@@ -19,6 +19,8 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
 
+  Timer? _navTimer;
+
   @override
   void initState() {
     super.initState();
@@ -68,17 +70,16 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     _handleNavigation();
   }
 
-  Future<void> _handleNavigation() async {
-    // Chờ 2.6 giây để hiển thị trọn vẹn animation thương hiệu
-    await Future.delayed(const Duration(milliseconds: 2600));
-    if (!mounted) return;
-
-    // Kết thúc splash chuyển sang màn giới thiệu (onboarding)
-    context.go('/onboarding');
+  void _handleNavigation() {
+    _navTimer = Timer(const Duration(milliseconds: 2600), () {
+      if (!mounted) return;
+      context.go('/onboarding');
+    });
   }
 
   @override
   void dispose() {
+    _navTimer?.cancel();
     _mainAnimController.dispose();
     _pulseController.dispose();
     super.dispose();
