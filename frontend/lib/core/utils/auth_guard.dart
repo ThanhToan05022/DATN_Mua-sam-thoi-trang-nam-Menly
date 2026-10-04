@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../theme/app_theme.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_buttons.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 
 class AuthGuard {
@@ -53,16 +54,17 @@ class _LoginPromptSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.surface.withValues(alpha: 0.96),
+          color: c.surface.withValues(alpha: 0.96),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border.all(color: AppTheme.border2, width: 1.2),
+          border: Border.all(color: c.border, width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.6),
+              color: c.shadow,
               blurRadius: 36,
               offset: const Offset(0, -6),
             ),
@@ -84,7 +86,7 @@ class _LoginPromptSheet extends StatelessWidget {
                 width: 44,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppTheme.border2,
+                  color: c.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -97,31 +99,17 @@ class _LoginPromptSheet extends StatelessWidget {
                 width: 76,
                 height: 76,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.primary.withValues(alpha: 0.2),
-                      AppTheme.primaryDark.withValues(alpha: 0.08),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: c.primarySoft,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.4),
+                    color: c.secondary.withValues(alpha: 0.4),
                     width: 1.5,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primary.withValues(alpha: 0.25),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
                 ),
-                child: const Center(
+                child: Center(
                   child: Icon(
                     Icons.lock_person_rounded,
-                    color: AppTheme.primary,
+                    color: c.secondary,
                     size: 38,
                   ),
                 ),
@@ -133,8 +121,8 @@ class _LoginPromptSheet extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: c.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.3,
@@ -146,8 +134,8 @@ class _LoginPromptSheet extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
+              style: TextStyle(
+                color: c.textSecondary,
                 fontSize: 14,
                 height: 1.5,
               ),
@@ -155,8 +143,9 @@ class _LoginPromptSheet extends StatelessWidget {
             const SizedBox(height: 28),
 
             // Nút Đăng nhập ngay (Primary CTA)
-            GestureDetector(
-              onTap: () {
+            PrimaryButton(
+              label: 'Đăng nhập ngay',
+              onPressed: () {
                 Navigator.of(context).pop();
                 if (redirectPath != null && redirectPath!.isNotEmpty) {
                   context.push('/login?redirect=${Uri.encodeComponent(redirectPath!)}');
@@ -164,36 +153,12 @@ class _LoginPromptSheet extends StatelessWidget {
                   context.push('/login');
                 }
               },
-              child: Container(
-                height: 52,
-                decoration: BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primary.withValues(alpha: 0.35),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Text(
-                    'Đăng nhập ngay',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ),
-              ),
             ),
             const SizedBox(height: 12),
 
             // Nút Tạo tài khoản (Secondary CTA)
-            OutlinedButton(
+            SecondaryButton(
+              label: 'Tạo tài khoản mới',
               onPressed: () {
                 Navigator.of(context).pop();
                 if (redirectPath != null && redirectPath!.isNotEmpty) {
@@ -202,28 +167,16 @@ class _LoginPromptSheet extends StatelessWidget {
                   context.push('/register');
                 }
               },
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                foregroundColor: AppTheme.textPrimary,
-                side: const BorderSide(color: AppTheme.border2, width: 1.2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: const Text(
-                'Tạo tài khoản mới',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              ),
             ),
             const SizedBox(height: 8),
 
             // Nút Tiếp tục xem sản phẩm (Tertiary)
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
+              child: Text(
                 'Tiếp tục duyệt sản phẩm',
                 style: TextStyle(
-                  color: AppTheme.textMuted,
+                  color: c.textMuted,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),

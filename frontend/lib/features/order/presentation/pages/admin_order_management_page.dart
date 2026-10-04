@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_buttons.dart';
+import '../../../../core/widgets/state_views.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/order_model.dart';
 import '../providers/order_provider.dart';
@@ -45,14 +49,15 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
   }
 
   void _showUpdateStatusSheet(Order order) {
+    final c = AppColors.of(context);
     if (order.status == 'cancelled') {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
+        SnackBar(
+          content: const Text(
             '⚠️ Đơn hàng đã ở trạng thái ĐÃ HUỶ, không thể chuyển sang trạng thái khác.',
           ),
-          backgroundColor: AppTheme.error,
-          duration: Duration(seconds: 2),
+          backgroundColor: c.danger,
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -60,9 +65,9 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.surface,
+      backgroundColor: c.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusXl)),
       ),
       builder: (ctx) {
         final options = [
@@ -105,7 +110,7 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppTheme.border2,
+                      color: c.border,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -113,8 +118,8 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                 const SizedBox(height: 16),
                 Text(
                   'Cập nhật trạng thái: ${order.code}',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: c.textPrimary,
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
                   ),
@@ -126,7 +131,7 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                       onTap: isCurrent
                           ? null
                           : () async {
@@ -146,8 +151,8 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                                           : '❌ Cập nhật thất bại. Đơn hàng có thể đã huỷ hoặc không hợp lệ.',
                                     ),
                                     backgroundColor: success
-                                        ? AppTheme.success
-                                        : AppTheme.error,
+                                        ? c.success
+                                        : c.danger,
                                     duration: const Duration(seconds: 2),
                                   ),
                                 );
@@ -160,11 +165,11 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                         ),
                         decoration: BoxDecoration(
                           color: isCurrent
-                              ? optColor.withOpacity(0.15)
-                              : AppTheme.surface2,
-                          borderRadius: BorderRadius.circular(14),
+                              ? optColor.withValues(alpha: 0.15)
+                              : c.surfaceVariant,
+                          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                           border: Border.all(
-                            color: isCurrent ? optColor : AppTheme.border,
+                            color: isCurrent ? optColor : c.border,
                             width: isCurrent ? 1.5 : 1,
                           ),
                         ),
@@ -185,7 +190,7 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                                 Text(
                                   opt['label'] as String,
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: c.textPrimary,
                                     fontSize: 14,
                                     fontWeight: isCurrent
                                         ? FontWeight.w800
@@ -195,9 +200,9 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                               ],
                             ),
                             if (isCurrent)
-                              const Icon(
+                              Icon(
                                 Icons.check_circle_rounded,
-                                color: AppTheme.primary,
+                                color: c.secondary,
                                 size: 20,
                               ),
                           ],
@@ -216,6 +221,7 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     final auth = context.watch<AuthProvider>();
     final orderProvider = context.watch<OrderProvider>();
     final state = orderProvider.adminOrdersState;
@@ -223,14 +229,14 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
     final filtered = _getFilteredOrders(allOrders);
 
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: c.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.bg,
+        backgroundColor: c.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: Colors.white,
+            color: c.textPrimary,
             size: 20,
           ),
           onPressed: () => context.pop(),
@@ -238,10 +244,10 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Quản lý đơn hàng',
               style: TextStyle(
-                color: Colors.white,
+                color: c.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
               ),
@@ -262,7 +268,7 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+            icon: Icon(Icons.refresh_rounded, color: c.textPrimary),
             onPressed: () => context.read<OrderProvider>().fetchAdminOrders(
               forceRefresh: true,
             ),
@@ -292,13 +298,12 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        gradient: isSelected ? AppTheme.primaryGradient : null,
-                        color: isSelected ? null : AppTheme.surface2,
-                        borderRadius: BorderRadius.circular(20),
+                        color: isSelected ? c.primary : c.surfaceVariant,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusPill),
                         border: Border.all(
                           color: isSelected
                               ? Colors.transparent
-                              : AppTheme.border,
+                              : c.border,
                         ),
                       ),
                       child: Center(
@@ -306,8 +311,8 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                           tab['label']!,
                           style: TextStyle(
                             color: isSelected
-                                ? Colors.black
-                                : AppTheme.textSecondary,
+                                ? c.onPrimary
+                                : c.textSecondary,
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                           ),
@@ -323,9 +328,7 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
             // Orders list
             Expanded(
               child: state.isLoading && allOrders.isEmpty
-                  ? const Center(
-                      child: CircularProgressIndicator(color: AppTheme.primary),
-                    )
+                  ? const LoadingView(message: 'Đang tải đơn hàng...')
                   : state.isError && allOrders.isEmpty
                   ? _buildErrorView(state.message ?? 'Đã có lỗi xảy ra')
                   : filtered.isEmpty
@@ -334,8 +337,8 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                       onRefresh: () => context
                           .read<OrderProvider>()
                           .fetchAdminOrders(forceRefresh: true),
-                      color: AppTheme.primary,
-                      backgroundColor: AppTheme.surface2,
+                      color: c.secondary,
+                      backgroundColor: c.surfaceVariant,
                       child: ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                         itemCount: filtered.length,
@@ -352,13 +355,21 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
   }
 
   Widget _buildAdminOrderCard(Order order) {
+    final c = AppColors.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.border),
+        color: c.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: c.border.withValues(alpha: 0.6)),
+        boxShadow: [
+          BoxShadow(
+            color: c.shadow,
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -368,8 +379,8 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
             children: [
               Text(
                 order.code,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: c.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
@@ -380,9 +391,9 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: order.statusColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: order.statusColor.withOpacity(0.4)),
+                  color: order.statusColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  border: Border.all(color: order.statusColor.withValues(alpha: 0.4)),
                 ),
                 child: Text(
                   order.statusLabel,
@@ -398,26 +409,26 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
           const SizedBox(height: 6),
           Text(
             order.formattedDate,
-            style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+            style: TextStyle(color: c.textMuted, fontSize: 12),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
-            child: Divider(color: AppTheme.surface2, height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Divider(color: c.surfaceVariant, height: 1),
           ),
 
           // Shipping Info
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.person_outline_rounded,
-                color: AppTheme.textSecondary,
+                color: c.textSecondary,
                 size: 16,
               ),
               const SizedBox(width: 8),
               Text(
                 '${order.shipName} (${order.shipPhone})',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: c.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
@@ -428,17 +439,17 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
+              Icon(
                 Icons.location_on_outlined,
-                color: AppTheme.textMuted,
+                color: c.textMuted,
                 size: 16,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   order.shipAddress,
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
+                  style: TextStyle(
+                    color: c.textSecondary,
                     fontSize: 12,
                   ),
                   maxLines: 2,
@@ -456,8 +467,8 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
                   '• ${i.productName} (${i.size}, ${i.color}) x${i.quantity}',
-                  style: const TextStyle(
-                    color: AppTheme.textMuted,
+                  style: TextStyle(
+                    color: c.textMuted,
                     fontSize: 12,
                   ),
                   maxLines: 1,
@@ -467,9 +478,9 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
             ),
           ],
 
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
-            child: Divider(color: AppTheme.surface2, height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Divider(color: c.surfaceVariant, height: 1),
           ),
 
           // Actions & Total
@@ -479,14 +490,14 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Tổng thu:',
-                    style: TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                    style: TextStyle(color: c.textMuted, fontSize: 11),
                   ),
                   Text(
                     order.formattedTotal,
-                    style: const TextStyle(
-                      color: AppTheme.primary,
+                    style: TextStyle(
+                      color: c.secondary,
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
                     ),
@@ -500,25 +511,25 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    color: c.danger.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                     border: Border.all(
-                      color: const Color(0xFFEF4444).withOpacity(0.3),
+                      color: c.danger.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
+                    children: [
                       Icon(
                         Icons.block_rounded,
                         size: 14,
-                        color: Color(0xFFEF4444),
+                        color: c.danger,
                       ),
-                      SizedBox(width: 6),
+                      const SizedBox(width: 6),
                       Text(
                         'Đã huỷ (Cố định)',
                         style: TextStyle(
-                          color: Color(0xFFEF4444),
+                          color: c.danger,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -527,25 +538,12 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
                   ),
                 ),
               ] else ...[
-                ElevatedButton.icon(
+                SecondaryButton(
+                  label: 'Đổi trạng thái',
+                  icon: Icons.edit_note_rounded,
+                  expanded: false,
+                  height: 44,
                   onPressed: () => _showUpdateStatusSheet(order),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.surface2,
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: AppTheme.border2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                  ),
-                  icon: const Icon(Icons.edit_note_rounded, size: 18),
-                  label: const Text(
-                    'Đổi trạng thái',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                  ),
                 ),
               ],
             ],
@@ -556,54 +554,21 @@ class _AdminOrderManagementPageState extends State<AdminOrderManagementPage> {
   }
 
   Widget _buildEmptyView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.inbox_rounded, color: AppTheme.textMuted, size: 48),
-          SizedBox(height: 12),
-          Text(
-            'Không có đơn hàng nào',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+    return const StatusView(
+      icon: Icons.inbox_rounded,
+      title: 'Không có đơn hàng nào',
     );
   }
 
   Widget _buildErrorView(String msg) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              color: AppTheme.error,
-              size: 48,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              msg,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () => context.read<OrderProvider>().fetchAdminOrders(
-                forceRefresh: true,
-              ),
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Thử lại'),
-            ),
-          ],
-        ),
-      ),
+    return StatusView(
+      icon: Icons.error_outline_rounded,
+      title: 'Không tải được đơn hàng',
+      message: msg,
+      danger: true,
+      actionLabel: 'Thử lại',
+      onAction: () =>
+          context.read<OrderProvider>().fetchAdminOrders(forceRefresh: true),
     );
   }
 }

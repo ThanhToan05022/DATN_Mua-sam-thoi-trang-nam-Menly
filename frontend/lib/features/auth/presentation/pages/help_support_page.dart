@@ -1,66 +1,73 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/pressable.dart';
 
 class HelpSupportPage extends StatelessWidget {
   const HelpSupportPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: c.background,
       appBar: AppBar(
         title: const Text('Trợ giúp & Hỗ trợ'),
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios_rounded), onPressed: () => context.pop()),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppSpacing.xl),
             decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
-              borderRadius: BorderRadius.circular(16),
+              color: c.primary,
+              borderRadius: BorderRadius.circular(AppTheme.radiusXl),
             ),
             child: Column(
               children: [
-                const Icon(Icons.support_agent_rounded, color: Colors.white, size: 48),
-                const SizedBox(height: 12),
-                const Text('Xin chào! Chúng tôi có thể giúp gì?',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800), textAlign: TextAlign.center),
-                const SizedBox(height: 6),
+                Icon(Icons.support_agent_rounded, color: c.onPrimary, size: 48),
+                const SizedBox(height: AppSpacing.md),
+                Text('Xin chào! Chúng tôi có thể giúp gì?',
+                    style: TextStyle(color: c.onPrimary, fontSize: 18, fontWeight: FontWeight.w800), textAlign: TextAlign.center),
+                const SizedBox(height: AppSpacing.xs),
                 Text('Đội ngũ hỗ trợ sẵn sàng giúp đỡ bạn',
-                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13), textAlign: TextAlign.center),
+                    style: TextStyle(color: c.onPrimary.withValues(alpha: 0.8), fontSize: 13), textAlign: TextAlign.center),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.xl),
 
           // Contact options
-          const Text('Liên hệ với chúng tôi',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
+          Text('Liên hệ với chúng tôi',
+              style: TextStyle(color: c.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: AppSpacing.md),
           _contactCard(
+            context,
             icon: Icons.phone_rounded,
             label: 'Hotline',
             value: '1900 xxxx',
             subtitle: 'Thứ 2 - Thứ 7, 8:00 - 21:00',
-            color: AppTheme.success,
+            color: c.success,
             onTap: () => _launchUrl('tel:1900xxxx'),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.md),
           _contactCard(
+            context,
             icon: Icons.email_rounded,
             label: 'Email',
             value: 'support@menly.vn',
             subtitle: 'Phản hồi trong vòng 24 giờ',
-            color: AppTheme.info,
+            color: c.secondary,
             onTap: () => _launchUrl('mailto:support@menly.vn'),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.md),
           _contactCard(
+            context,
             icon: Icons.chat_rounded,
             label: 'Zalo',
             value: 'Menly Official',
@@ -68,12 +75,12 @@ class HelpSupportPage extends StatelessWidget {
             color: const Color(0xFF0068FF),
             onTap: () => _launchUrl('https://zalo.me/0123456789'),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xxl),
 
           // FAQ
-          const Text('Câu hỏi thường gặp',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
+          Text('Câu hỏi thường gặp',
+              style: TextStyle(color: c.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: AppSpacing.md),
           _faqItem(
             question: 'Làm sao để đặt hàng?',
             answer: 'Bạn chọn sản phẩm → thêm vào giỏ hàng → vào giỏ hàng → bấm Thanh toán → điền thông tin giao hàng → xác nhận đặt hàng.',
@@ -94,15 +101,19 @@ class HelpSupportPage extends StatelessWidget {
             question: 'Có hỗ trợ thanh toán online không?',
             answer: 'Có, Menly hỗ trợ thanh toán qua VNPay (ATM, Visa, MasterCard, QR Code) và thanh toán khi nhận hàng (COD).',
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xxl),
 
           // App info
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.surface2),
+              color: c.surface,
+              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+              border: Border.all(color: c.border.withValues(alpha: 0.6)),
+              boxShadow: [
+                BoxShadow(
+                    color: c.shadow, blurRadius: 16, offset: const Offset(0, 6)),
+              ],
             ),
             child: Column(
               children: [
@@ -111,36 +122,37 @@ class HelpSupportPage extends StatelessWidget {
                     Container(
                       width: 40, height: 40,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [AppTheme.primary, AppTheme.primaryLight]),
-                        borderRadius: BorderRadius.circular(10),
+                        color: c.primary,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                       ),
-                      child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 20),
+                      child: Icon(Icons.shopping_bag_rounded, color: c.onPrimary, size: 20),
                     ),
-                    const SizedBox(width: 12),
-                    const Column(
+                    const SizedBox(width: AppSpacing.md),
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('MENLY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 1)),
-                        Text('Phiên bản 1.0.0', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                        Text('MENLY', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 1)),
+                        Text('Phiên bản 1.0.0', style: TextStyle(color: c.textMuted, fontSize: 12)),
                       ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                const Divider(color: AppTheme.surface2),
-                const SizedBox(height: 8),
-                const Text('© 2026 Menly - Thời trang nam cao cấp.\nMọi quyền được bảo lưu.',
-                    style: TextStyle(color: AppTheme.textMuted, fontSize: 11), textAlign: TextAlign.center),
+                const SizedBox(height: AppSpacing.md),
+                Divider(color: c.border.withValues(alpha: 0.6)),
+                const SizedBox(height: AppSpacing.sm),
+                Text('© 2026 Menly - Thời trang nam cao cấp.\nMọi quyền được bảo lưu.',
+                    style: TextStyle(color: c.textMuted, fontSize: 11), textAlign: TextAlign.center),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xxl),
         ],
       ),
     );
   }
 
-  Widget _contactCard({
+  Widget _contactCard(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required String value,
@@ -148,39 +160,45 @@ class HelpSupportPage extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    final c = AppColors.of(context);
+    return Pressable(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusLg),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.surface2),
+          color: c.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          border: Border.all(color: c.border.withValues(alpha: 0.6)),
+          boxShadow: [
+            BoxShadow(
+                color: c.shadow, blurRadius: 16, offset: const Offset(0, 6)),
+          ],
         ),
         child: Row(
           children: [
             Container(
               width: 44, height: 44,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
               ),
               child: Icon(icon, color: color, size: 22),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
+                  Text(label, style: TextStyle(color: c.textMuted, fontSize: 11)),
                   const SizedBox(height: 2),
-                  Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                  Text(value, style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
+                  Text(subtitle, style: TextStyle(color: c.textMuted, fontSize: 11)),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: AppTheme.textMuted, size: 14),
+            Icon(Icons.arrow_forward_ios_rounded, color: c.textMuted, size: 14),
           ],
         ),
       ),
@@ -213,16 +231,22 @@ class _FAQExpandableState extends State<_FAQExpandable> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final c = AppColors.of(context);
+    return Pressable(
       onTap: () => setState(() => _expanded = !_expanded),
+      borderRadius: BorderRadius.circular(AppTheme.radiusLg),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _expanded ? AppTheme.primary.withOpacity(0.3) : AppTheme.surface2),
+          color: c.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          border: Border.all(color: _expanded ? c.secondary.withValues(alpha: 0.3) : c.border.withValues(alpha: 0.6)),
+          boxShadow: [
+            BoxShadow(
+                color: c.shadow, blurRadius: 16, offset: const Offset(0, 6)),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,21 +255,21 @@ class _FAQExpandableState extends State<_FAQExpandable> {
               children: [
                 Expanded(
                   child: Text(widget.question,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                      style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600, fontSize: 13)),
                 ),
                 AnimatedRotation(
                   turns: _expanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 200),
-                  child: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textMuted, size: 20),
+                  child: Icon(Icons.keyboard_arrow_down_rounded, color: c.textMuted, size: 20),
                 ),
               ],
             ),
             if (_expanded) ...[
               const SizedBox(height: 10),
-              const Divider(color: AppTheme.surface2, height: 1),
+              Divider(color: c.surfaceVariant, height: 1),
               const SizedBox(height: 10),
               Text(widget.answer,
-                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.5)),
+                  style: TextStyle(color: c.textSecondary, fontSize: 12, height: 1.5)),
             ],
           ],
         ),

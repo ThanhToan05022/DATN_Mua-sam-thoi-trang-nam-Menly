@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class ProductSearchBar extends StatelessWidget {
@@ -15,32 +18,37 @@ class ProductSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        0,
+      ),
       child: Container(
-        height: 46,
+        height: 48,
         decoration: BoxDecoration(
-          color: AppTheme.surface2,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.border),
+          color: c.surfaceVariant,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         ),
         child: TextField(
           controller: controller,
           onChanged: onChanged,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          style: TextStyle(color: c.textPrimary, fontSize: 14),
           decoration: InputDecoration(
             hintText: 'Tìm kiếm sản phẩm...',
-            hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
-            prefixIcon: const Icon(
+            hintStyle: TextStyle(color: c.textMuted, fontSize: 14),
+            prefixIcon: Icon(
               Icons.search_rounded,
-              color: AppTheme.textMuted,
+              color: c.textMuted,
               size: 20,
             ),
             suffixIcon: controller.text.isNotEmpty
                 ? IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close_rounded,
-                      color: AppTheme.textMuted,
+                      color: c.textMuted,
                       size: 18,
                     ),
                     onPressed: () {

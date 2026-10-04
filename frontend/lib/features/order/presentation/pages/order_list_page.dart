@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_buttons.dart';
+import '../../../../core/widgets/state_views.dart';
 import '../../data/order_model.dart';
 import '../providers/order_provider.dart';
 
@@ -54,20 +58,22 @@ class _OrderListPageState extends State<OrderListPage> {
   }
 
   void _showCancelDialog(BuildContext context, Order order) {
+    final c = AppColors.of(context);
     final noteCtrl = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        backgroundColor: c.surface,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusXl)),
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: AppTheme.error, size: 26),
-            SizedBox(width: 10),
+            Icon(Icons.warning_amber_rounded, color: c.danger, size: 26),
+            const SizedBox(width: 10),
             Text(
               'Huỷ đơn hàng',
               style: TextStyle(
-                color: Colors.white,
+                color: c.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
               ),
@@ -80,7 +86,7 @@ class _OrderListPageState extends State<OrderListPage> {
           children: [
             Text(
               'Bạn có chắc chắn muốn huỷ đơn hàng #${order.code}?',
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+              style: TextStyle(color: c.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 14),
             TextField(
@@ -88,24 +94,29 @@ class _OrderListPageState extends State<OrderListPage> {
               maxLines: 2,
               decoration: InputDecoration(
                 hintText: 'Nhập lý do huỷ (tùy chọn)...',
-                hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                hintStyle: TextStyle(color: c.textMuted, fontSize: 13),
                 filled: true,
-                fillColor: AppTheme.surface2,
+                fillColor: c.surfaceVariant,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                   borderSide: BorderSide.none,
                 ),
               ),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style: TextStyle(color: c.textPrimary, fontSize: 14),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Đóng', style: TextStyle(color: AppTheme.textMuted)),
+            child: Text('Đóng', style: TextStyle(color: c.textMuted)),
           ),
-          ElevatedButton(
+          PrimaryButton(
+            label: 'Xác nhận huỷ',
+            expanded: false,
+            height: 44,
+            background: c.danger,
+            foreground: c.onPrimary,
             onPressed: () async {
               Navigator.of(ctx).pop();
               final reason = noteCtrl.text.trim().isNotEmpty
@@ -118,27 +129,21 @@ class _OrderListPageState extends State<OrderListPage> {
               if (context.mounted) {
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Đã huỷ đơn hàng thành công'),
-                      backgroundColor: AppTheme.success,
+                    SnackBar(
+                      content: const Text('Đã huỷ đơn hàng thành công'),
+                      backgroundColor: c.success,
                     ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Không thể huỷ đơn hàng. Vui lòng thử lại sau'),
-                      backgroundColor: AppTheme.error,
+                    SnackBar(
+                      content: const Text('Không thể huỷ đơn hàng. Vui lòng thử lại sau'),
+                      backgroundColor: c.danger,
                     ),
                   );
                 }
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.error,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Xác nhận huỷ', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -147,25 +152,26 @@ class _OrderListPageState extends State<OrderListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
     final orderProvider = context.watch<OrderProvider>();
     final state = orderProvider.myOrdersState;
     final allOrders = state.data ?? [];
     final filtered = _filterOrders(allOrders, _selectedFilter);
 
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: c.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.bg,
+        backgroundColor: c.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white, size: 20),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: c.textPrimary, size: 20),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           'Đơn hàng của tôi',
           style: TextStyle(
-            color: Colors.white,
+            color: c.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w800,
           ),
@@ -194,11 +200,10 @@ class _OrderListPageState extends State<OrderListPage> {
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
-                        gradient: isSelected ? AppTheme.primaryGradient : null,
-                        color: isSelected ? null : AppTheme.surface2,
-                        borderRadius: BorderRadius.circular(20),
+                        color: isSelected ? c.primary : c.surfaceVariant,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusPill),
                         border: Border.all(
-                          color: isSelected ? Colors.transparent : AppTheme.border,
+                          color: isSelected ? Colors.transparent : c.border,
                         ),
                       ),
                       child: Center(
@@ -208,7 +213,7 @@ class _OrderListPageState extends State<OrderListPage> {
                             Text(
                               tab['label']!,
                               style: TextStyle(
-                                color: isSelected ? Colors.black : AppTheme.textSecondary,
+                                color: isSelected ? c.onPrimary : c.textSecondary,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -219,14 +224,15 @@ class _OrderListPageState extends State<OrderListPage> {
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? Colors.black.withOpacity(0.15)
-                                      : AppTheme.border2,
-                                  borderRadius: BorderRadius.circular(10),
+                                      ? c.onPrimary.withValues(alpha: 0.2)
+                                      : c.border,
+                                  borderRadius:
+                                      BorderRadius.circular(AppTheme.radiusPill),
                                 ),
                                 child: Text(
                                   '$count',
                                   style: TextStyle(
-                                    color: isSelected ? Colors.black : Colors.white,
+                                    color: isSelected ? c.onPrimary : c.textPrimary,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -255,8 +261,8 @@ class _OrderListPageState extends State<OrderListPage> {
                               onRefresh: () => context
                                   .read<OrderProvider>()
                                   .fetchMyOrders(forceRefresh: true),
-                              color: AppTheme.primary,
-                              backgroundColor: AppTheme.surface2,
+                              color: c.secondary,
+                              backgroundColor: c.surfaceVariant,
                               child: ListView.separated(
                                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                                 itemCount: filtered.length,
@@ -274,21 +280,29 @@ class _OrderListPageState extends State<OrderListPage> {
   }
 
   Widget _buildOrderCard(Order order) {
+    final c = AppColors.of(context);
     final canCancel = order.status == 'pending_payment' ||
         order.status == 'pending' ||
         order.status == 'processing';
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(18),
+        color: c.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         border: Border.all(
           color: order.status == 'cancelled'
-              ? AppTheme.error.withOpacity(0.3)
-              : AppTheme.border,
+              ? c.danger.withValues(alpha: 0.3)
+              : c.border.withValues(alpha: 0.6),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: c.shadow,
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -298,13 +312,13 @@ class _OrderListPageState extends State<OrderListPage> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.receipt_long_rounded,
-                      color: AppTheme.primary, size: 18),
+                  Icon(Icons.receipt_long_rounded,
+                      color: c.secondary, size: 18),
                   const SizedBox(width: 8),
                   Text(
                     order.code,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: c.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5,
@@ -315,9 +329,9 @@ class _OrderListPageState extends State<OrderListPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: order.statusColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: order.statusColor.withOpacity(0.4)),
+                  color: order.statusColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  border: Border.all(color: order.statusColor.withValues(alpha: 0.4)),
                 ),
                 child: Text(
                   order.statusLabel,
@@ -333,11 +347,11 @@ class _OrderListPageState extends State<OrderListPage> {
           const SizedBox(height: 6),
           Text(
             order.formattedDate,
-            style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+            style: TextStyle(color: c.textMuted, fontSize: 12),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(color: AppTheme.surface2, height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Divider(color: c.surfaceVariant, height: 1),
           ),
 
           // Items Preview
@@ -349,8 +363,8 @@ class _OrderListPageState extends State<OrderListPage> {
                       Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.primary,
+                        decoration: BoxDecoration(
+                          color: c.secondary,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -358,8 +372,8 @@ class _OrderListPageState extends State<OrderListPage> {
                       Expanded(
                         child: Text(
                           '${item.productName}${item.size.isNotEmpty ? ' (${item.size}, ${item.color})' : ''}',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: c.textPrimary,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -369,8 +383,8 @@ class _OrderListPageState extends State<OrderListPage> {
                       ),
                       Text(
                         'x${item.quantity}',
-                        style: const TextStyle(
-                          color: AppTheme.textMuted,
+                        style: TextStyle(
+                          color: c.textMuted,
                           fontSize: 13,
                         ),
                       ),
@@ -385,18 +399,18 @@ class _OrderListPageState extends State<OrderListPage> {
               margin: const EdgeInsets.only(top: 4, bottom: 6),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: AppTheme.error.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.error.withOpacity(0.25)),
+                color: c.danger.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                border: Border.all(color: c.danger.withValues(alpha: 0.25)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded, color: AppTheme.error, size: 14),
+                  Icon(Icons.info_outline_rounded, color: c.danger, size: 14),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       'Lý do: ${order.note}',
-                      style: const TextStyle(color: AppTheme.error, fontSize: 12),
+                      style: TextStyle(color: c.danger, fontSize: 12),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -406,9 +420,9 @@ class _OrderListPageState extends State<OrderListPage> {
             ),
           ],
 
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
-            child: Divider(color: AppTheme.surface2, height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Divider(color: c.surfaceVariant, height: 1),
           ),
 
           // Footer: Total & Payment
@@ -421,7 +435,7 @@ class _OrderListPageState extends State<OrderListPage> {
                     order.paymentMethod == 'vnpay'
                         ? Icons.credit_card_rounded
                         : Icons.local_shipping_outlined,
-                    color: AppTheme.textMuted,
+                    color: c.textMuted,
                     size: 16,
                   ),
                   const SizedBox(width: 6),
@@ -429,8 +443,8 @@ class _OrderListPageState extends State<OrderListPage> {
                     order.paymentMethod == 'vnpay'
                         ? 'VNPay'
                         : 'Thanh toán COD',
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
+                    style: TextStyle(
+                      color: c.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -438,17 +452,17 @@ class _OrderListPageState extends State<OrderListPage> {
               ),
               Row(
                 children: [
-                  const Text(
+                  Text(
                     'Tổng tiền: ',
                     style: TextStyle(
-                      color: AppTheme.textSecondary,
+                      color: c.textSecondary,
                       fontSize: 13,
                     ),
                   ),
                   Text(
                     order.formattedTotal,
-                    style: const TextStyle(
-                      color: AppTheme.primary,
+                    style: TextStyle(
+                      color: c.secondary,
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
                     ),
@@ -460,22 +474,13 @@ class _OrderListPageState extends State<OrderListPage> {
 
           // Action Button: Huỷ đơn hàng nếu đơn còn có thể huỷ
           if (canCancel) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => _showCancelDialog(context, order),
-                icon: const Icon(Icons.cancel_outlined, size: 16, color: AppTheme.error),
-                label: const Text(
-                  'Huỷ đơn hàng',
-                  style: TextStyle(color: AppTheme.error, fontWeight: FontWeight.w700, fontSize: 13),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppTheme.error.withOpacity(0.5)),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
+            const SizedBox(height: AppSpacing.md),
+            SecondaryButton(
+              label: 'Huỷ đơn hàng',
+              icon: Icons.cancel_outlined,
+              height: 46,
+              foreground: AppColors.of(context).danger,
+              onPressed: () => _showCancelDialog(context, order),
             ),
           ],
         ],
@@ -484,6 +489,7 @@ class _OrderListPageState extends State<OrderListPage> {
   }
 
   Widget _buildSkeletonList() {
+    final c = AppColors.of(context);
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: 4,
@@ -491,88 +497,35 @@ class _OrderListPageState extends State<OrderListPage> {
         height: 140,
         margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppTheme.border),
+          color: c.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          border: Border.all(color: c.border.withValues(alpha: 0.6)),
         ),
       ),
     );
   }
 
   Widget _buildEmptyView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppTheme.surface2,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: const Icon(Icons.shopping_bag_outlined,
-                color: AppTheme.textMuted, size: 36),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _selectedFilter == 'all'
-                ? 'Chưa có đơn hàng nào'
-                : 'Không có đơn hàng ${_statusTabs.firstWhere((t) => t['id'] == _selectedFilter)['label']!.toLowerCase()}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Khám phá các sản phẩm thời trang và đặt hàng ngay!',
-            style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () => context.go('/products'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            child: const Text('Mua sắm ngay',
-                style: TextStyle(fontWeight: FontWeight.w800)),
-          ),
-        ],
-      ),
+    return StatusView(
+      icon: Icons.shopping_bag_outlined,
+      title: _selectedFilter == 'all'
+          ? 'Chưa có đơn hàng nào'
+          : 'Không có đơn hàng ${_statusTabs.firstWhere((t) => t['id'] == _selectedFilter)['label']!.toLowerCase()}',
+      message: 'Khám phá các sản phẩm thời trang và đặt hàng ngay!',
+      actionLabel: 'Mua sắm ngay',
+      onAction: () => context.go('/products'),
     );
   }
 
   Widget _buildErrorView(String msg) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline_rounded,
-                color: AppTheme.error, size: 48),
-            const SizedBox(height: 12),
-            Text(msg,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppTheme.textSecondary)),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () => context
-                  .read<OrderProvider>()
-                  .fetchMyOrders(forceRefresh: true),
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Thử lại'),
-            ),
-          ],
-        ),
-      ),
+    return StatusView(
+      icon: Icons.error_outline_rounded,
+      title: 'Không tải được đơn hàng',
+      message: msg,
+      danger: true,
+      actionLabel: 'Thử lại',
+      onAction: () =>
+          context.read<OrderProvider>().fetchMyOrders(forceRefresh: true),
     );
   }
 }
