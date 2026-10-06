@@ -41,6 +41,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   /// Chọn ảnh từ thư viện hoặc chụp ảnh mới
   Future<void> _pickAvatar() async {
+    // Lấy provider TRƯỚC mọi await để không dùng BuildContext qua async gap.
+    final auth = context.read<AuthProvider>();
+
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: AppTheme.surface,
@@ -99,9 +102,9 @@ class _ProfilePageState extends State<ProfilePage> {
       }
 
       setState(() => _uploadingAvatar = true);
-      final ok = await context
-          .read<AuthProvider>()
-          .uploadAvatar('data:image/jpeg;base64,${base64Encode(bytes)}');
+      final ok = await auth.uploadAvatar(
+        'data:image/jpeg;base64,${base64Encode(bytes)}',
+      );
 
       if (!mounted) return;
       _snack(ok ? 'Đã cập nhật ảnh đại diện' : 'Không thể tải ảnh lên',

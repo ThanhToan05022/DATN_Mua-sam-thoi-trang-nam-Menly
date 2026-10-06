@@ -276,8 +276,8 @@ class Order {
         j['created_at']?.toString() ??
         DateTime.now().toIso8601String();
     final history = rawHistory
-        .where((e) => e is Map)
-        .map((e) => OrderStatusHistoryEntry.fromJson(e as Map<String, dynamic>))
+        .whereType<Map<String, dynamic>>()
+        .map(OrderStatusHistoryEntry.fromJson)
         .where((e) => e.status.isNotEmpty)
         .toList();
 
@@ -308,14 +308,14 @@ class Order {
       note: j['note']?.toString(),
       createdAt: createdAt,
       items: rawItems
-          .where((e) => e is Map)
-          .map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
+          .whereType<Map<String, dynamic>>()
+          .map(OrderItem.fromJson)
           .toList(),
       statusHistory: history,
       timeline: rawTimeline.isNotEmpty
           ? rawTimeline
-              .where((e) => e is Map)
-              .map((e) => OrderTimelineStep.fromJson(e as Map<String, dynamic>))
+              .whereType<Map<String, dynamic>>()
+              .map(OrderTimelineStep.fromJson)
               .toList()
           : null,
     );

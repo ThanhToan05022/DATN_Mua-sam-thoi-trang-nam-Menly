@@ -818,9 +818,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
         'items': items,
         'paymentMethod': _paymentMethod,
         'note': _noteCtrl.text.trim(),
-        'voucherCode': _appliedVoucher?.code,
-        'discountAmount': _discountAmount,
       };
+
+      // Chỉ gửi voucherCode/discountAmount khi có giá trị thật.
+      // Gửi null có thể bị backend từ chối và làm đặt hàng thất bại.
+      final voucherCode = _appliedVoucher?.code;
+      if (voucherCode != null && voucherCode.isNotEmpty) {
+        payload['voucherCode'] = voucherCode;
+        payload['discountAmount'] = _discountAmount;
+      }
 
       if (addressId != null) {
         // Backend tự dựng lại thông tin giao hàng từ địa chỉ đã lưu

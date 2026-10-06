@@ -756,7 +756,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     if (iso.isEmpty) return '';
     final dt = DateTime.tryParse(iso);
     if (dt == null) return '';
-    final two = (int n) => n.toString().padLeft(2, '0');
+    String two(int n) => n.toString().padLeft(2, '0');
     return '${two(dt.day)}/${two(dt.month)}/${dt.year} '
         '${two(dt.hour)}:${two(dt.minute)}';
   }

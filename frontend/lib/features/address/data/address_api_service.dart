@@ -79,7 +79,7 @@ class AddressApiService {
         'district': address.district,
         'ward': address.ward,
         'detailAddress': address.detailAddress,
-        if (isDefault != null) 'isDefault': isDefault,
+        'isDefault': ?isDefault,
       });
       return ShippingAddress.fromJson(_extractData(response.data));
     } on DioException catch (e) {
