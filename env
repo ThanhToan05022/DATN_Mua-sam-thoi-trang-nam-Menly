@@ -1,0 +1,16 @@
+PORT=5000
+NODE_ENV=development
+
+# Supabase Credentials
+SUPABASE_URL=https://lihnuaymkrwmgdspnkux.supabase.co
+SUPABASE_ANON_KEY=sb_publishable_QayBQo9iCpdtkNg16h6EFQ_m_DD8vXs
+# Dien Service Role Key tu Supabase Dashboard -> Project Settings -> API vao day
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpaG51YXlta3J3bWdkc3Bua3V4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDQ5MTM1MiwiZXhwIjoyMTA2MDY3MzUyfQ.kaj5f16RJxEcIRP56C8OmzOFzdEn4PdRbim_PSwFOzI
+# Dat la false sau khi da chay migration tren Supabase de ket noi truc tiep vao Database
+USE_MOCK_DB=false
+
+# VNPay Sandbox Credentials
+VNPAY_TMN_CODE=L81XQGK2
+VNPAY_HASH_SECRET=LE4G72IM5WOCTF3ODYO782HFKRE8WGD5
+VNPAY_PAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNPAY_RETURN_URL=http://localhost:5000/api/v1/payments/vnpay/return
