@@ -21,6 +21,8 @@ class Review {
     String name = 'Khách hàng';
     if (j['user'] is Map) {
       name = j['user']['name'] ?? j['user']['full_name'] ?? j['user']['email'] ?? 'Khách hàng';
+    } else if (j['profiles'] is Map) {
+      name = j['profiles']['full_name'] ?? j['profiles']['name'] ?? j['profiles']['email'] ?? 'Khách hàng';
     }
     return Review(
       id: j['id'] ?? '',

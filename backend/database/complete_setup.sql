@@ -536,3 +536,74 @@ begin
     is_locked = false;
 end $$;
 
+-- ==============================================================================
+-- BẢNG: REVIEWS (ĐÁNH GIÁ SẢN PHẨM)
+-- ==============================================================================
+
+create table if not exists public.reviews (
+    id uuid default gen_random_uuid() primary key,
+    user_id uuid not null references public.profiles(id) on delete cascade,
+    product_id uuid not null references public.products(id) on delete cascade,
+    rating smallint not null check (rating >= 1 and rating <= 5),
+    comment text,
+    created_at timestamptz not null default now(),
+    unique(user_id, product_id)
+);
+
+create index if not exists idx_reviews_product_id on public.reviews(product_id);
+create index if not exists idx_reviews_user_id on public.reviews(user_id);
+
+alter table public.reviews enable row level security;
+
+drop policy if exists "reviews are viewable by everyone" on public.reviews;
+create policy "reviews are viewable by everyone" on public.reviews
+    for select using (true);
+
+drop policy if exists "users can insert their own reviews" on public.reviews;
+create policy "users can insert their own reviews" on public.reviews
+    for insert with check (auth.uid() = user_id);
+
+drop policy if exists "users can update their own reviews" on public.reviews;
+create policy "users can update their own reviews" on public.reviews
+    for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "users can delete their own reviews" on public.reviews;
+create policy "users can delete their own reviews" on public.reviews
+    for delete using (auth.uid() = user_id);
+
+drop policy if exists "admins can delete any review" on public.reviews;
+create policy "admins can delete any review" on public.reviews
+    for delete using (
+        coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false)
+        or exists (
+            select 1 from public.profiles
+            where id = auth.uid() and role = 'admin'
+        )
+    );
+
+grant all on table public.reviews to anon, authenticated, service_role;
+
+create or replace view public.users as 
+    select * from public.profiles;
+
+grant all on public.users to anon, authenticated, service_role;
+
+create or replace function public.update_reviews_product_rating()
+returns trigger language plpgsql security definer as $$
+declare
+    v_prod_id uuid;
+begin
+    v_prod_id := case when tg_op = 'DELETE' then old.product_id else new.product_id end;
+    update public.products
+    set rating_avg = round((select coalesce(avg(rating), 0) from public.reviews where product_id = v_prod_id), 2),
+        rating_count = (select count(*) from public.reviews where product_id = v_prod_id)
+    where id = v_prod_id;
+    return null;
+end;
+$$;
+
+drop trigger if exists on_review_change on public.reviews;
+create trigger on_review_change
+after insert or update or delete on public.reviews
+for each row execute function public.update_reviews_product_rating();
+

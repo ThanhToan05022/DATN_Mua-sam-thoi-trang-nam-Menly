@@ -56,3 +56,23 @@ CREATE POLICY "Admins can delete any review" ON public.reviews
 
 -- 5. Cấp quyền truy cập bảng cho các role Supabase
 GRANT ALL ON TABLE public.reviews TO anon, authenticated, service_role;
+
+-- 6. Trigger tự động tính lại rating_avg & rating_count cho sản phẩm
+CREATE OR REPLACE FUNCTION public.update_reviews_product_rating()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_prod_id UUID;
+BEGIN
+    v_prod_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.product_id ELSE NEW.product_id END;
+    UPDATE public.products
+    SET rating_avg = ROUND((SELECT COALESCE(AVG(rating), 0) FROM public.reviews WHERE product_id = v_prod_id), 2),
+        rating_count = (SELECT COUNT(*) FROM public.reviews WHERE product_id = v_prod_id)
+    WHERE id = v_prod_id;
+    RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_review_change ON public.reviews;
+CREATE TRIGGER on_review_change
+AFTER INSERT OR UPDATE OR DELETE ON public.reviews
+FOR EACH ROW EXECUTE FUNCTION public.update_reviews_product_rating();
