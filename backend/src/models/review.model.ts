@@ -32,7 +32,7 @@ export class ReviewModel implements IReviewModel {
         rating: input.rating,
         comment: input.comment || null,
       })
-      .select('*, user:users(id, email, full_name)')
+      .select('*, user:profiles(id, email, full_name)')
       .single();
 
     if (error) {
@@ -53,7 +53,7 @@ export class ReviewModel implements IReviewModel {
 
     const { data, error, count } = await this.supabase
       .from('reviews')
-      .select('*, user:users(id, email, full_name)', { count: 'exact' })
+      .select('*, user:profiles(id, email, full_name)', { count: 'exact' })
       .eq('product_id', productId)
       .order('created_at', { ascending: false })
       .range(from, to);
@@ -79,7 +79,7 @@ export class ReviewModel implements IReviewModel {
 
     const { data, error, count } = await this.supabase
       .from('reviews')
-      .select('*, user:users(id, email, full_name)', { count: 'exact' })
+      .select('*, user:profiles(id, email, full_name)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to);
 
@@ -133,6 +133,7 @@ export class ReviewModel implements IReviewModel {
   }
 
   private mapToReview(row: any): Review {
+    const userObj = row.user || row.profiles;
     return {
       id: row.id,
       userId: row.user_id,
@@ -140,10 +141,10 @@ export class ReviewModel implements IReviewModel {
       rating: row.rating,
       comment: row.comment,
       createdAt: row.created_at,
-      user: row.user ? {
-        id: row.user.id,
-        email: row.user.email,
-        name: row.user.full_name || row.user.email,
+      user: userObj ? {
+        id: userObj.id,
+        email: userObj.email,
+        name: userObj.full_name || userObj.name || userObj.email,
       } : undefined,
     };
   }
