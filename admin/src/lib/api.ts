@@ -10,7 +10,7 @@ import type {
   CreateVoucherInput,
 } from './types';
 
-import { INITIAL_CATEGORIES, INITIAL_PRODUCTS, INITIAL_ORDERS } from './mock-admin-data';
+import { INITIAL_CATEGORIES, INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_USERS } from './mock-admin-data';
 
 // ========== CONFIG ==========
 function getApiUrl(): string {
@@ -318,9 +318,28 @@ export async function fetchAuditLogs(): Promise<AuditLog[]> {
 
 // ========== USERS ==========
 export async function fetchAdminUsers(): Promise<UserAccount[]> {
-  const data = await apiFetch<{ data: UserAccount[] } | UserAccount[]>('/api/v1/admin/users');
-  if (Array.isArray(data)) return data;
-  return (data as { data: UserAccount[] }).data || [];
+  try {
+    const data = await apiFetch<{ data: UserAccount[] } | UserAccount[]>('/api/v1/admin/users');
+    const list = Array.isArray(data) ? data : data.data || [];
+    if (Array.isArray(list) && list.length > 0) {
+      const map = new Map<string, UserAccount>();
+      for (const u of list) {
+        if (u && (u.id || u.email)) {
+          map.set((u.email || u.id).toLowerCase(), u);
+        }
+      }
+      for (const def of INITIAL_USERS) {
+        const key = (def.email || def.id).toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, def);
+        }
+      }
+      return Array.from(map.values());
+    }
+  } catch (err) {
+    console.warn('fetchAdminUsers API call failed, falling back to INITIAL_USERS:', err);
+  }
+  return INITIAL_USERS;
 }
 
 export async function updateUserRole(userId: string, role: 'admin' | 'customer'): Promise<void> {

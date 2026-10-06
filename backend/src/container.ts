@@ -30,13 +30,14 @@ import { ReviewViewModel } from "./viewmodels/review.viewmodel.js";
 import { ProductSummary, Category, Page } from "./models/types.js";
 
 // 1. Supabase Client
+const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY;
 const useSupabase =
   process.env.NODE_ENV !== "test" &&
   !env.USE_MOCK_DB &&
-  Boolean(env.SUPABASE_SERVICE_ROLE_KEY);
+  Boolean(supabaseKey);
 
 export const supabase = useSupabase
-  ? createSupabaseClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+  ? createSupabaseClient(env.SUPABASE_URL, supabaseKey)
   : undefined;
 
 

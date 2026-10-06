@@ -1,4 +1,4 @@
-import type { Product, Category, Order } from './types';
+import type { Product, Category, Order, UserAccount } from './types';
 
 export const INITIAL_CATEGORIES: Category[] = [
   {
@@ -205,4 +205,106 @@ export const INITIAL_PRODUCTS: Product[] = RAW_PRODUCTS.map((p, idx) => {
 });
 
 export const INITIAL_ORDERS: Order[] = [];
+ 
+export const INITIAL_USERS: UserAccount[] = [
+  {
+    id: '0f444d92-322c-4956-b452-0c5c10950508',
+    name: 'Admin MenShop',
+    fullName: 'Admin MenShop',
+    email: 'admin@gmail.com',
+    role: 'admin',
+    phone: '0988888888',
+    isLocked: false,
+    isActive: true,
+    createdAt: '2026-01-01T08:00:00.000Z',
+  },
+  {
+    id: 'd604e122-aa50-47e0-ac44-10a2473af6ce',
+    name: 'Nhân Viên Vận Hành MenShop',
+    fullName: 'Nhân Viên Vận Hành MenShop',
+    email: 'staff@gmail.com',
+    role: 'staff',
+    phone: '0977777777',
+    isLocked: false,
+    isActive: true,
+    createdAt: '2026-01-02T08:00:00.000Z',
+  },
+  {
+    id: '7fb74d58-4155-4ab5-8124-cb0b5bb6651d',
+    name: 'Nguyễn Văn Khách',
+    fullName: 'Nguyễn Văn Khách',
+    email: 'customer@gmail.com',
+    role: 'customer',
+    phone: '0912345678',
+    isLocked: false,
+    isActive: true,
+    createdAt: '2026-01-10T10:15:00.000Z',
+  },
+  {
+    id: '00000000-0000-0000-0000-000000000002',
+    name: 'Trần Thị Lan',
+    fullName: 'Trần Thị Lan',
+    email: 'customer@menshop.vn',
+    role: 'customer',
+    phone: '0933221144',
+    isLocked: false,
+    isActive: true,
+    createdAt: '2026-01-15T14:20:00.000Z',
+  },
+  {
+    id: 'c0000001-0000-0000-0000-000000000003',
+    name: 'Lê Quang Huy',
+    fullName: 'Lê Quang Huy',
+    email: 'quanghuy@gmail.com',
+    role: 'customer',
+    phone: '0965432198',
+    isLocked: false,
+    isActive: true,
+    createdAt: '2026-02-01T09:30:00.000Z',
+  },
+  {
+    id: 'c0000001-0000-0000-0000-000000000004',
+    name: 'Phạm Thanh Hà',
+    fullName: 'Phạm Thanh Hà',
+    email: 'thanhha@gmail.com',
+    role: 'customer',
+    phone: '0909123888',
+    isLocked: false,
+    isActive: true,
+    createdAt: '2026-02-12T16:45:00.000Z',
+  },
+  {
+    id: 'c0000001-0000-0000-0000-000000000005',
+    name: 'Hoàng Văn Nam',
+    fullName: 'Hoàng Văn Nam',
+    email: 'hoangnam@gmail.com',
+    role: 'customer',
+    phone: '0981122334',
+    isLocked: true,
+    isActive: true,
+    createdAt: '2026-02-20T11:00:00.000Z',
+  },
+  {
+    id: 'c0000001-0000-0000-0000-000000000006',
+    name: 'Ngô Minh Châu',
+    fullName: 'Ngô Minh Châu',
+    email: 'minhchau@gmail.com',
+    role: 'customer',
+    phone: '0978999111',
+    isLocked: false,
+    isActive: true,
+    createdAt: '2026-03-01T13:10:00.000Z',
+  },
+  {
+    id: 's0000001-0000-0000-0000-000000000001',
+    name: 'Gian Hàng Menly Store',
+    fullName: 'Gian Hàng Menly Store',
+    email: 'seller@menshop.vn',
+    role: 'seller',
+    phone: '0901234567',
+    isLocked: false,
+    isActive: true,
+    createdAt: '2026-01-05T08:00:00.000Z',
+  },
+];
 

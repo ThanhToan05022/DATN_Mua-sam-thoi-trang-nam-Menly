@@ -18,7 +18,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'staff' | 'user'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'staff' | 'user' | 'seller'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'locked'>('all');
 
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -82,12 +82,13 @@ export default function UsersPage() {
       userRole === roleFilter ||
       (roleFilter === 'user' && (userRole === 'user' || userRole === 'customer')) ||
       (roleFilter === 'staff' && userRole === 'staff') ||
-      (roleFilter === 'admin' && userRole === 'admin');
+      (roleFilter === 'admin' && userRole === 'admin') ||
+      (roleFilter === 'seller' && userRole === 'seller');
 
     const matchesStatus =
       statusFilter === 'all' ||
       (statusFilter === 'active' && !u.isLocked) ||
-      (statusFilter === 'locked' && u.isLocked);
+      (statusFilter === 'locked' && Boolean(u.isLocked));
     return matchesSearch && matchesRole && matchesStatus;
   });
 
@@ -128,13 +129,14 @@ export default function UsersPage() {
             </div>
             <select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value as 'all' | 'admin' | 'staff' | 'user')}
+              onChange={(e) => setRoleFilter(e.target.value as 'all' | 'admin' | 'staff' | 'user' | 'seller')}
               className="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300"
             >
               <option value="all">Tất cả vai trò</option>
               <option value="admin">Quản trị viên (Admin)</option>
               <option value="staff">Nhân viên (Staff)</option>
               <option value="user">Khách hàng (User)</option>
+              <option value="seller">Người bán (Seller)</option>
             </select>
             <select
               value={statusFilter}

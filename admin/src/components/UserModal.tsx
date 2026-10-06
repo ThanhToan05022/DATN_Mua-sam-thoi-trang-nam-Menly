@@ -11,7 +11,7 @@ interface AddUserModalProps {
     name: string;
     email: string;
     password?: string;
-    role: 'admin' | 'user';
+    role: 'admin' | 'staff' | 'user' | 'seller';
   }) => Promise<void>;
 }
 
@@ -19,7 +19,7 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('123456');
-  const [role, setRole] = useState<'admin' | 'user'>('user');
+  const [role, setRole] = useState<'admin' | 'staff' | 'user' | 'seller'>('user');
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -84,11 +84,13 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
           <label className="block text-slate-300 font-semibold mb-1">Vai trò</label>
           <select
             value={role}
-            onChange={(e) => setRole(e.target.value as 'admin' | 'user')}
+            onChange={(e) => setRole(e.target.value as 'admin' | 'staff' | 'user' | 'seller')}
             className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs"
           >
-            <option value="user">User / Khách hàng</option>
-            <option value="admin">Admin / Quản trị viên</option>
+            <option value="user">Khách hàng (User)</option>
+            <option value="staff">Nhân viên (Staff)</option>
+            <option value="seller">Người bán (Seller)</option>
+            <option value="admin">Quản trị viên (Admin)</option>
           </select>
         </div>
         <div className="flex justify-end gap-2 pt-2">
@@ -116,13 +118,13 @@ interface EditUserModalProps {
   user: UserAccount | null;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (id: string, data: { name?: string; email?: string; role?: 'admin' | 'user' }) => Promise<void>;
+  onSubmit: (id: string, data: { name?: string; email?: string; role?: 'admin' | 'staff' | 'user' | 'seller' }) => Promise<void>;
 }
 
 export function EditUserModal({ user, isOpen, onClose, onSubmit }: EditUserModalProps) {
   const [name, setName] = useState(user?.name || user?.fullName || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [role, setRole] = useState<'admin' | 'user'>(user?.role === 'admin' ? 'admin' : 'user');
+  const [role, setRole] = useState<'admin' | 'staff' | 'user' | 'seller'>('user');
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -130,7 +132,7 @@ export function EditUserModal({ user, isOpen, onClose, onSubmit }: EditUserModal
     if (user) {
       setName(user.name || user.fullName || '');
       setEmail(user.email);
-      setRole(user.role === 'admin' ? 'admin' : 'user');
+      setRole((user.role as any) || 'user');
     }
   }, [user]);
 
@@ -182,11 +184,13 @@ export function EditUserModal({ user, isOpen, onClose, onSubmit }: EditUserModal
           <select
             value={role}
             disabled={user?.email === 'admin@gmail.com'}
-            onChange={(e) => setRole(e.target.value as 'admin' | 'user')}
+            onChange={(e) => setRole(e.target.value as 'admin' | 'staff' | 'user' | 'seller')}
             className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs disabled:opacity-50"
           >
-            <option value="user">User / Khách hàng</option>
-            <option value="admin">Admin / Quản trị viên</option>
+            <option value="user">Khách hàng (User)</option>
+            <option value="staff">Nhân viên (Staff)</option>
+            <option value="seller">Người bán (Seller)</option>
+            <option value="admin">Quản trị viên (Admin)</option>
           </select>
         </div>
         <div className="flex justify-end gap-2 pt-2">

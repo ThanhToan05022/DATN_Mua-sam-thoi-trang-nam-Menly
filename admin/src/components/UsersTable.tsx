@@ -65,11 +65,19 @@ export function UsersTable({
                           ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
                           : u.role === 'staff'
                           ? 'bg-purple-500/15 text-purple-400 border-purple-500/30'
+                          : u.role === 'seller'
+                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                           : 'bg-blue-500/15 text-blue-400 border-blue-500/30'
                       }`}
                     >
                       {u.role === 'admin' ? <Shield className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
-                      {u.role === 'admin' ? 'Quản trị viên (Admin)' : u.role === 'staff' ? 'Nhân viên (Staff)' : 'Khách hàng (User)'}
+                      {u.role === 'admin'
+                        ? 'Quản trị viên (Admin)'
+                        : u.role === 'staff'
+                        ? 'Nhân viên (Staff)'
+                        : u.role === 'seller'
+                        ? 'Người bán (Seller)'
+                        : 'Khách hàng (User)'}
                     </span>
                   </td>
 

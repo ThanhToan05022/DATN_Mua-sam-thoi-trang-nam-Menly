@@ -71,7 +71,7 @@ export function createApp(): Express {
   app.use('/api/v1/payments', paymentRoutes(requireAuth, viewModels.payment));
   app.use(
     '/api/v1/admin/users',
-    userRoutes(requireAuth, requireAdmin, viewModels.user)
+    userRoutes(requireAuth, requireAdmin, viewModels.user, requireStaffOrAdmin)
   );
   app.use(
     '/api/v1/admin/vouchers',

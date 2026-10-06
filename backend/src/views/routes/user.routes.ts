@@ -4,12 +4,13 @@ import { UserViewModel } from '../../viewmodels/user.viewmodel.js';
 export const userRoutes = (
   requireAuth: RequestHandler,
   requireAdmin: RequestHandler,
-  userVm: UserViewModel
+  userVm: UserViewModel,
+  requireStaffOrAdmin: RequestHandler = requireAdmin
 ): Router => {
   const router = Router();
-  router.use(requireAuth, requireAdmin);
+  router.use(requireAuth);
 
-  router.get('/', async (req, res, next) => {
+  router.get('/', requireStaffOrAdmin, async (req, res, next) => {
     try {
       const users = await userVm.listUsers();
       res.json(users);
@@ -18,7 +19,7 @@ export const userRoutes = (
     }
   });
 
-  router.get('/:id', async (req, res, next) => {
+  router.get('/:id', requireStaffOrAdmin, async (req, res, next) => {
     try {
       const user = await userVm.getUserById(req.params.id);
       res.json(user);
@@ -27,7 +28,7 @@ export const userRoutes = (
     }
   });
 
-  router.post('/', async (req, res, next) => {
+  router.post('/', requireAdmin, async (req, res, next) => {
     try {
       const user = await userVm.createUser(req.body);
       res.status(201).json(user);
@@ -36,7 +37,7 @@ export const userRoutes = (
     }
   });
 
-  router.put('/:id', async (req, res, next) => {
+  router.put('/:id', requireAdmin, async (req, res, next) => {
     try {
       const user = await userVm.updateUser(req.params.id, req.body);
       res.json(user);
@@ -45,7 +46,7 @@ export const userRoutes = (
     }
   });
 
-  router.delete('/:id', async (req, res, next) => {
+  router.delete('/:id', requireAdmin, async (req, res, next) => {
     try {
       const result = await userVm.deleteUser(req.params.id);
       res.json(result);
@@ -54,7 +55,7 @@ export const userRoutes = (
     }
   });
 
-  router.patch('/:id/lock', async (req, res, next) => {
+  router.patch('/:id/lock', requireAdmin, async (req, res, next) => {
     try {
       const isLocked = Boolean(req.body.isLocked);
       const user = await userVm.toggleLockUser(req.params.id, isLocked);
