@@ -36,6 +36,7 @@ export interface IAuthModel {
   resetLockout(identifier: string): void;
   verifyCredentials(email: string, pass: string): Promise<AuthSession | null>;
   register(name: string, email: string, pass: string, role?: 'admin' | 'staff' | 'user'): Promise<AuthSession>;
+  sendPasswordResetEmail(email: string): Promise<void>;
 }
 
 export class AuthModel implements IAuthModel {
@@ -352,5 +353,20 @@ export class AuthModel implements IAuthModel {
     }
 
     return null;
+  }
+
+  async sendPasswordResetEmail(email: string): Promise<void> {
+    const normalized = email.toLowerCase().trim();
+    if (this.supabase) {
+      const { error } = await this.supabase.auth.resetPasswordForEmail(normalized, {
+        redirectTo: 'http://localhost:5000/api/v1/auth/reset-password-callback',
+      });
+      if (error) {
+        throw new AppError('RESET_PASSWORD_FAILED', 500, error.message);
+      }
+    } else {
+      // Mock logic for in-memory
+      console.log(`[Mock] Send password reset email to ${normalized}`);
+    }
   }
 }

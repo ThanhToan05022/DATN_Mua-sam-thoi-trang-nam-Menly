@@ -22,6 +22,7 @@ import { userRoutes } from './routes/user.routes.js';
 import { profileRoutes } from './routes/profile.routes.js';
 import { wishlistRoutes } from './routes/wishlist.routes.js';
 import { voucherRoutes, adminVoucherRoutes } from './routes/voucher.routes.js';
+import { reviewRoutes } from './routes/review.routes.js';
 
 import { viewModels, supabase, userModel } from '../container.js';
 
@@ -78,11 +79,12 @@ export function createApp(): Express {
   );
   app.use(
     '/api/v1/admin',
-    adminRoutes(requireAuth, requireAdmin, viewModels.admin, viewModels.product, requireStaffOrAdmin)
+    adminRoutes(requireAuth, requireAdmin, viewModels.admin, viewModels.product, requireStaffOrAdmin, viewModels.review)
   );
   app.use('/api/v1/profile', profileRoutes(requireAuth, supabase, userModel));
   app.use('/api/v1/wishlist', wishlistRoutes(requireAuth, viewModels.wishlist));
   app.use('/api/v1/vouchers', voucherRoutes(viewModels.voucher));
+  app.use('/api/v1/reviews', reviewRoutes(requireAuth, viewModels.review));
 
   app.use('/api/v1/auth', authRoutes(viewModels.auth, requireAuth, requireAdmin, userModel));
 

@@ -25,3 +25,7 @@ export const registerSchema = z.object({
 export const unlockSchema = z.object({
   email: z.string().email('Email không hợp lệ').trim().toLowerCase(),
 });
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Email không hợp lệ').trim().toLowerCase(),
+});

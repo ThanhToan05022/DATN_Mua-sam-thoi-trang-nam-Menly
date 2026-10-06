@@ -9,6 +9,7 @@ import {
   Boxes,
   Users,
   Ticket,
+  Star,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
   { href: '/orders', label: 'Đơn hàng', icon: ShoppingBag },
   { href: '/inventory', label: 'Kho hàng & Tồn', icon: Boxes },
   { href: '/vouchers', label: 'Mã giảm giá', icon: Ticket },
+  { href: '/reviews', label: 'Đánh giá', icon: Star },
   { href: '/users', label: 'Quản lý Người dùng', icon: Users },
 ];
 

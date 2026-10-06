@@ -378,6 +378,18 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Quên mật khẩu - gửi email đặt lại mật khẩu
+  Future<bool> forgotPassword(String email) async {
+    try {
+      final res = await _dioClient.dio.post('/auth/forgot-password', data: {
+        'email': email.trim().toLowerCase(),
+      });
+      return res.statusCode == 200 || res.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Đăng xuất an toàn
   Future<void> logout() async {
     try {

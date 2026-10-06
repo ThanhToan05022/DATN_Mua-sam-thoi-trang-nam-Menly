@@ -213,3 +213,17 @@ export interface Voucher {
   isActive: boolean;
   createdAt?: string;
 }
+
+export interface Review {
+  id: string;
+  userId: string;
+  productId: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+  };
+}

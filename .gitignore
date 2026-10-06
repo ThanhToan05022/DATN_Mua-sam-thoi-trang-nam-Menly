@@ -258,6 +258,7 @@ dist
 [Ii]nclude
 [Ll]ib
 !frontend/lib/
+!admin/src/lib/
 [Ll]ib64
 [Ll]ocal
 [Ss]cripts

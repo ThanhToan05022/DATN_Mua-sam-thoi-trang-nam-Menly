@@ -1,6 +1,7 @@
 import { Router, RequestHandler } from 'express';
 import { AdminViewModel } from '../../viewmodels/admin.viewmodel.js';
 import { ProductViewModel } from '../../viewmodels/product.viewmodel.js';
+import { ReviewViewModel } from '../../viewmodels/review.viewmodel.js';
 import {
   adjustStockSchema,
   updateOrderStatusSchema,
@@ -14,7 +15,8 @@ export const adminRoutes = (
   requireAdmin: RequestHandler,
   adminVm: AdminViewModel,
   productVm: ProductViewModel,
-  requireStaffOrAdmin: RequestHandler = requireAdmin
+  requireStaffOrAdmin: RequestHandler = requireAdmin,
+  reviewVm?: ReviewViewModel
 ): Router => {
   const router = Router();
   router.use(requireAuth);
@@ -116,6 +118,35 @@ export const adminRoutes = (
       const body = setUserRoleSchema.parse(req.body);
       await adminVm.setUserRole(req.params.id, body.role);
       res.json({ message: 'Gán vai trò thành công' });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Reviews management (Staff & Admin có thể xem, Admin có thể xóa)
+  router.get('/reviews', requireStaffOrAdmin, async (req, res, next) => {
+    try {
+      if (!reviewVm) {
+        res.json({ items: [], pageInfo: { limit: 20, hasNext: false, nextCursor: null } });
+        return;
+      }
+      const limit = Number(req.query.limit) || 20;
+      const page = Number(req.query.page) || 1;
+      const result = await reviewVm.getAdminReviews(limit, page);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.delete('/reviews/:id', requireAdmin, async (req, res, next) => {
+    try {
+      if (!reviewVm) {
+        res.json({ message: 'Đã xóa đánh giá vi phạm' });
+        return;
+      }
+      await reviewVm.adminDeleteReview(req.params.id, req.user!.id);
+      res.json({ message: 'Đã xóa đánh giá vi phạm' });
     } catch (err) {
       next(err);
     }

@@ -119,6 +119,101 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  void _showForgotPasswordDialog() {
+    final emailCtrl = TextEditingController(text: _emailCtrl.text.trim());
+    final c = AppColors.of(context);
+    bool sending = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: c.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Quên mật khẩu',
+            style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Nhập địa chỉ email đăng ký để nhận liên kết khôi phục mật khẩu:',
+                style: TextStyle(color: c.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: c.surfaceVariant,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: c.border),
+                ),
+                child: TextField(
+                  controller: emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  style: TextStyle(color: c.textPrimary, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'example@email.com',
+                    hintStyle: TextStyle(color: c.textMuted, fontSize: 14),
+                    prefixIcon: Icon(Icons.email_outlined, color: c.textMuted, size: 20),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: sending ? null : () => Navigator.pop(ctx),
+              child: Text('Hủy', style: TextStyle(color: c.textMuted)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: c.secondary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: sending
+                  ? null
+                  : () async {
+                      final email = emailCtrl.text.trim();
+                      if (email.isEmpty || !email.contains('@')) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Vui lòng nhập email hợp lệ')),
+                        );
+                        return;
+                      }
+                      setDialogState(() => sending = true);
+                      final success = await context.read<AuthProvider>().forgotPassword(email);
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                  ? 'Đã gửi liên kết khôi phục tới $email'
+                                  : 'Không thể gửi email. Vui lòng thử lại sau',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+              child: sending
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                    )
+                  : const Text('Gửi yêu cầu', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
@@ -274,15 +369,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const Spacer(),
                   GestureDetector(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Vui lòng liên hệ quản trị viên để khôi phục mật khẩu',
-                          ),
-                        ),
-                      );
-                    },
+                    onTap: _showForgotPasswordDialog,
                     child: Text(
                       'Quên mật khẩu?',
                       style: TextStyle(

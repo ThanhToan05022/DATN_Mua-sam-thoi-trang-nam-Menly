@@ -117,4 +117,8 @@ export class AuthViewModel {
     const normalized = email.toLowerCase().trim();
     return this.authModel.register(name, normalized, pass, role);
   }
+
+  async forgotPassword(email: string): Promise<void> {
+    await this.authModel.sendPasswordResetEmail(email);
+  }
 }

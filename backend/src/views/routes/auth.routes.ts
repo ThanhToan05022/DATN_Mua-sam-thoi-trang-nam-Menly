@@ -1,6 +1,6 @@
 import { Router, RequestHandler } from 'express';
 import { AuthViewModel } from '../../viewmodels/auth.viewmodel.js';
-import { loginSchema, registerSchema, unlockSchema } from '../../presentation/http/schemas/auth.schema.js';
+import { loginSchema, registerSchema, unlockSchema, forgotPasswordSchema } from '../../presentation/http/schemas/auth.schema.js';
 import { AppError } from '../../models/types.js';
 import { IUserModel } from '../../models/user.model.js';
 
@@ -108,6 +108,17 @@ export const authRoutes = (
 
   router.post('/change-password', ...authMiddleware, changePasswordHandler);
   router.put('/change-password', ...authMiddleware, changePasswordHandler);
+
+  // 6. Forgot password
+  router.post('/forgot-password', async (req, res, next) => {
+    try {
+      const body = forgotPasswordSchema.parse(req.body);
+      await authVm.forgotPassword(body.email);
+      res.json({ message: `Đã gửi email khôi phục mật khẩu đến ${body.email}` });
+    } catch (err) {
+      next(err);
+    }
+  });
 
   return router;
 };
