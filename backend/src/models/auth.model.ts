@@ -288,8 +288,8 @@ export class AuthModel implements IAuthModel {
       }
     }
 
-    // 2. Check with UserModel if in local/test mode
-    if (this.userModel) {
+    // 2. Check with UserModel only when using the in-memory development database.
+    if (!this.supabase && this.userModel) {
       const user = await this.userModel.getUserByEmail(normalized);
       if (user) {
         if (user.isLocked) {
@@ -319,6 +319,10 @@ export class AuthModel implements IAuthModel {
         }
       }
     }
+
+    // A configured Supabase instance must authenticate against Supabase and return its JWT.
+    // Do not issue mock tokens for a real database connection.
+    if (this.supabase) return null;
 
     // 3. Fallback credentials for testing or offline dev
     if (normalized === 'admin@gmail.com' && (pass === '123456' || pass === 'Admin@123456')) {

@@ -1,4 +1,4 @@
-import { Router, RequestHandler } from 'express';
+import { Router, Request, RequestHandler } from 'express';
 import { AdminViewModel } from '../../viewmodels/admin.viewmodel.js';
 import { ProductViewModel } from '../../viewmodels/product.viewmodel.js';
 import { ReviewViewModel } from '../../viewmodels/review.viewmodel.js';
@@ -9,6 +9,9 @@ import {
   adminOrdersQuerySchema,
 } from '../../presentation/http/schemas/admin.schema.js';
 import { createProductSchema, listProductsSchema, productIdParamSchema } from '../../presentation/http/schemas/product.schema.js';
+
+const getAccessToken = (req: Request): string | undefined =>
+  req.headers.authorization?.replace(/^Bearer\s+/i, '');
 
 export const adminRoutes = (
   requireAuth: RequestHandler,
@@ -25,8 +28,23 @@ export const adminRoutes = (
   router.get('/products', requireStaffOrAdmin, async (req, res, next) => {
     try {
       const query = listProductsSchema.parse(req.query);
-      const page = await productVm.listProducts({ ...query, includeInactive: true });
+      const page = await productVm.listProducts({
+        ...query,
+        includeInactive: true,
+        accessToken: getAccessToken(req),
+      });
       res.json(page);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Admin xem được cả sản phẩm đang ẩn để chỉnh sửa và kiểm tra tồn kho.
+  router.get('/products/:id', requireStaffOrAdmin, async (req, res, next) => {
+    try {
+      const { id } = productIdParamSchema.parse(req.params);
+      const product = await productVm.getAdminProductDetail(id, getAccessToken(req));
+      res.json(product);
     } catch (err) {
       next(err);
     }
@@ -36,7 +54,7 @@ export const adminRoutes = (
   router.post('/products', requireStaffOrAdmin, async (req, res, next) => {
     try {
       const body = createProductSchema.parse(req.body);
-      const product = await productVm.createProduct(body);
+      const product = await productVm.createProduct(body, getAccessToken(req));
       res.status(201).json(product);
     } catch (err) {
       next(err);
@@ -47,7 +65,7 @@ export const adminRoutes = (
   router.put('/products/:id', requireStaffOrAdmin, async (req, res, next) => {
     try {
       const { id } = productIdParamSchema.parse(req.params);
-      const updated = await productVm.updateProduct(id, req.body);
+      const updated = await productVm.updateProduct(id, req.body, getAccessToken(req));
       res.json(updated);
     } catch (err) {
       next(err);

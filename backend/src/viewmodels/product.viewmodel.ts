@@ -12,6 +12,7 @@ export interface ProductListInput {
   minPrice?: number;
   maxPrice?: number;
   includeInactive?: boolean;
+  accessToken?: string;
 }
 
 export class ProductViewModel {
@@ -44,7 +45,7 @@ export class ProductViewModel {
       minPrice: i.minPrice,
       maxPrice: i.maxPrice,
       includeInactive: i.includeInactive,
-    });
+    }, i.accessToken);
 
     const hasNext = rows.length > i.limit;
     const items = hasNext ? rows.slice(0, i.limit) : rows;
@@ -80,14 +81,22 @@ export class ProductViewModel {
     return product;
   }
 
-  async updateProduct(id: string, data: Partial<ProductDetail>): Promise<ProductDetail> {
-    const updated = await this.model.update(id, data);
+  async getAdminProductDetail(id: string, accessToken?: string): Promise<ProductDetail> {
+    const product = await this.model.findById(id, accessToken);
+    if (!product) {
+      throw new AppError('NOT_FOUND', 404, 'Sản phẩm không tồn tại');
+    }
+    return product;
+  }
+
+  async updateProduct(id: string, data: Partial<ProductDetail>, accessToken?: string): Promise<ProductDetail> {
+    const updated = await this.model.update(id, data, accessToken);
     this.cache.clear();
     return updated;
   }
 
-  async createProduct(data: CreateProductInput): Promise<ProductDetail> {
-    const created = await this.model.create(data);
+  async createProduct(data: CreateProductInput, accessToken?: string): Promise<ProductDetail> {
+    const created = await this.model.create(data, accessToken);
     this.cache.clear();
     return created;
   }

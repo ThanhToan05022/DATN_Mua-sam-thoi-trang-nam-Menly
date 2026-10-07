@@ -1,6 +1,8 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ProductSummary, ProductDetail, Cursor, AppError } from './types.js';
 import { MOCK_PRODUCTS } from './mock-data.js';
+import { env } from '../config/env.js';
+import { createSupabaseClient } from '../infrastructure/supabase/client.js';
 
 export type ProductSort = 'newest' | 'price_asc' | 'price_desc';
 
@@ -27,10 +29,10 @@ export interface CreateProductInput {
 }
 
 export interface IProductModel {
-  list(q: ProductQuery): Promise<ProductSummary[]>;
-  findById(id: string): Promise<ProductDetail | null>;
-  create(data: CreateProductInput): Promise<ProductDetail>;
-  update(id: string, data: Partial<ProductDetail>): Promise<ProductDetail>;
+  list(q: ProductQuery, accessToken?: string): Promise<ProductSummary[]>;
+  findById(id: string, accessToken?: string): Promise<ProductDetail | null>;
+  create(data: CreateProductInput, accessToken?: string): Promise<ProductDetail>;
+  update(id: string, data: Partial<ProductDetail>, accessToken?: string): Promise<ProductDetail>;
 }
 
 const SORTS = {
@@ -59,10 +61,20 @@ export class ProductModel implements IProductModel {
 
   constructor(private readonly supabase?: SupabaseClient) {}
 
-  async list(q: ProductQuery): Promise<ProductSummary[]> {
-    if (this.supabase) {
+  private getRequestClient(accessToken?: string): SupabaseClient | undefined {
+    if (!this.supabase || !accessToken || env.SUPABASE_SERVICE_ROLE_KEY) {
+      return this.supabase;
+    }
+
+    // Dùng JWT của phiên admin để Supabase áp dụng quyền RLS tương ứng.
+    return createSupabaseClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, accessToken);
+  }
+
+  async list(q: ProductQuery, accessToken?: string): Promise<ProductSummary[]> {
+    const supabase = this.getRequestClient(accessToken);
+    if (supabase) {
       const { col, asc } = SORTS[q.sort];
-      let qb = this.supabase
+      let qb = supabase
         .from('products')
         .select(`
           id, category_id, name, slug, price, thumbnail_url, created_at,
@@ -147,9 +159,10 @@ export class ProductModel implements IProductModel {
     }));
   }
 
-  async findById(id: string): Promise<ProductDetail | null> {
-    if (this.supabase) {
-      const { data, error } = await this.supabase
+  async findById(id: string, accessToken?: string): Promise<ProductDetail | null> {
+    const supabase = this.getRequestClient(accessToken);
+    if (supabase) {
+      const { data, error } = await supabase
         .from('products')
         .select(`
           id, category_id, name, slug, description, price, thumbnail_url, is_active, created_at,
@@ -195,10 +208,11 @@ export class ProductModel implements IProductModel {
     return this.inMemoryProducts.find((p) => p.id === id) || null;
   }
 
-  async create(data: CreateProductInput): Promise<ProductDetail> {
-    if (this.supabase) {
+  async create(data: CreateProductInput, accessToken?: string): Promise<ProductDetail> {
+    const supabase = this.getRequestClient(accessToken);
+    if (supabase) {
       const slug = toSlug(data.name);
-      const { data: prod, error } = await this.supabase
+      const { data: prod, error } = await supabase
         .from('products')
         .insert({
           category_id: data.categoryId,
@@ -218,7 +232,7 @@ export class ProductModel implements IProductModel {
       }
 
       const rollbackProduct = async () => {
-        await this.supabase!.from('products').delete().eq('id', prod.id);
+        await supabase.from('products').delete().eq('id', prod.id);
       };
 
       const varRows = data.variants.map((v) => ({
@@ -228,7 +242,7 @@ export class ProductModel implements IProductModel {
           sku: v.sku || toSlug(`${slug}-${v.size}-${v.color}`),
           stock: v.stock,
         }));
-      const { data: createdVars, error: variantsError } = await this.supabase
+      const { data: createdVars, error: variantsError } = await supabase
         .from('product_variants')
         .insert(varRows)
         .select();
@@ -240,7 +254,7 @@ export class ProductModel implements IProductModel {
       const imageUrls = [...new Set(data.images.filter(Boolean))];
       let createdImages: any[] = [];
       if (imageUrls.length > 0) {
-        const { data: images, error: imagesError } = await this.supabase
+        const { data: images, error: imagesError } = await supabase
           .from('product_images')
           .insert(imageUrls.map((url, sortOrder) => ({ product_id: prod.id, url, sort_order: sortOrder })))
           .select();
@@ -301,8 +315,9 @@ export class ProductModel implements IProductModel {
     return item;
   }
 
-  async update(id: string, data: Partial<ProductDetail>): Promise<ProductDetail> {
-    if (this.supabase) {
+  async update(id: string, data: Partial<ProductDetail>, accessToken?: string): Promise<ProductDetail> {
+    const supabase = this.getRequestClient(accessToken);
+    if (supabase) {
       try {
         const patch: Record<string, unknown> = {};
         if (data.name !== undefined) patch.name = data.name;
@@ -314,11 +329,11 @@ export class ProductModel implements IProductModel {
         if (data.isActive !== undefined) patch.is_active = data.isActive;
 
         if (Object.keys(patch).length > 0) {
-          const { error } = await this.supabase.from('products').update(patch).eq('id', id);
+          const { error } = await supabase.from('products').update(patch).eq('id', id);
           if (error) throw new AppError('DB_PRODUCT_UPDATE_FAILED', 400, error.message);
         }
 
-        const updated = await this.findById(id);
+        const updated = await this.findById(id, accessToken);
         if (updated) return updated;
       } catch (err) {
         if (err instanceof AppError) throw err;
@@ -330,7 +345,7 @@ export class ProductModel implements IProductModel {
       this.inMemoryProducts[idx] = { ...this.inMemoryProducts[idx], ...data };
       return this.inMemoryProducts[idx];
     }
-    const current = await this.findById(id);
+    const current = await this.findById(id, accessToken);
     if (!current) throw new AppError('NOT_FOUND', 404, 'Sản phẩm không tồn tại');
     return { ...current, ...data };
   }
