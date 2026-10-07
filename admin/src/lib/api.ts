@@ -192,6 +192,29 @@ export async function updateProduct(
   }
 }
 
+export interface CreateProductInput {
+  categoryId: string;
+  name: string;
+  description: string | null;
+  price: number;
+  thumbnailUrl: string | null;
+  images: string[];
+  isActive: boolean;
+  variants: Array<{
+    size: string;
+    color: string;
+    sku: string;
+    stock: number;
+  }>;
+}
+
+export async function createAdminProduct(payload: CreateProductInput): Promise<Product> {
+  return apiFetch<Product>('/api/v1/admin/products', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 // ========== ORDERS ==========
 export async function fetchAdminOrders(
   params?: { status?: string } | OrderStatus | string

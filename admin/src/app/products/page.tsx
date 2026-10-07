@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Header } from '../../components/Header';
 import { ProductDetailModal } from '../../components/ProductDetailModal';
+import { CreateProductModal } from '../../components/CreateProductModal';
 import { CompactVariantDisplay } from '../../components/CompactVariantDisplay';
 import { fetchAdminProducts, fetchCategories, fetchProductDetail, updateProduct } from '../../lib/api';
 import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../../lib/mock-admin-data';
@@ -18,6 +19,7 @@ import {
   CheckCircle2,
   FolderOpen,
   Boxes,
+  Plus,
 } from 'lucide-react';
 
 type SortOption =
@@ -37,6 +39,7 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState<SortOption>('category');
   const [viewMode, setViewMode] = useState<'grouped' | 'table'>('grouped');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
   async function loadData() {
@@ -213,6 +216,16 @@ export default function ProductsPage() {
       />
 
       <div className="p-8 space-y-6 flex-1">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-lg shadow-amber-950/20 transition-colors hover:bg-amber-400"
+          >
+            <Plus className="h-4 w-4" /> Thêm sản phẩm
+          </button>
+        </div>
+
         {/* Toast Notification */}
         {notification && (
           <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg animate-fade-in">
@@ -565,6 +578,17 @@ export default function ProductsPage() {
         onClose={() => setSelectedProduct(null)}
         onStockAdjusted={loadData}
       />
+      {showCreateModal && (
+        <CreateProductModal
+          categories={categories}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={(product) => {
+            setProducts((current) => [product, ...current.filter((item) => item.id !== product.id)]);
+            setNotification(`Đã tạo sản phẩm “${product.name}” thành công.`);
+            setTimeout(() => setNotification(null), 3500);
+          }}
+        />
+      )}
     </div>
   );
 }

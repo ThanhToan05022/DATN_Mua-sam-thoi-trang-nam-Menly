@@ -8,7 +8,7 @@ import {
   setUserRoleSchema,
   adminOrdersQuerySchema,
 } from '../../presentation/http/schemas/admin.schema.js';
-import { listProductsSchema, productIdParamSchema } from '../../presentation/http/schemas/product.schema.js';
+import { createProductSchema, listProductsSchema, productIdParamSchema } from '../../presentation/http/schemas/product.schema.js';
 
 export const adminRoutes = (
   requireAuth: RequestHandler,
@@ -27,6 +27,17 @@ export const adminRoutes = (
       const query = listProductsSchema.parse(req.query);
       const page = await productVm.listProducts({ ...query, includeInactive: true });
       res.json(page);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Nhân viên và Admin tạo sản phẩm cùng biến thể và danh sách URL ảnh.
+  router.post('/products', requireStaffOrAdmin, async (req, res, next) => {
+    try {
+      const body = createProductSchema.parse(req.body);
+      const product = await productVm.createProduct(body);
+      res.status(201).json(product);
     } catch (err) {
       next(err);
     }

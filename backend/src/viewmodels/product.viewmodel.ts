@@ -1,5 +1,5 @@
 import { ProductSummary, ProductDetail, Page, AppError } from '../models/types.js';
-import { IProductModel, ProductSort } from '../models/product.model.js';
+import { CreateProductInput, IProductModel, ProductSort } from '../models/product.model.js';
 import { Cache } from '../application/ports/cache.js';
 import { decodeCursor, encodeCursor, normalizeSearch } from './base.viewmodel.js';
 
@@ -84,5 +84,11 @@ export class ProductViewModel {
     const updated = await this.model.update(id, data);
     this.cache.clear();
     return updated;
+  }
+
+  async createProduct(data: CreateProductInput): Promise<ProductDetail> {
+    const created = await this.model.create(data);
+    this.cache.clear();
+    return created;
   }
 }

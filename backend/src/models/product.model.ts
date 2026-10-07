@@ -15,10 +15,21 @@ export interface ProductQuery {
   includeInactive?: boolean;
 }
 
+export interface CreateProductInput {
+  categoryId: string;
+  name: string;
+  description: string | null;
+  price: number;
+  thumbnailUrl: string | null;
+  isActive: boolean;
+  variants: Array<Pick<ProductDetail['variants'][number], 'size' | 'color' | 'sku' | 'stock'>>;
+  images: string[];
+}
+
 export interface IProductModel {
   list(q: ProductQuery): Promise<ProductSummary[]>;
   findById(id: string): Promise<ProductDetail | null>;
-  create(data: Omit<ProductDetail, 'id' | 'createdAt'>): Promise<ProductDetail>;
+  create(data: CreateProductInput): Promise<ProductDetail>;
   update(id: string, data: Partial<ProductDetail>): Promise<ProductDetail>;
 }
 
@@ -27,6 +38,21 @@ const SORTS = {
   price_asc: { col: 'price', asc: true },
   price_desc: { col: 'price', asc: false },
 } as const;
+
+const toSlug = (value: string): string => value
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[đĐ]/g, 'd')
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/(^-|-$)/g, '');
+
+const normalizeSearchText = (value: string): string => value
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[đĐ]/g, 'd')
+  .toLowerCase()
+  .trim();
 
 export class ProductModel implements IProductModel {
   private inMemoryProducts: ProductDetail[] = [...MOCK_PRODUCTS];
@@ -169,9 +195,9 @@ export class ProductModel implements IProductModel {
     return this.inMemoryProducts.find((p) => p.id === id) || null;
   }
 
-  async create(data: Omit<ProductDetail, 'id' | 'createdAt'>): Promise<ProductDetail> {
+  async create(data: CreateProductInput): Promise<ProductDetail> {
     if (this.supabase) {
-      const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const slug = toSlug(data.name);
       const { data: prod, error } = await this.supabase
         .from('products')
         .insert({
@@ -181,6 +207,7 @@ export class ProductModel implements IProductModel {
           description: data.description || '',
           price: data.price,
           thumbnail_url: data.thumbnailUrl,
+          search_text: normalizeSearchText(`${slug} ${data.name} ${data.description || ''}`),
           is_active: data.isActive ?? true,
         })
         .select()
@@ -190,17 +217,38 @@ export class ProductModel implements IProductModel {
         throw new AppError('DB_PRODUCT_CREATE_FAILED', 400, error?.message || 'Không thể tạo sản phẩm');
       }
 
-      let variants: any[] = [];
-      if (data.variants && data.variants.length > 0) {
-        const varRows = data.variants.map((v) => ({
+      const rollbackProduct = async () => {
+        await this.supabase!.from('products').delete().eq('id', prod.id);
+      };
+
+      const varRows = data.variants.map((v) => ({
           product_id: prod.id,
           size: v.size,
           color: v.color,
-          sku: v.sku || `${slug}-${v.size}-${v.color}`,
-          stock: v.stock ?? 50,
+          sku: v.sku || toSlug(`${slug}-${v.size}-${v.color}`),
+          stock: v.stock,
         }));
-        const { data: createdVars } = await this.supabase.from('product_variants').insert(varRows).select();
-        variants = createdVars || [];
+      const { data: createdVars, error: variantsError } = await this.supabase
+        .from('product_variants')
+        .insert(varRows)
+        .select();
+      if (variantsError) {
+        await rollbackProduct();
+        throw new AppError('DB_PRODUCT_VARIANTS_CREATE_FAILED', 400, variantsError.message);
+      }
+
+      const imageUrls = [...new Set(data.images.filter(Boolean))];
+      let createdImages: any[] = [];
+      if (imageUrls.length > 0) {
+        const { data: images, error: imagesError } = await this.supabase
+          .from('product_images')
+          .insert(imageUrls.map((url, sortOrder) => ({ product_id: prod.id, url, sort_order: sortOrder })))
+          .select();
+        if (imagesError) {
+          await rollbackProduct();
+          throw new AppError('DB_PRODUCT_IMAGES_CREATE_FAILED', 400, imagesError.message);
+        }
+        createdImages = images || [];
       }
 
       return {
@@ -213,7 +261,7 @@ export class ProductModel implements IProductModel {
         thumbnailUrl: prod.thumbnail_url,
         isActive: prod.is_active,
         createdAt: prod.created_at,
-        variants: variants.map((v: any) => ({
+        variants: (createdVars || []).map((v: any) => ({
           id: v.id,
           productId: v.product_id,
           size: v.size,
@@ -221,13 +269,32 @@ export class ProductModel implements IProductModel {
           sku: v.sku,
           stock: v.stock,
         })),
-        images: [],
+        images: createdImages.map((image: any) => ({
+          id: image.id,
+          productId: image.product_id,
+          url: image.url,
+          sortOrder: image.sort_order,
+        })),
       };
     }
 
+    const id = `p-${Date.now()}`;
     const item: ProductDetail = {
-      ...data,
-      id: `p-${Date.now()}`,
+      categoryId: data.categoryId,
+      name: data.name,
+      slug: toSlug(data.name),
+      description: data.description,
+      price: data.price,
+      thumbnailUrl: data.thumbnailUrl,
+      isActive: data.isActive,
+      variants: data.variants.map((variant, index) => ({
+        ...variant,
+        id: `${id}-v${index + 1}`,
+        productId: id,
+        sku: variant.sku || toSlug(`${id}-${variant.size}-${variant.color}`),
+      })),
+      images: data.images.map((url, index) => ({ id: `${id}-i${index + 1}`, productId: id, url, sortOrder: index })),
+      id,
       createdAt: new Date().toISOString(),
     };
     this.inMemoryProducts.push(item);
