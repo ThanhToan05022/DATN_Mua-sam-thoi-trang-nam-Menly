@@ -6,7 +6,6 @@ import { ProductDetailModal } from '../../components/ProductDetailModal';
 import { CreateProductModal } from '../../components/CreateProductModal';
 import { CompactVariantDisplay } from '../../components/CompactVariantDisplay';
 import { fetchAdminProducts, fetchCategories, fetchProductDetail, updateProduct } from '../../lib/api';
-import { INITIAL_PRODUCTS, INITIAL_CATEGORIES } from '../../lib/mock-admin-data';
 import { Product, Category } from '../../lib/types';
 import {
   Search,
@@ -31,9 +30,10 @@ type SortOption =
   | 'stock_asc';
 
 export default function ProductsPage() {
-  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('category');
@@ -44,22 +44,18 @@ export default function ProductsPage() {
 
   async function loadData() {
     setLoading(true);
+    setLoadError(null);
     try {
       const [cats, prods] = await Promise.all([
         fetchCategories(),
         fetchAdminProducts({ limit: 400 }),
       ]);
-      if (cats && cats.length > 0) {
-        setCategories(cats);
-      }
-      if (prods && prods.items && prods.items.length > 0) {
-        setProducts(prods.items);
-      } else {
-        setProducts(INITIAL_PRODUCTS);
-      }
-    } catch {
-      setCategories(INITIAL_CATEGORIES);
-      setProducts(INITIAL_PRODUCTS);
+      setCategories(cats);
+      setProducts(prods.items);
+    } catch (error) {
+      setCategories([]);
+      setProducts([]);
+      setLoadError(error instanceof Error ? error.message : 'Không tải được dữ liệu từ backend.');
     } finally {
       setLoading(false);
     }
@@ -113,31 +109,31 @@ export default function ProductsPage() {
       const cat = categories.find((c) => c.slug === 'ao-khoac-blazer');
       if (cat) return cat;
     }
-    return categories[0] || INITIAL_CATEGORIES[0];
+    return categories[0] || {
+      id: p.categoryId || 'uncategorized',
+      name: 'Chưa phân loại',
+      slug: 'chua-phan-loai',
+      sortOrder: Number.MAX_SAFE_INTEGER,
+    };
   };
 
   // Change product category directly and persist to backend
   const handleUpdateProductCategory = async (productId: string, newCategoryId: string) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id === productId) {
-          return { ...p, categoryId: newCategoryId };
-        }
-        return p;
-      })
-    );
     const targetCat = categories.find((c) => c.id === newCategoryId);
     try {
       await updateProduct(productId, { categoryId: newCategoryId });
+      setProducts((prev) =>
+        prev.map((p) => p.id === productId ? { ...p, categoryId: newCategoryId } : p)
+      );
       setNotification(`Đã chuyển sản phẩm sang danh mục "${targetCat?.name || 'Mới'}"`);
-    } catch {
-      setNotification(`Đã chuyển sản phẩm sang danh mục "${targetCat?.name || 'Mới'}"`);
+    } catch (error) {
+      setNotification(error instanceof Error ? error.message : 'Không cập nhật được sản phẩm.');
     }
     setTimeout(() => setNotification(null), 3000);
   };
 
   const getProductStock = (p: Product) => {
-    return p.variants?.reduce((sum, v) => sum + v.stock, 0) || 100;
+    return p.variants?.reduce((sum, v) => sum + v.stock, 0) || 0;
   };
 
   // Filter products by selected category and search query
@@ -219,8 +215,10 @@ export default function ProductsPage() {
         <div className="flex justify-end">
           <button
             type="button"
+            disabled={categories.length === 0}
+            title={categories.length === 0 ? 'Backend chưa có danh mục để gán cho sản phẩm' : undefined}
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-lg shadow-amber-950/20 transition-colors hover:bg-amber-400"
+            className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-lg shadow-amber-950/20 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Plus className="h-4 w-4" /> Thêm sản phẩm
           </button>
@@ -231,6 +229,15 @@ export default function ProductsPage() {
           <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg animate-fade-in">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             <span className="font-semibold">{notification}</span>
+          </div>
+        )}
+
+        {loadError && (
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+            <span>{loadError}</span>
+            <button type="button" onClick={loadData} className="shrink-0 font-semibold underline">
+              Thử tải lại
+            </button>
           </div>
         )}
 

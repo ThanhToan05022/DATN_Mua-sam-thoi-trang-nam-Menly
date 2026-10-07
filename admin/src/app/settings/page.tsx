@@ -44,7 +44,7 @@ function PulseDot({ online }: { online: boolean | null }) {
 
 export default function SettingsPage() {
   const [apiUrl, setApiUrl] = useState('http://localhost:5000');
-  const [adminToken, setAdminToken] = useState('Bearer mock-admin-123');
+  const [hasAdminToken, setHasAdminToken] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pings, setPings] = useState<PingEntry[]>([]);
   const [uptime, setUptime] = useState(0);
@@ -78,7 +78,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setApiUrl(localStorage.getItem('menshop_api_url') || 'http://localhost:5000');
-      setAdminToken(localStorage.getItem('menshop_admin_token') || 'Bearer mock-admin-123');
+      setHasAdminToken(Boolean(localStorage.getItem('menshop_admin_token')));
     }
     checkAll();
   }, [checkAll]);
@@ -96,7 +96,6 @@ export default function SettingsPage() {
     e.preventDefault();
     if (typeof window !== 'undefined') {
       localStorage.setItem('menshop_api_url', apiUrl);
-      localStorage.setItem('menshop_admin_token', adminToken);
     }
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -270,10 +269,10 @@ export default function SettingsPage() {
               </div>
             </div>
             <div>
-              <label className="text-slate-400 font-semibold block mb-1.5">Admin Token</label>
+              <label className="text-slate-400 font-semibold block mb-1.5">Phiên đăng nhập quản trị</label>
               <input
-                type="text" value={adminToken} onChange={(e) => setAdminToken(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-amber-500 transition-colors"
+                type="text" value={hasAdminToken ? 'Đã có access token từ phiên đăng nhập' : 'Chưa đăng nhập'} readOnly
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-400 text-xs cursor-not-allowed"
               />
             </div>
           </div>

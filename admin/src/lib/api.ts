@@ -10,43 +10,7 @@ import type {
   CreateVoucherInput,
 } from './types';
 
-import { INITIAL_CATEGORIES, INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_USERS } from './mock-admin-data';
-
-// ========== CONFIG ==========
-function getApiUrl(): string {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('menshop_api_url') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-}
-
-function getAdminToken(): string {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('menshop_admin_token');
-    if (token && token.trim()) {
-      return token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-    }
-  }
-  return 'Bearer mock-admin-123';
-}
-
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const BASE = getApiUrl();
-  const token = getAdminToken();
-  const res = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: token,
-      ...(options?.headers || {}),
-    },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: { message: res.statusText } }));
-    throw new Error(err?.error?.message || `HTTP ${res.status}`);
-  }
-  return res.json();
-}
+import { adminFetch as apiFetch, getApiUrl } from './api-client';
 
 // ========== HEALTH ==========
 export async function checkServerHealth(): Promise<boolean> {
@@ -61,15 +25,11 @@ export async function checkServerHealth(): Promise<boolean> {
 
 // ========== CATEGORIES ==========
 export async function fetchCategories(): Promise<Category[]> {
-  try {
-    const data = await apiFetch<{ data: Category[] } | Category[]>('/api/v1/categories');
-    if (Array.isArray(data) && data.length > 0) return data;
-    const list = (data as { data: Category[] })?.data;
-    if (Array.isArray(list) && list.length > 0) return list;
-    return INITIAL_CATEGORIES;
-  } catch {
-    return INITIAL_CATEGORIES;
-  }
+  const data = await apiFetch<Category[] | { data?: Category[]; items?: Category[] }>(
+    '/api/v1/categories',
+  );
+  if (Array.isArray(data)) return data;
+  return data.data || data.items || [];
 }
 
 // ========== PRODUCTS ==========
@@ -82,114 +42,36 @@ export async function fetchAdminProducts(params?: {
   const query = new URLSearchParams();
   const effectiveLimit = params?.limit || 400;
   query.set('limit', String(effectiveLimit));
-  if (params?.page) query.set('page', String(params.page));
   if (params?.categoryId) query.set('categoryId', params.categoryId);
   if (params?.search) {
     query.set('q', params.search);
-    query.set('search', params.search);
   }
 
   const qs = query.toString() ? `?${query.toString()}` : '';
 
-  // 1. First attempt: Authenticated admin products route
-  try {
-    const data = await apiFetch<any>(`/api/v1/admin/products${qs}`);
-    if (Array.isArray(data) && data.length > 0) {
-      return { items: data, total: data.length };
-    }
-    const items: Product[] = data?.items || data?.data || [];
-    const total: number =
-      data?.total || data?.pagination?.total || data?.pageInfo?.total || items.length;
-    if (items.length > 0) {
-      return { items, total };
-    }
-  } catch {
-    // Admin route failed (auth or network) - proceed to fallback
-  }
+  const data = await apiFetch<
+    { items?: Product[]; data?: Product[]; total?: number; pageInfo?: { total?: number } } | Product[]
+  >(`/api/v1/admin/products${qs}`);
+  if (Array.isArray(data)) return { items: data, total: data.length };
 
-  // 2. Second attempt: Public products route (does not require auth)
-  try {
-    const data = await apiFetch<any>(`/api/v1/products${qs}`);
-    if (Array.isArray(data) && data.length > 0) {
-      return { items: data, total: data.length };
-    }
-    const items: Product[] = data?.items || data?.data || [];
-    const total: number =
-      data?.total || data?.pagination?.total || data?.pageInfo?.total || items.length;
-    if (items.length > 0) {
-      return { items, total };
-    }
-  } catch {
-    // Public route also failed (server offline)
-  }
-
-  // 3. Third attempt: Full 125-product catalog fallback with client-side filters
-  let filtered = [...INITIAL_PRODUCTS];
-  if (params?.categoryId && params.categoryId !== 'all') {
-    const targetCat = params.categoryId.toLowerCase();
-    filtered = filtered.filter(
-      (p) =>
-        p.categoryId.toLowerCase() === targetCat ||
-        p.categoryId === params.categoryId
-    );
-  }
-  if (params?.search && params.search.trim()) {
-    const q = params.search.toLowerCase().trim();
-    filtered = filtered.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.slug.toLowerCase().includes(q) ||
-        p.id.toLowerCase().includes(q)
-    );
-  }
-  return { items: filtered, total: filtered.length };
+  const items = data.items || data.data || [];
+  return { items, total: data.total ?? data.pageInfo?.total ?? items.length };
 }
 
 export async function fetchProductDetail(id: string): Promise<Product | null> {
-  try {
-    const data = await apiFetch<{ data: Product } | Product>(`/api/v1/products/${id}`);
-    if (data && 'data' in data && (data as { data: Product }).data) {
-      return (data as { data: Product }).data;
-    }
-    if (data && 'id' in data) {
-      return data as Product;
-    }
-  } catch {
-    // Fallback to local catalog
-  }
-  const found = INITIAL_PRODUCTS.find((p) => p.id === id);
-  return found || null;
+  const data = await apiFetch<{ data?: Product } | Product>(`/api/v1/admin/products/${id}`);
+  if (data && 'data' in data && data.data) return data.data;
+  return data && 'id' in data ? data : null;
 }
 
 export async function updateProduct(
   id: string,
   payload: Partial<Product>
 ): Promise<Product> {
-  try {
-    return await apiFetch<Product>(`/api/v1/admin/products/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    // In offline or fallback mode, apply change locally to INITIAL_PRODUCTS
-    const found = INITIAL_PRODUCTS.find((p) => p.id === id);
-    if (found) {
-      Object.assign(found, payload);
-      return found;
-    }
-    return {
-      id,
-      categoryId: payload.categoryId || 'c0000000-0000-0000-0000-000000000001',
-      name: payload.name || '',
-      slug: payload.slug || '',
-      description: payload.description || null,
-      price: payload.price || 0,
-      thumbnailUrl: payload.thumbnailUrl || null,
-      isActive: payload.isActive ?? true,
-      createdAt: new Date().toISOString(),
-      ...payload,
-    };
-  }
+  return apiFetch<Product>(`/api/v1/admin/products/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
 }
 
 export interface CreateProductInput {
@@ -341,28 +223,8 @@ export async function fetchAuditLogs(): Promise<AuditLog[]> {
 
 // ========== USERS ==========
 export async function fetchAdminUsers(): Promise<UserAccount[]> {
-  try {
-    const data = await apiFetch<{ data: UserAccount[] } | UserAccount[]>('/api/v1/admin/users');
-    const list = Array.isArray(data) ? data : data.data || [];
-    if (Array.isArray(list) && list.length > 0) {
-      const map = new Map<string, UserAccount>();
-      for (const u of list) {
-        if (u && (u.id || u.email)) {
-          map.set((u.email || u.id).toLowerCase(), u);
-        }
-      }
-      for (const def of INITIAL_USERS) {
-        const key = (def.email || def.id).toLowerCase();
-        if (!map.has(key)) {
-          map.set(key, def);
-        }
-      }
-      return Array.from(map.values());
-    }
-  } catch (err) {
-    console.warn('fetchAdminUsers API call failed, falling back to INITIAL_USERS:', err);
-  }
-  return INITIAL_USERS;
+  const data = await apiFetch<{ data?: UserAccount[] } | UserAccount[]>('/api/v1/admin/users');
+  return Array.isArray(data) ? data : data.data || [];
 }
 
 export async function updateUserRole(userId: string, role: 'admin' | 'customer'): Promise<void> {
@@ -388,43 +250,29 @@ export async function loginUser(email: string, password: string): Promise<AuthSe
   const BASE = getApiUrl();
   const normalized = email.toLowerCase().trim();
 
-  try {
-    const res = await fetch(`${BASE}/api/v1/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: normalized, password }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(data?.error?.message || data?.message || 'Đăng nhập thất bại');
-    }
-    return {
-      user: {
-        id: data.user?.id || 'usr-admin-001',
-        email: data.user?.email || normalized,
-        fullName: data.user?.fullName || data.user?.full_name || data.user?.name || 'Admin MenShop',
-        role: data.user?.role || 'admin',
-      },
-      accessToken: data.accessToken || 'mock-admin-token-usr-admin-001',
-    };
-  } catch (err: unknown) {
-    // If backend is unreachable (Failed to fetch) and using default admin credentials, allow offline fallback
-    if (
-      (normalized === 'admin@gmail.com' || normalized === 'admin@menshop.vn') &&
-      (password === '123456' || password === 'Admin@123456')
-    ) {
-      return {
-        user: {
-          id: 'usr-admin-001',
-          email: normalized,
-          fullName: 'Admin MenShop',
-          role: 'admin',
-        },
-        accessToken: 'mock-admin-token-usr-admin-001',
-      };
-    }
-    throw err;
+  const res = await fetch(`${BASE}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: normalized, password }),
+  }).catch(() => {
+    throw new Error(`Không thể kết nối backend tại ${BASE}. Hãy khởi động backend rồi thử lại.`);
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message || data?.message || 'Đăng nhập thất bại');
   }
+  if (!data.accessToken || !data.user?.id || !data.user?.role) {
+    throw new Error('Backend trả về phiên đăng nhập không hợp lệ.');
+  }
+  return {
+    user: {
+      id: data.user.id,
+      email: data.user?.email || normalized,
+      fullName: data.user?.fullName || data.user?.full_name || data.user?.name || 'Admin MenShop',
+      role: data.user.role,
+    },
+    accessToken: data.accessToken,
+  };
 }
 
 export async function getLockoutStatus(email: string): Promise<unknown> {
@@ -435,75 +283,8 @@ export async function getLockoutStatus(email: string): Promise<unknown> {
 
 // ========== VOUCHERS ==========
 export async function fetchAdminVouchers(): Promise<Voucher[]> {
-  try {
-    const data = await apiFetch<any>('/api/v1/admin/vouchers');
-    if (Array.isArray(data)) return data;
-    return data?.data || [];
-  } catch {
-    // Return mock fallback vouchers if offline or not yet seeded
-    return [
-      {
-        id: 'vch-1',
-        code: 'MENLY10',
-        title: 'Giảm 10% tối đa 50k cho đơn từ 200k',
-        discountType: 'percentage',
-        discountValue: 10,
-        minOrderValue: 200000,
-        maxDiscount: 50000,
-        usageLimit: 100,
-        usedCount: 0,
-        startDate: '2026-01-01T00:00:00Z',
-        endDate: '2026-12-31T23:59:59Z',
-        isActive: true,
-        createdAt: '2026-01-01T00:00:00Z',
-      },
-      {
-        id: 'vch-2',
-        code: 'MENLY50K',
-        title: 'Giảm ngay 50.000đ cho đơn từ 300k',
-        discountType: 'fixed_amount',
-        discountValue: 50000,
-        minOrderValue: 300000,
-        maxDiscount: 50000,
-        usageLimit: 50,
-        usedCount: 0,
-        startDate: '2026-01-01T00:00:00Z',
-        endDate: '2026-12-31T23:59:59Z',
-        isActive: true,
-        createdAt: '2026-01-01T00:00:00Z',
-      },
-      {
-        id: 'vch-3',
-        code: 'FREESHIP',
-        title: 'Miễn phí vận chuyển (giảm 30.000đ)',
-        discountType: 'fixed_amount',
-        discountValue: 30000,
-        minOrderValue: 250000,
-        maxDiscount: 30000,
-        usageLimit: 200,
-        usedCount: 0,
-        startDate: '2026-01-01T00:00:00Z',
-        endDate: '2026-12-31T23:59:59Z',
-        isActive: true,
-        createdAt: '2026-01-01T00:00:00Z',
-      },
-      {
-        id: 'vch-4',
-        code: 'VIP100K',
-        title: 'Giảm 100k cho khách VIP đơn từ 800k',
-        discountType: 'fixed_amount',
-        discountValue: 100000,
-        minOrderValue: 800000,
-        maxDiscount: 100000,
-        usageLimit: 30,
-        usedCount: 0,
-        startDate: '2026-01-01T00:00:00Z',
-        endDate: '2026-12-31T23:59:59Z',
-        isActive: true,
-        createdAt: '2026-01-01T00:00:00Z',
-      },
-    ];
-  }
+  const data = await apiFetch<Voucher[] | { data?: Voucher[] }>('/api/v1/admin/vouchers');
+  return Array.isArray(data) ? data : data.data || [];
 }
 
 export async function createVoucher(data: CreateVoucherInput): Promise<Voucher> {
