@@ -74,6 +74,12 @@ export async function updateProduct(
   });
 }
 
+export async function deleteProduct(id: string): Promise<void> {
+  await apiFetch<{ message: string }>(`/api/v1/admin/products/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export interface CreateProductInput {
   categoryId: string;
   name: string;

@@ -5,6 +5,7 @@ import { Header } from '../../components/Header';
 import { ProductDetailModal } from '../../components/ProductDetailModal';
 import { CreateProductModal } from '../../components/CreateProductModal';
 import { EditProductModal } from '../../components/EditProductModal';
+import { DeleteProductModal } from '../../components/DeleteProductModal';
 import { CompactVariantDisplay } from '../../components/CompactVariantDisplay';
 import { fetchAdminProducts, fetchCategories, fetchProductDetail, updateProduct } from '../../lib/api';
 import { Product, Category } from '../../lib/types';
@@ -21,6 +22,8 @@ import {
   Boxes,
   Plus,
   Pencil,
+  RotateCcw,
+  Trash2,
 } from 'lucide-react';
 
 type SortOption =
@@ -40,8 +43,10 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('category');
   const [viewMode, setViewMode] = useState<'grouped' | 'table'>('grouped');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | 'all'>('active');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -135,6 +140,25 @@ export default function ProductsPage() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  const handleToggleProductVisibility = async (product: Product) => {
+    const willShow = product.isActive === false;
+    if (!willShow) {
+      setProductToDelete(product);
+      return;
+    }
+
+    try {
+      await updateProduct(product.id, { isActive: true });
+      setProducts((current) => current.map((item) =>
+        item.id === product.id ? { ...item, isActive: true } : item
+      ));
+      setNotification(`Đã hiển thị lại sản phẩm “${product.name}”.`);
+    } catch (error) {
+      setNotification(error instanceof Error ? error.message : 'Không cập nhật được trạng thái sản phẩm.');
+    }
+    setTimeout(() => setNotification(null), 3500);
+  };
+
   const renderProductActions = (product: Product) => (
     <div className="flex items-center justify-center gap-1.5">
       <button
@@ -169,6 +193,14 @@ export default function ProductsPage() {
       >
         <Pencil className="h-3.5 w-3.5" />
       </button>
+      <button
+        type="button"
+        onClick={() => handleToggleProductVisibility(product)}
+        title={product.isActive === false ? 'Hiển thị lại sản phẩm' : 'Ẩn sản phẩm khỏi ứng dụng'}
+        className={`rounded-lg bg-slate-800 p-1.5 transition-colors ${product.isActive === false ? 'text-emerald-300 hover:bg-emerald-500 hover:text-slate-950' : 'text-rose-300 hover:bg-rose-500 hover:text-white'}`}
+      >
+        {product.isActive === false ? <RotateCcw className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
+      </button>
     </div>
   );
 
@@ -189,9 +221,11 @@ export default function ProductsPage() {
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.id.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchCat && matchSearch;
+      const matchStatus = statusFilter === 'all' ||
+        (statusFilter === 'active' ? p.isActive !== false : p.isActive === false);
+      return matchCat && matchSearch && matchStatus;
     });
-  }, [products, selectedCategory, searchQuery, categories]);
+  }, [products, selectedCategory, searchQuery, categories, statusFilter]);
 
   // Sort products based on selected sort option
   const sortedProducts = useMemo(() => {
@@ -362,6 +396,16 @@ export default function ProductsPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <select
+              aria-label="Lọc trạng thái sản phẩm"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value as 'active' | 'inactive' | 'all')}
+              className="rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-medium text-slate-300 focus:border-amber-500 focus:outline-none"
+            >
+              <option value="active">Đang hiển thị</option>
+              <option value="inactive">Đã ẩn</option>
+              <option value="all">Tất cả trạng thái</option>
+            </select>
             {/* Sort Dropdown */}
             <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
               <ArrowUpDown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
@@ -484,7 +528,10 @@ export default function ProductsPage() {
                               />
                             </td>
                             <td className="py-2.5 px-4 max-w-xs">
-                              <p className="font-semibold text-white line-clamp-1">{p.name}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-white line-clamp-1">{p.name}</p>
+                                {p.isActive === false && <span className="shrink-0 rounded bg-slate-700 px-1.5 py-0.5 text-[9px] font-semibold text-slate-300">Đã ẩn</span>}
+                              </div>
                               <p className="text-[11px] font-mono text-slate-400 line-clamp-1">
                                 {p.slug}
                               </p>
@@ -561,7 +608,10 @@ export default function ProductsPage() {
                           />
                         </td>
                         <td className="py-3 px-4 max-w-xs">
-                          <p className="font-semibold text-white line-clamp-1">{p.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-white line-clamp-1">{p.name}</p>
+                            {p.isActive === false && <span className="shrink-0 rounded bg-slate-700 px-1.5 py-0.5 text-[9px] font-semibold text-slate-300">Đã ẩn</span>}
+                          </div>
                           <p className="text-xs font-mono text-slate-400 line-clamp-1">{p.slug}</p>
                         </td>
                         <td className="py-3 px-4">
@@ -628,6 +678,18 @@ export default function ProductsPage() {
           onSaved={(updatedProduct) => {
             setProducts((current) => current.map((item) => item.id === updatedProduct.id ? updatedProduct : item));
             setNotification(`Đã cập nhật sản phẩm “${updatedProduct.name}”.`);
+            setTimeout(() => setNotification(null), 3500);
+          }}
+        />
+      )}
+      {productToDelete && (
+        <DeleteProductModal
+          product={productToDelete}
+          onClose={() => setProductToDelete(null)}
+          onDeleted={() => {
+            setProducts((current) => current.map((item) => item.id === productToDelete.id ? { ...item, isActive: false } : item));
+            setProductToDelete(null);
+            setNotification(`Đã ẩn sản phẩm “${productToDelete.name}” khỏi ứng dụng.`);
             setTimeout(() => setNotification(null), 3500);
           }}
         />

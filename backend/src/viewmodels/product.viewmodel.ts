@@ -95,6 +95,11 @@ export class ProductViewModel {
     return updated;
   }
 
+  async deleteProduct(id: string, accessToken?: string): Promise<void> {
+    await this.model.update(id, { isActive: false }, accessToken);
+    this.cache.clear();
+  }
+
   async createProduct(data: CreateProductInput, accessToken?: string): Promise<ProductDetail> {
     const created = await this.model.create(data, accessToken);
     this.cache.clear();

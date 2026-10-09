@@ -73,6 +73,17 @@ export const adminRoutes = (
     }
   });
 
+  // Xóa mềm sản phẩm: ẩn khỏi ứng dụng nhưng giữ dữ liệu phục vụ đơn hàng cũ.
+  router.delete('/products/:id', requireStaffOrAdmin, async (req, res, next) => {
+    try {
+      const { id } = productIdParamSchema.parse(req.params);
+      await productVm.deleteProduct(id, getAccessToken(req));
+      res.json({ message: 'Đã ẩn sản phẩm khỏi ứng dụng' });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // Vận hành (Staff & Admin): Điều chỉnh tồn kho thực tế
   router.post('/inventory/adjust', requireStaffOrAdmin, async (req, res, next) => {
     try {
