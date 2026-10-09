@@ -69,7 +69,7 @@ export interface Product {
   description: string | null;
   price: number;
   thumbnailUrl: string | null;
-  isActive: boolean;
+  isActive?: boolean;
   createdAt: string;
   variants?: ProductVariant[];
   images?: ProductImage[];

@@ -8,7 +8,7 @@ import {
   setUserRoleSchema,
   adminOrdersQuerySchema,
 } from '../../presentation/http/schemas/admin.schema.js';
-import { createProductSchema, listProductsSchema, productIdParamSchema } from '../../presentation/http/schemas/product.schema.js';
+import { createProductSchema, listProductsSchema, productIdParamSchema, updateProductSchema } from '../../presentation/http/schemas/product.schema.js';
 
 const getAccessToken = (req: Request): string | undefined =>
   req.headers.authorization?.replace(/^Bearer\s+/i, '');
@@ -65,7 +65,8 @@ export const adminRoutes = (
   router.put('/products/:id', requireStaffOrAdmin, async (req, res, next) => {
     try {
       const { id } = productIdParamSchema.parse(req.params);
-      const updated = await productVm.updateProduct(id, req.body, getAccessToken(req));
+      const body = updateProductSchema.parse(req.body);
+      const updated = await productVm.updateProduct(id, body, getAccessToken(req));
       res.json(updated);
     } catch (err) {
       next(err);

@@ -29,3 +29,14 @@ export const createProductSchema = z.object({
     stock: z.coerce.number().int().min(0).default(0),
   })).min(1).max(100),
 });
+
+export const updateProductSchema = z.object({
+  categoryId: z.string().uuid().optional(),
+  name: z.string().trim().min(2).max(150).optional(),
+  description: z.string().trim().max(5000).nullable().optional(),
+  price: z.coerce.number().int().min(0).optional(),
+  thumbnailUrl: z.string().url().nullable().optional(),
+  isActive: z.boolean().optional(),
+}).refine((data) => Object.keys(data).length > 0, {
+  message: 'Cần có ít nhất một thông tin để cập nhật sản phẩm',
+});

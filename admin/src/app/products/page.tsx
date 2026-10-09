@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Header } from '../../components/Header';
 import { ProductDetailModal } from '../../components/ProductDetailModal';
 import { CreateProductModal } from '../../components/CreateProductModal';
+import { EditProductModal } from '../../components/EditProductModal';
 import { CompactVariantDisplay } from '../../components/CompactVariantDisplay';
 import { fetchAdminProducts, fetchCategories, fetchProductDetail, updateProduct } from '../../lib/api';
 import { Product, Category } from '../../lib/types';
@@ -19,6 +20,7 @@ import {
   FolderOpen,
   Boxes,
   Plus,
+  Pencil,
 } from 'lucide-react';
 
 type SortOption =
@@ -39,6 +41,7 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState<SortOption>('category');
   const [viewMode, setViewMode] = useState<'grouped' | 'table'>('grouped');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -131,6 +134,43 @@ export default function ProductsPage() {
     }
     setTimeout(() => setNotification(null), 3000);
   };
+
+  const renderProductActions = (product: Product) => (
+    <div className="flex items-center justify-center gap-1.5">
+      <button
+        type="button"
+        onClick={async () => {
+          try {
+            const detail = await fetchProductDetail(product.id);
+            setSelectedProduct(detail || product);
+          } catch (error) {
+            setNotification(error instanceof Error ? error.message : 'Không tải được chi tiết sản phẩm.');
+            setTimeout(() => setNotification(null), 3500);
+          }
+        }}
+        title="Xem chi tiết và tồn kho"
+        className="rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition-all hover:bg-amber-500 hover:text-slate-950"
+      >
+        <Eye className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={async () => {
+          try {
+            const detail = await fetchProductDetail(product.id);
+            setEditingProduct(detail || product);
+          } catch (error) {
+            setNotification(error instanceof Error ? error.message : 'Không tải được sản phẩm để sửa.');
+            setTimeout(() => setNotification(null), 3500);
+          }
+        }}
+        title="Sửa sản phẩm"
+        className="rounded-lg bg-slate-800 p-1.5 text-amber-300 transition-colors hover:bg-amber-500 hover:text-slate-950"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
 
   const getProductStock = (p: Product) => {
     return p.variants?.reduce((sum, v) => sum + v.stock, 0) || 0;
@@ -476,15 +516,7 @@ export default function ProductsPage() {
                               </div>
                             </td>
                             <td className="py-2.5 px-4 text-center">
-                              <button
-                                onClick={async () => {
-                                  const detail = await fetchProductDetail(p.id);
-                                  setSelectedProduct(detail || p);
-                                }}
-                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 transition-all font-semibold text-xs flex items-center gap-1 mx-auto cursor-pointer"
-                              >
-                                <Eye className="w-3.5 h-3.5" /> Chi tiết
-                              </button>
+                              {renderProductActions(p)}
                             </td>
                           </tr>
                         );
@@ -559,15 +591,7 @@ export default function ProductsPage() {
                           </div>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <button
-                            onClick={async () => {
-                              const detail = await fetchProductDetail(p.id);
-                              setSelectedProduct(detail || p);
-                            }}
-                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 transition-all font-semibold text-xs flex items-center gap-1 mx-auto cursor-pointer"
-                          >
-                            <Eye className="w-3.5 h-3.5" /> Chi tiết
-                          </button>
+                          {renderProductActions(p)}
                         </td>
                       </tr>
                     );
@@ -592,6 +616,18 @@ export default function ProductsPage() {
           onCreated={(product) => {
             setProducts((current) => [product, ...current.filter((item) => item.id !== product.id)]);
             setNotification(`Đã tạo sản phẩm “${product.name}” thành công.`);
+            setTimeout(() => setNotification(null), 3500);
+          }}
+        />
+      )}
+      {editingProduct && (
+        <EditProductModal
+          product={editingProduct}
+          categories={categories}
+          onClose={() => setEditingProduct(null)}
+          onSaved={(updatedProduct) => {
+            setProducts((current) => current.map((item) => item.id === updatedProduct.id ? updatedProduct : item));
+            setNotification(`Đã cập nhật sản phẩm “${updatedProduct.name}”.`);
             setTimeout(() => setNotification(null), 3500);
           }}
         />

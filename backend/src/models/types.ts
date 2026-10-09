@@ -52,6 +52,7 @@ export interface ProductSummary {
   price: number;
   thumbnailUrl: string | null;
   createdAt: string;
+  isActive?: boolean;
   variants?: ProductVariant[];
 }
 

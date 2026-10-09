@@ -77,7 +77,7 @@ export class ProductModel implements IProductModel {
       let qb = supabase
         .from('products')
         .select(`
-          id, category_id, name, slug, price, thumbnail_url, created_at,
+          id, category_id, name, slug, price, thumbnail_url, created_at, is_active,
           variants:product_variants(id, product_id, size, color, sku, stock)
         `);
 
@@ -106,6 +106,7 @@ export class ProductModel implements IProductModel {
         price: row.price,
         thumbnailUrl: row.thumbnail_url,
         createdAt: row.created_at,
+        isActive: row.is_active,
         variants: (row.variants || []).map((v: any) => ({
           id: v.id,
           productId: v.product_id,
@@ -155,6 +156,7 @@ export class ProductModel implements IProductModel {
       categoryId: p.categoryId,
       thumbnailUrl: p.thumbnailUrl,
       createdAt: p.createdAt,
+      isActive: p.isActive,
       variants: p.variants,
     }));
   }
@@ -320,13 +322,27 @@ export class ProductModel implements IProductModel {
     if (supabase) {
       try {
         const patch: Record<string, unknown> = {};
-        if (data.name !== undefined) patch.name = data.name;
+        if (data.name !== undefined) {
+          patch.name = data.name;
+          patch.slug = toSlug(data.name);
+        }
         if (data.slug !== undefined) patch.slug = data.slug;
         if (data.price !== undefined) patch.price = data.price;
         if (data.categoryId !== undefined) patch.category_id = data.categoryId;
         if (data.description !== undefined) patch.description = data.description;
         if (data.thumbnailUrl !== undefined) patch.thumbnail_url = data.thumbnailUrl;
         if (data.isActive !== undefined) patch.is_active = data.isActive;
+
+        if (data.name !== undefined || data.description !== undefined) {
+          const current = await this.findById(id, accessToken);
+          if (!current) throw new AppError('NOT_FOUND', 404, 'Sản phẩm không tồn tại');
+          const nextName = data.name ?? current.name;
+          const nextSlug = data.slug ?? toSlug(nextName);
+          const nextDescription = data.description !== undefined
+            ? data.description ?? ''
+            : current.description ?? '';
+          patch.search_text = normalizeSearchText(`${nextSlug} ${nextName} ${nextDescription}`);
+        }
 
         if (Object.keys(patch).length > 0) {
           const { error } = await supabase.from('products').update(patch).eq('id', id);
@@ -342,7 +358,11 @@ export class ProductModel implements IProductModel {
 
     const idx = this.inMemoryProducts.findIndex((p) => p.id === id);
     if (idx !== -1) {
-      this.inMemoryProducts[idx] = { ...this.inMemoryProducts[idx], ...data };
+      this.inMemoryProducts[idx] = {
+        ...this.inMemoryProducts[idx],
+        ...data,
+        ...(data.name !== undefined && data.slug === undefined ? { slug: toSlug(data.name) } : {}),
+      };
       return this.inMemoryProducts[idx];
     }
     const current = await this.findById(id, accessToken);
